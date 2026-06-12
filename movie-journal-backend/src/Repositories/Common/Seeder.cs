@@ -22,6 +22,7 @@ namespace MovieJournalBackend.Repositories.Common
             new()
             {
                 FullName = "Ryan Gosling",
+                NormalizedFullName = Helpers.Normalize("Ryan Gosling"),
                 BirthDate = new(1980, 11, 12),
                 Biography = "Canadian film actor. Three-time Oscar nominee for roles in the drama Half Nelson, the musical La La Land and the comedy Barbie, winner of the Golden Globe Award for his role in La La Land. Gosling's band Dead Man's Bones released their self-titled album in 2009.",
                 CreatedByUserId = _adminId,
@@ -31,6 +32,7 @@ namespace MovieJournalBackend.Repositories.Common
             new()
             {
                 FullName = "Emma Stone",
+                NormalizedFullName = Helpers.Normalize("Emma Stone"),
                 BirthDate = new(1988, 11, 6),
                 Biography = "American actress and film producer. Winner of numerous awards, including two Academy Awards, two BAFTA Awards, two Golden Globe Awards, and three Screen Actors Guild Awards. In 2017, Stone was the highest-paid actress according to Forbes magazine, with earnings of $26 million.",
                 CreatedByUserId = _adminId,
@@ -40,6 +42,7 @@ namespace MovieJournalBackend.Repositories.Common
             new()
             {
                 FullName = "Ana de Armas",
+                NormalizedFullName = Helpers.Normalize("Ana de Armas"),
                 BirthDate = new(1988, 04, 30),
                 Biography = "Cuban-Spanish film actress and model. After success in her homeland and in Spain, she moved to Hollywood and became famous for her roles in the films Blade Runner 2049, Knives Out, No Time to Die and Blonde.",
                 CreatedByUserId = _adminId,

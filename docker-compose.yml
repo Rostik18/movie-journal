@@ -23,7 +23,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080      
-      MongoDbSettings__ConnectionString: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017
+      MongoDbSettings__ConnectionString: ${MONGO_CONNECTION_STRING}
       MongoDbSettings__DatabaseName: movie-journal
       JwtSettings__Issuer: movie-journal
       JwtSettings__Audience: movie-journal-clients
