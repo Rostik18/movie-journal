@@ -8,6 +8,15 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddOpenApi();
 builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.AddAuth();
 builder.AddDatabase();
@@ -26,6 +35,8 @@ if (app.Environment.IsDevelopment())
 }
 
 await app.RunOnServiceStart();
+
+app.UseCors("AllowAll");
 
 app.UseMiddleware<ExceptionMiddleware>();
 
