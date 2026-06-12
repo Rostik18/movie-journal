@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using MovieJournalBackend;
 using MovieJournalBackend.Endpoints;
 using MovieJournalBackend.Extensions;
@@ -8,15 +9,15 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddOpenApi();
 builder.Services.AddSignalR();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll", policy =>
+//    {
+//        policy.AllowAnyOrigin()
+//              .AllowAnyMethod()
+//              .AllowAnyHeader();
+//    });
+//});
 
 builder.AddAuth();
 builder.AddDatabase();
@@ -24,6 +25,12 @@ builder.AddRepositories();
 builder.AddServices();
 
 var app = builder.Build();
+
+// For the render.com supports
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -36,7 +43,9 @@ if (app.Environment.IsDevelopment())
 
 await app.RunOnServiceStart();
 
-app.UseCors("AllowAll");
+//app.UseHttpsRedirection();
+
+//app.UseCors("AllowAll");
 
 app.UseMiddleware<ExceptionMiddleware>();
 
