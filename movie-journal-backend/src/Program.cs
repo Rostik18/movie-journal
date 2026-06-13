@@ -9,16 +9,7 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddOpenApi();
 builder.Services.AddSignalR();
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAll", policy =>
-//    {
-//        policy.AllowAnyOrigin()
-//              .AllowAnyMethod()
-//              .AllowAnyHeader();
-//    });
-//});
-
+builder.AddCors();
 builder.AddAuth();
 builder.AddDatabase();
 builder.AddRepositories();
@@ -45,7 +36,7 @@ await app.RunOnServiceStart();
 
 //app.UseHttpsRedirection();
 
-//app.UseCors("AllowAll");
+app.UseCors("DefaultCorsPolicy");
 
 app.UseMiddleware<ExceptionMiddleware>();
 

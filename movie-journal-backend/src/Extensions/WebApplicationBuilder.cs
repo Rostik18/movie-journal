@@ -22,6 +22,34 @@ namespace MovieJournalBackend.Extensions
 {
     public static class WebApplicationBuilderExtensions
     {
+        public static void AddCors(this WebApplicationBuilder builder)
+        {
+            var allowAnyOrigin = builder.Configuration.GetValue<bool>("CorsSettings:AllowAnyOrigin");
+            var corsOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>() ?? [];
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("DefaultCorsPolicy", policy =>
+                {
+                    policy.AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+
+                    if (allowAnyOrigin)
+                    {
+                        policy.SetIsOriginAllowed(_ => true);
+                    }
+                    else
+                    {
+                        if (corsOrigins.Length > 0)
+                        {
+                            policy.WithOrigins(corsOrigins);
+                        }
+                    }
+                });
+            });
+        }
+
         public static void AddAuth(this WebApplicationBuilder builder)
         {
             builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(nameof(JwtSettings)));
