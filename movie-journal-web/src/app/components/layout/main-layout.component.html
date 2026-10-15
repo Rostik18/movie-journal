@@ -1,0 +1,31 @@
+<div class="app-layout">
+    <!-- 1. Верхня смуга (Header) -->
+    <header class="app-header">
+        <div class="header-left">
+            <h2>🎬 Кіножурнал</h2>
+            <span class="server-status">● Сервер активний</span>
+        </div>
+        <div class="header-right">
+            <span class="username">Вітаю, {{ getUserName() }}!</span>
+            <button (click)="logout()" class="logout-btn">Вихід</button>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <!-- 2. Бічне меню (Sidebar) -->
+        <aside class="app-sidebar">
+            <nav>
+                <a routerLink="/watchlist" routerLinkActive="active">⭐ Список перегляду</a>
+                <a routerLink="/movies" routerLinkActive="active">Список фільмів</a>
+                <a routerLink="/actors" routerLinkActive="active">Актори</a>
+                <a routerLink="/favorites" routerLinkActive="active">Улюблені</a>
+                <a routerLink="/profile" routerLinkActive="active">Профіль</a>
+            </nav>
+        </aside>
+
+        <!-- 3. Основний простір для сторінок (Content) -->
+        <main class="app-content">
+            <router-outlet></router-outlet>
+        </main>
+    </div>
+</div>

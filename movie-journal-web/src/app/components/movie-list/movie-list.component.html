@@ -1,0 +1,33 @@
+<div class="movies-container">
+    <div class="header-section">
+        <h2>Каталог фільмів</h2>
+        <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+    </div>
+
+    <div *ngIf="loading()" class="loading">Завантаження фільмів...</div>
+
+    <div class="movies-grid" *ngIf="!loading()">
+        <div *ngFor="let movie of movies()" class="movie-card">
+            <div class="poster-wrapper">
+                <img [src]="movie.posterUrl" [alt]="movie.title" class="poster">
+                <span class="type-badge">{{ mediaTypeLabels[movie.type] || 'Медіа' }}</span>
+            </div>
+            <div class="movie-info">
+                <h3>{{ movie.title }}</h3>
+                <p class="original-title">{{ movie.originalTitle }} ({{ movie.releaseYear }})</p>
+
+                <div class="genres">
+                    <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
+                </div>
+
+                <!-- Група з чотирьох кнопок статусів -->
+                <div class="status-buttons">
+                    <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
+                        (click)="setWatchStatus(movie, opt.status)">
+                        {{ opt.label }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+<div class="actors-container">
+    <div class="header-section">
+        <h2>Актори</h2>
+        <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+    </div>
+
+    <!-- Індикатор завантаження -->
+    <div *ngIf="loading()" class="loading">Завантаження акторів...</div>
+
+    <!-- Сітка з акторами -->
+    <div class="actors-grid" *ngIf="!loading()">
+        <div *ngFor="let actor of actors()" class="actor-card">
+            <div class="photo-wrapper">
+                <img [src]="actor.photoUrl" [alt]="actor.fullName" class="photo" *ngIf="actor.photoUrl; else noPhoto">
+                <ng-template #noPhoto>
+                    <div class="no-photo">Немає фото</div>
+                </ng-template>
+            </div>
+
+            <div class="actor-info">
+                <h3>{{ actor.fullName }}</h3>
+                <p class="birth-date" *ngIf="actor.birthDate">
+                    Дата народження: {{ actor.birthDate | date:'yyyy-MM-dd' }}
+                </p>
+                <p class="biography">{{ actor.biography || 'Біографія відсутня.' }}</p>
+            </div>
+        </div>
+    </div>
+</div>

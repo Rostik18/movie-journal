@@ -1,0 +1,102 @@
+.actors-container {
+    padding: 10px;
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+
+        h2 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .count-badge {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+    }
+
+    .loading {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #718096;
+        margin-top: 50px;
+    }
+
+    .actors-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+
+        .actor-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+
+            &:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .photo-wrapper {
+                height: 280px;
+                background: #cbd5e1;
+                overflow: hidden;
+
+                .photo {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .no-photo {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #64748b;
+                }
+            }
+
+            .actor-info {
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+
+                h3 {
+                    margin: 0 0 5px 0;
+                    font-size: 1.1rem;
+                    color: #1e293b;
+                }
+
+                .birth-date {
+                    color: #64748b;
+                    font-size: 0.85rem;
+                    margin-bottom: 10px;
+                }
+
+                .biography {
+                    color: #334155;
+                    font-size: 0.9rem;
+                    line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    margin-top: auto;
+                }
+            }
+        }
+    }
+}

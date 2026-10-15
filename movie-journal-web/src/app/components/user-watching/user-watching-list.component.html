@@ -1,0 +1,33 @@
+<div class="watching-container">
+    <div class="header-section">
+        <h2>Мій список перегляду</h2>
+        <span class="count-badge">Всього: {{ totalCount() }}</span>
+    </div>
+
+    <div *ngIf="loading()" class="loading">Завантаження вашого списку...</div>
+
+    <!-- Список у вигляді карток або таблиці -->
+    <div class="watching-grid" *ngIf="!loading()">
+        <div *ngFor="let item of watchingList()" class="watching-card">
+            <div class="card-header">
+                <span class="type-badge">{{ mediaTypeLabels[item.type] }}</span>
+                <span class="status-badge" [ngClass]="'status-' + item.status">
+                    {{ watchStatusLabels[item.status] }}
+                </span>
+            </div>
+
+            <div class="card-body">
+                <h3>{{ item.title }}</h3>
+
+                <p *ngIf="item.rating" class="rating">⭐ Оцінка: {{ item.rating }}/10</p>
+
+                <div class="progress-info" *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber">
+                    <span>Сезон: {{ item.currentSeasonNumber || '-' }}</span> |
+                    <span>Серія: {{ item.currentEpisodeNumber || '-' }}</span>
+                </div>
+
+                <p class="notes" *ngIf="item.notes">«{{ item.notes }}»</p>
+            </div>
+        </div>
+    </div>
+</div>
