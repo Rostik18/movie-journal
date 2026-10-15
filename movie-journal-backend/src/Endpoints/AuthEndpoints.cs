@@ -7,7 +7,7 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapPost("/api/auth/login", LoginAsync).AllowAnonymous();
+            app.MapPost("/api/auth/login", LoginAsync).Produces<LoginRequest>().AllowAnonymous();
 
             return app;
         }

@@ -31,12 +31,4 @@ namespace MovieJournalBackend.Entities.Journal
         [BsonIgnore]
         public bool IsWishlist => Status == WatchStatus.Wishlist;
     }
-
-    public enum WatchStatus
-    {
-        Wishlist,
-        Watching,
-        Watched,
-        Dropped
-    }
 }

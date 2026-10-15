@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.UserWatching;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Journal;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
 
@@ -14,11 +16,11 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapUserWatchingEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/user-watching/media/{mediaId}", GetByMediaAsync).RequireAnyRole();
-            app.MapGet("/api/user-watching/search", SearchAsync).RequireAnyRole();
-            app.MapGet("/api/user-watching/statistics", GetStatisticsAsync).RequireAnyRole();
-            app.MapPost("/api/user-watching/", CreateAsync).RequireAnyRole();
-            app.MapPut("/api/user-watching/", UpdateAsync).RequireAnyRole();
+            app.MapGet("/api/user-watching/media/{mediaId}", GetByMediaAsync).Produces<UserWatchingResponse>().RequireAnyRole();
+            app.MapGet("/api/user-watching/search", SearchAsync).Produces<Page<UserWatchingResponse>>().RequireAnyRole();
+            app.MapGet("/api/user-watching/statistics", GetStatisticsAsync).Produces<Dictionary<WatchStatus, long>>().RequireAnyRole();
+            app.MapPost("/api/user-watching/", CreateAsync).Produces<UserWatchingResponse>().RequireAnyRole();
+            app.MapPut("/api/user-watching/", UpdateAsync).Produces<UserWatchingResponse>().RequireAnyRole();
             app.MapDelete("/api/user-watching/media/{mediaId}", DeleteAsync).RequireAnyRole(); ;
 
             return app;

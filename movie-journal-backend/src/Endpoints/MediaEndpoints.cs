@@ -4,6 +4,7 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
 
@@ -13,16 +14,16 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapMediaEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapPost("/api/media", CreateAsync).RequireAnyRole();
-            app.MapGet("/api/media/{mediaId}", GetByIdAsync).RequireAnyRole();
-            app.MapGet("/api/media/search", SearchAsync).RequireAnyRole();
-            app.MapPut("/api/media", UpdateAsync).RequireAnyRole();
+            app.MapPost("/api/media", CreateAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapGet("/api/media/{mediaId}", GetByIdAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapGet("/api/media/search", SearchAsync).Produces<Page<MediaResponse>>().RequireAnyRole();
+            app.MapPut("/api/media", UpdateAsync).Produces<MediaResponse>().RequireAnyRole();
             app.MapDelete("/api/media/{mediaId}", DeleteAsync).RequireAnyRole();
 
-            app.MapPost("/api/media/{mediaId}/actors/{actorId}", AddActorAsync).RequireAnyRole();
-            app.MapDelete("/api/media/{mediaId}/actors/{actorId}", RemoveActorAsync).RequireAnyRole();
-            app.MapPost("/api/media/{mediaId}/collection/{collectionId}", AddToCollectionAsync).RequireAnyRole();
-            app.MapDelete("/api/media/{mediaId}/collection", RemoveFromCollectionAsync).RequireAnyRole();
+            app.MapPost("/api/media/{mediaId}/actors/{actorId}", AddActorAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapDelete("/api/media/{mediaId}/actors/{actorId}", RemoveActorAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapPost("/api/media/{mediaId}/collection/{collectionId}", AddToCollectionAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapDelete("/api/media/{mediaId}/collection", RemoveFromCollectionAsync).Produces<MediaResponse>().RequireAnyRole();
 
             return app;
         }
@@ -34,7 +35,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media);
+                : Results.Ok(media.ToResponse());
         }
 
         private static async Task<IResult> AddToCollectionAsync(
@@ -44,7 +45,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media);
+                : Results.Ok(media.ToResponse());
         }
 
         private static async Task<IResult> RemoveActorAsync(
@@ -54,7 +55,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media);
+                : Results.Ok(media.ToResponse());
         }
 
         private static async Task<IResult> AddActorAsync(
@@ -64,7 +65,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media);
+                : Results.Ok(media.ToResponse());
         }
 
         private static async Task<IResult> GetByIdAsync(
@@ -77,7 +78,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media);
+                : Results.Ok(media.ToResponse());
         }
 
         private static async Task<IResult> SearchAsync(
@@ -130,7 +131,7 @@ namespace MovieJournalBackend.Endpoints
         {
             var media = await mediaService.CreateAsync(request, principal.ToUserContext(), ct);
 
-            return Results.Created($"/api/media/{media.Id}", media);
+            return Results.Created($"/api/media/{media.Id}", media.ToResponse());
         }
 
         private static async Task<IResult> UpdateAsync(

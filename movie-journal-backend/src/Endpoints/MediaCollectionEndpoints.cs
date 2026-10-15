@@ -4,6 +4,7 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.MediaCollection;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
 
@@ -13,10 +14,10 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapMediaCollectionEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/collections/{collectionId}", GetByIdAsync).RequireAnyRole();
-            app.MapGet("/api/collections/search", SearchAsync).RequireAnyRole();
-            app.MapPost("/api/collections", CreateAsync).RequireAnyRole();
-            app.MapPut("/api/collections", UpdateAsync).RequireAnyRole();
+            app.MapGet("/api/collections/{collectionId}", GetByIdAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
+            app.MapGet("/api/collections/search", SearchAsync).Produces<Page<MediaCollectionResponse>>().RequireAnyRole();
+            app.MapPost("/api/collections", CreateAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
+            app.MapPut("/api/collections", UpdateAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
             app.MapDelete("/api/collections/{collectionId}", DeleteAsync).RequireAdmin();
 
             return app;

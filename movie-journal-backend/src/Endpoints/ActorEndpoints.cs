@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
 
@@ -12,10 +13,10 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapActorEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/actors/{actorId}", GetByIdAsync).RequireAnyRole();
-            app.MapGet("/api/actors/search", SearchAsync).RequireAnyRole();
-            app.MapPost("/api/actors", CreateAsync).RequireAnyRole();
-            app.MapPut("/api/actors", UpdateAsync).RequireAnyRole();
+            app.MapGet("/api/actors/{actorId}", GetByIdAsync).Produces<ActorResponse>().RequireAnyRole();
+            app.MapGet("/api/actors/search", SearchAsync).Produces<Page<ActorResponse>>().RequireAnyRole();
+            app.MapPost("/api/actors", CreateAsync).Produces<ActorResponse>().RequireAnyRole();
+            app.MapPut("/api/actors", UpdateAsync).Produces<ActorResponse>().RequireAnyRole();
             app.MapDelete("/api/actors/{actorId}", DeleteAsync).RequireAdmin();
 
             return app;

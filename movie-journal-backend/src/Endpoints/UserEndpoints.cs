@@ -4,6 +4,7 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.User;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
 
@@ -13,11 +14,11 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/users/me", GetCurrentUserAsync).RequireAnyRole();
-            app.MapGet("/api/users/{userId}", GetByIdAsync).RequireAdmin();
-            app.MapGet("/api/users/search", SearchAsync).RequireAdmin();
-            app.MapPost("/api/users/", CreateAsync).RequireAdmin();
-            app.MapPut("/api/users/", UpdateAsync).RequireAdmin();
+            app.MapGet("/api/users/me", GetCurrentUserAsync).Produces<UserResponse>().RequireAnyRole();
+            app.MapGet("/api/users/{userId}", GetByIdAsync).Produces<UserResponse>().RequireAdmin();
+            app.MapGet("/api/users/search", SearchAsync).Produces<Page<UserResponse>>().RequireAdmin();
+            app.MapPost("/api/users/", CreateAsync).Produces<UserResponse>().RequireAdmin();
+            app.MapPut("/api/users/", UpdateAsync).Produces<UserResponse>().RequireAdmin();
             app.MapPut("/api/users/password", ChangePasswordAsync).RequireAnyRole();
             app.MapDelete("/api/users/{userId}", DeleteAsync).RequireAdmin();
 
