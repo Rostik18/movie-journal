@@ -1,13 +1,11 @@
-﻿using MovieJournalBackend.Entities.Base;
+﻿using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Journal;
 
 namespace MovieJournalBackend.Contracts.UserWatching
 {
     public sealed class UserWatchingResponse
     {
-        public required string MediaId { get; init; }
-        public required string Title { get; init; }
-        public MediaType Type { get; init; }
+        public required MediaResponse Media { get; init; }
         public WatchStatus Status { get; init; }
         public int? StoppedAtSeconds { get; init; }
         public int? Rating { get; init; }

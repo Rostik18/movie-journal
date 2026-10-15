@@ -9,6 +9,7 @@ namespace MovieJournalBackend.Repositories
     {
         Task<Media?> GetByIdAsync(string id, UserContext user, CancellationToken ct = default);
         Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default);
+        Task<List<Media>> GetByIdsAsync(string[] mediaIds, CancellationToken ct = default);
         Task<bool> ExistsAsync(string title, UserContext user, CancellationToken ct = default);
         Task ResetCollectionAsync(string collectionId, CancellationToken ct = default);
         Task<bool> HasPrivateMediaInCollectionAsync(string collectionId, CancellationToken ct = default);

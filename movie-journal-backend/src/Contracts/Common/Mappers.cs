@@ -47,11 +47,9 @@ namespace MovieJournalBackend.Contracts.Common
             user.Roles,
             user.CreatedAtUtc);
 
-        public static UserWatchingResponse ToResponse(this Entities.Journal.UserWatching entity) => new()
+        public static UserWatchingResponse ToResponse(this Entities.Journal.UserWatching entity, MediaResponse media) => new()
         {
-            MediaId = entity.MediaId,
-            Title = entity.Title,
-            Type = entity.Type,
+            Media = media,
             Status = entity.Status,
             StoppedAtSeconds = entity.StoppedAtSeconds,
             Rating = entity.Rating,

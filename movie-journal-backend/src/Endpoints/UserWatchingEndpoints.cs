@@ -33,7 +33,7 @@ namespace MovieJournalBackend.Endpoints
 
             return entry is null
                 ? Results.NotFound()
-                : Results.Ok(entry.ToResponse());
+                : Results.Ok(entry);
         }
 
         private static async Task<IResult> SearchAsync(
@@ -85,7 +85,7 @@ namespace MovieJournalBackend.Endpoints
 
             var page = await service.SearchAsync(request, user, ct);
 
-            return Results.Ok(page.ToResponse(x => x.ToResponse()));
+            return Results.Ok(page);
         }
 
         private static async Task<IResult> GetStatisticsAsync(
@@ -106,7 +106,7 @@ namespace MovieJournalBackend.Endpoints
         {
             var created = await service.CreateAsync(request, principal.ToUserContext(), ct);
 
-            return Results.Created($"/api/user-watching/media/{created.MediaId}", created.ToResponse());
+            return Results.Created($"/api/user-watching/media/{created.Media.Id}", created);
         }
 
         private static async Task<IResult> UpdateAsync(

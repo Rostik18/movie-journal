@@ -47,7 +47,7 @@ namespace MovieJournalBackend.Repositories.Common
                 Biography = "Cuban-Spanish film actress and model. After success in her homeland and in Spain, she moved to Hollywood and became famous for her roles in the films Blade Runner 2049, Knives Out, No Time to Die and Blonde.",
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
-                PhotoUrl = "https://assets.vogue.com/photos/68f8bc236a14a6c83b5d66d9/master/w_2560%2Cc_limit/GettyImages-2242466644.jpg"
+                PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfTx05VA0WTNjVDivEHJAbrH3X5-71Dk6UW65yK1TV-3yyCSPAFllspoNvT_tjEzI0ju5GoTLRzG-UY27L4tbaYh30S0wXfKGIgFbVg&s=10"
             }
         ];
         private static MediaCollection[] _mediaCollection = [

@@ -14,17 +14,44 @@ namespace MovieJournalBackend.Services.Implementation
         IRealtimeService _realtimeService)
         : IUserWatchingService
     {
-        public Task<UserWatching?> GetByMediaAsync(string mediaId, UserContext user, CancellationToken ct = default)
+        public async Task<UserWatchingResponse?> GetByMediaAsync(string mediaId, UserContext user, CancellationToken ct = default)
         {
-            return watchingRepository.GetByUserAndMediaAsync(user.UserId, mediaId, ct);
+            var watching = await watchingRepository.GetByUserAndMediaAsync(user.UserId, mediaId, ct);
+
+            if (watching is null) return null;
+
+            var media = await mediaRepository.GetByIdAsync(mediaId, ct);
+
+            return watching.ToResponse(media!.ToResponse());
         }
 
-        public Task<Page<UserWatching>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
+        public async Task<Page<UserWatchingResponse>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
         {
-            return watchingRepository.SearchAsync(request, user, ct);
+            var page = await watchingRepository.SearchAsync(request, user, ct);
+
+            var mediaIds = page.Items
+                .Select(x => x.MediaId)
+                .Distinct()
+                .ToArray();
+
+            var mediaItems = await mediaRepository.GetByIdsAsync(mediaIds, ct);
+
+            var mediaById = mediaItems.ToDictionary(x => x.Id);
+
+            var items = page.Items
+                .Where(x => mediaById.ContainsKey(x.MediaId))
+                .Select(x => x.ToResponse(
+                    mediaById[x.MediaId].ToResponse()))
+                .ToList();
+
+            return new(
+                items,
+                page.Offset,
+                page.Size,
+                page.TotalCount);
         }
 
-        public async Task<UserWatching> CreateAsync(CreateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
+        public async Task<UserWatchingResponse> CreateAsync(CreateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
         {
             var media = await mediaRepository.GetByIdAsync(request.MediaId, ct)
                 ?? throw new NotFoundException("Media not found.");
@@ -60,10 +87,10 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(entity.UserId, Visibility.Private, ResourceType.UserWatching, EventType.Created, media.Id);
 
-            return entity;
+            return entity.ToResponse(media.ToResponse());
         }
 
-        public async Task<UserWatching> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
+        public async Task<UserWatchingResponse> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
         {
             var entity = await watchingRepository.GetByUserAndMediaAsync(user.UserId, request.MediaId, ct)
                 ?? throw new NotFoundException("User watching entry not found.");
@@ -106,7 +133,9 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(entity.UserId, Visibility.Private, ResourceType.UserWatching, EventType.Updated, entity.MediaId);
 
-            return entity;
+            var media = await mediaRepository.GetByIdAsync(request.MediaId, ct);
+
+            return entity.ToResponse(media!.ToResponse());
         }
 
         public Task<long> CountByStatusAsync(WatchStatus status, UserContext user, CancellationToken ct = default)
