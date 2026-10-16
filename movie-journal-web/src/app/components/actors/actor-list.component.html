@@ -1,18 +1,27 @@
 <div class="actors-container">
     <div class="header-section">
-        <h2>Актори</h2>
-        <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+        <div class="title-area">
+            <h2>Актори</h2>
+            <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+        </div>
+
+        <app-add-button label="Додати актора" (clicked)="openModal()"></app-add-button>
+
+        <!-- Використовуємо наш спільний компонент перемикача -->
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
+        </app-view-switcher>
     </div>
 
     <!-- Індикатор завантаження -->
     <div *ngIf="loading()" class="loading">Завантаження акторів...</div>
 
-    <!-- Сітка з акторами -->
-    <div class="actors-grid" *ngIf="!loading()">
+    <!-- РЕЖИМ 1: Плитки (Grid) -->
+    <div class="actors-grid" *ngIf="!loading() && viewMode() === 'grid'">
         <div *ngFor="let actor of actors()" class="actor-card">
             <div class="photo-wrapper">
-                <img [src]="actor.photoUrl" [alt]="actor.fullName" class="photo" *ngIf="actor.photoUrl; else noPhoto">
-                <ng-template #noPhoto>
+                <img [src]="actor.photoUrl" [alt]="actor.fullName" class="photo"
+                    *ngIf="actor.photoUrl; else noPhotoGrid">
+                <ng-template #noPhotoGrid>
                     <div class="no-photo">Немає фото</div>
                 </ng-template>
             </div>
@@ -24,6 +33,43 @@
                 </p>
                 <p class="biography">{{ actor.biography || 'Біографія відсутня.' }}</p>
             </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ 2: Таблиця / Список (List) -->
+    <div class="actors-list-view" *ngIf="!loading() && viewMode() === 'list'">
+        <table class="actors-table">
+            <thead>
+                <tr>
+                    <th>Фото</th>
+                    <th>Повне ім'я</th>
+                    <th>Дата народження</th>
+                    <th>Біографія</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let actor of actors()">
+                    <td class="table-photo-cell">
+                        <img [src]="actor.photoUrl" [alt]="actor.fullName" class="table-photo"
+                            *ngIf="actor.photoUrl; else noPhotoList">
+                        <ng-template #noPhotoList>
+                            <div class="table-no-photo">—</div>
+                        </ng-template>
+                    </td>
+                    <td><strong>{{ actor.fullName }}</strong></td>
+                    <td>{{ actor.birthDate ? (actor.birthDate | date:'yyyy-MM-dd') : '—' }}</td>
+                    <td><span class="biography-preview">{{ actor.biography || 'Біографія відсутня.' }}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА -->
+    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
+
+            <app-actor-form (actorCreated)="onActorCreated()" (cancelled)="closeModal()"> </app-actor-form>
         </div>
     </div>
 </div>

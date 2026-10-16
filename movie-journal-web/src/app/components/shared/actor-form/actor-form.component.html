@@ -1,0 +1,63 @@
+<div class="create-actor-container">
+    <div class="form-card">
+        <h2>Додати нового актора</h2>
+
+        <form (ngSubmit)="onSubmit()">
+            <!-- Повне ім'я -->
+            <div class="form-group">
+                <label for="fullName">Повне ім'я *</label>
+                <input type="text" id="fullName" [(ngModel)]="actorData.fullName" name="fullName" required
+                    placeholder="Наприклад: Ryan Gosling">
+            </div>
+
+            <!-- Посилання на фото та велике живе прев'ю -->
+            <div class="form-group">
+                <label for="photoUrl">Посилання на фото (URL)</label>
+                <input type="url" id="photoUrl" [(ngModel)]="actorData.photoUrl" name="photoUrl"
+                    placeholder="https://example.com/photo.jpg">
+
+                <!-- Велике прев'ю введеного фото -->
+                <div class="photo-preview-container" *ngIf="actorData.photoUrl">
+                    <div class="preview-box">
+                        <img [src]="actorData.photoUrl" alt="Прев'ю фото актора" class="large-preview-img"
+                            onerror="this.src='https://via.placeholder.com/150?text=Invalid+URL'">
+                    </div>
+                    <span class="preview-hint">Попередній перегляд фото</span>
+                </div>
+            </div>
+
+            <!-- Дата народження -->
+            <div class="form-group">
+                <label>Дата народження (Рік / Місяць / День)</label>
+                <div class="date-inputs-row">
+                    <input type="number" [(ngModel)]="birthYear" name="birthYear" placeholder="Рік" min="1800"
+                        max="2100" class="date-input">
+                    <input type="number" [(ngModel)]="birthMonth" name="birthMonth" placeholder="Місяць" min="1"
+                        max="12" class="date-input">
+                    <input type="number" [(ngModel)]="birthDay" name="birthDay" placeholder="День" min="1" max="31"
+                        class="date-input">
+                </div>
+            </div>
+
+            <!-- Видимість -->
+            <div class="form-group">
+                <label for="visibility">Видимість</label>
+                <select id="visibility" [(ngModel)]="actorData.visibility" name="visibility">
+                    <option *ngFor="let opt of visibilityOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+
+            <!-- Біографія -->
+            <div class="form-group">
+                <label for="biography">Біографія</label>
+                <textarea id="biography" [(ngModel)]="actorData.biography" name="biography" rows="4"
+                    placeholder="Коротка біографія актора..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" (click)="onCancel()">Скасувати</button>
+                <button type="submit" class="btn-submit">Зберегти актора</button>
+            </div>
+        </form>
+    </div>
+</div>

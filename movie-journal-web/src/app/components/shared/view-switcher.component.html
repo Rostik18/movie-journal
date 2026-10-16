@@ -1,0 +1,8 @@
+<div class="view-switcher">
+    <button [class.active]="currentMode() === 'grid'" (click)="onSelect('grid')" title="Плитки">
+        ⊞ Плитки
+    </button>
+    <button [class.active]="currentMode() === 'list'" (click)="onSelect('list')" title="Список">
+        ☰ Список
+    </button>
+</div>

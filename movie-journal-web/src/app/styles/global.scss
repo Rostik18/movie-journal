@@ -1,0 +1,166 @@
+/* ==========================================================
+   Глобальні стилі форм та полів вводу (Inputs, Selects, Textareas)
+   ========================================================== */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+
+    label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    input[type="date"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        color: #1e293b;
+        background-color: #ffffff;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        &::placeholder {
+            color: #94a3b8;
+        }
+
+        &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        &:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+        }
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+
+    .form-group {
+        flex: 1;
+    }
+}
+
+/* Глобальний стиль кнопок відправки форм */
+.form-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+
+    .btn-submit {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
+    }
+}
+
+
+/* ==========================================================
+   Спільні стилі модального вікна (Modal Overlay & Content)
+   ========================================================== */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    box-sizing: border-box;
+    animation: fadeIn 0.2s ease-out;
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        animation: slideUp 0.2s ease-out;
+
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 1.8rem;
+            color: #64748b;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 10;
+            transition: color 0.2s;
+
+            &:hover {
+                color: #1e293b;
+            }
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

@@ -1,9 +1,8 @@
-import { MediaType, WatchStatus } from './enums';
+import { WatchStatus } from './enums';
+import { MediaItem } from './media.model'; // Використовуємо вже готову модель медіа
 
 export interface UserWatchingItem {
-    mediaId: string;
-    title: string;
-    type: MediaType;
+    media: MediaItem; // Тепер тут повноцінний об'єкт медіа
     status: WatchStatus;
     stoppedAtSeconds: number | null;
     rating: number | null;

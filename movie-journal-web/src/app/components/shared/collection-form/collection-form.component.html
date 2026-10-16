@@ -1,0 +1,49 @@
+<div class="collection-form-card">
+    <h3>Створити нову колекцію</h3>
+
+    <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label>Назва колекції *</label>
+            <input type="text" [(ngModel)]="collectionData.name" name="name" required
+                placeholder="Наприклад: Улюблені кіберпанк фільми">
+        </div>
+
+        <div class="form-group">
+            <label>Опис</label>
+            <textarea [(ngModel)]="collectionData.description" name="description" rows="3"
+                placeholder="Короткий опис колекції..."></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Постер (URL)</label>
+                <input type="url" [(ngModel)]="collectionData.posterUrl" (ngModelChange)="onPosterUrlChange()"
+                    name="posterUrl" placeholder="https://...">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Видимість</label>
+                <select [(ngModel)]="collectionData.visibility" name="visibility">
+                    <option *ngFor="let opt of visibilityOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Прев'ю постера -->
+        <div class="poster-preview-section" *ngIf="collectionData.posterUrl">
+            <span class="preview-label">Прев'ю:</span>
+            <div class="preview-container">
+                <img [src]="collectionData.posterUrl" alt="" *ngIf="!imageError" (error)="imageError = true" />
+                <div class="preview-error" *ngIf="imageError"><span>⚠️ Помилка завантаження</span></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Теги (через кому)</label>
+            <input type="text" [(ngModel)]="tagsInput" name="tagsInput" placeholder="sci-fi, 90s, action">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">Зберегти колекцію</button>
+        </div>
+    </form>
+</div>

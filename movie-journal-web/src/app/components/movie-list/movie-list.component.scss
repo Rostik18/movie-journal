@@ -1,3 +1,5 @@
+@use '../../styles/global.scss' as *;
+
 .movies-container {
     padding: 10px;
 
@@ -6,18 +8,26 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
 
-        h2 {
-            margin: 0;
-            color: #2c3e50;
-        }
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
 
-        .count-badge {
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            color: #475569;
+            h2 {
+                margin: 0;
+                color: #2c3e50;
+            }
+
+            .count-badge {
+                background: #e2e8f0;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 0.9rem;
+                color: #475569;
+            }
         }
     }
 
@@ -28,6 +38,7 @@
         margin-top: 50px;
     }
 
+    /* Режим сітки (Grid) */
     .movies-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -106,7 +117,6 @@
                     }
                 }
 
-                /* Сітка з чотирьох кнопок статусів */
                 .status-buttons {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -126,7 +136,6 @@
                             opacity: 0.85;
                         }
 
-                        /* Кольори для різних статусів */
                         &.wishlist {
                             background-color: #fef3c7;
                             color: #92400e;
@@ -146,6 +155,102 @@
                             background-color: #fee2e2;
                             color: #991b1b;
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /* Стилі для табличного вигляду (List) */
+    .movies-list-view {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+
+        .movies-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+
+            th,
+            td {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 0.9rem;
+                color: #334155;
+            }
+
+            th {
+                background: #f8fafc;
+                font-weight: 600;
+                color: #475569;
+            }
+
+            tr:hover {
+                background: #f8fafc;
+            }
+
+            .table-poster-cell {
+                width: 60px;
+
+                .table-poster {
+                    width: 45px;
+                    height: 65px;
+                    object-fit: cover;
+                    border-radius: 4px;
+                }
+            }
+
+            .type-badge-inline {
+                background: #f1f5f9;
+                color: #475569;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.75rem;
+            }
+
+            .genres-inline {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .list-actions {
+                display: flex;
+                gap: 4px;
+
+                .status-btn-small {
+                    border: none;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    transition: opacity 0.2s;
+
+                    &:hover {
+                        opacity: 0.85;
+                    }
+
+                    &.wishlist {
+                        background-color: #fef3c7;
+                        color: #92400e;
+                    }
+
+                    &.watching {
+                        background-color: #dbeafe;
+                        color: #1e40af;
+                    }
+
+                    &.watched {
+                        background-color: #d1fae5;
+                        color: #065f46;
+                    }
+
+                    &.dropped {
+                        background-color: #fee2e2;
+                        color: #991b1b;
                     }
                 }
             }

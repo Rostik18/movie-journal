@@ -1,0 +1,172 @@
+<div class="media-form-card">
+    <h3>Додати новий фільм / серіал</h3>
+
+    <form (ngSubmit)="onSubmit()">
+        <!-- Назва та Оригінальна назва -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Назва *</label>
+                <input type="text" [(ngModel)]="mediaData.title" name="title" required
+                    placeholder="Наприклад: Ла-Ла Ленд">
+            </div>
+            <div class="form-group">
+                <label>Оригінальна назва</label>
+                <input type="text" [(ngModel)]="mediaData.originalTitle" name="originalTitle" placeholder="Lalaland">
+            </div>
+        </div>
+
+        <!-- Тип, Рік, Тривалість -->
+        <div class="form-row triplet">
+            <div class="form-group">
+                <label>Тип</label>
+                <select [(ngModel)]="mediaData.type" name="type">
+                    <option *ngFor="let opt of mediaTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Рік випуску *</label>
+                <input type="number" [(ngModel)]="mediaData.releaseYear" name="releaseYear" required>
+            </div>
+            <div class="form-group">
+                <label>Тривалість (хв)</label>
+                <input type="number" [(ngModel)]="mediaData.runtimeMinutes" name="runtimeMinutes" placeholder="120">
+            </div>
+        </div>
+
+        <!-- Постер та Видимість -->
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Посилання на постер (URL)</label>
+                <input type="url" [(ngModel)]="mediaData.posterUrl" (ngModelChange)="onPosterUrlChange()"
+                    name="posterUrl" placeholder="https://example.com/poster.jpg">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Видимість</label>
+                <select [(ngModel)]="mediaData.visibility" name="visibility">
+                    <option *ngFor="let opt of visibilityOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Блок прев'ю постера (з'являється, коли введено URL) -->
+        <div class="poster-preview-section" *ngIf="mediaData.posterUrl">
+            <span class="preview-label">Прев'ю постера:</span>
+            <div class="preview-container">
+                <img [src]="mediaData.posterUrl" alt="Постер" *ngIf="!imageError" (error)="imageError = true" />
+
+                <div class="preview-error" *ngIf="imageError">
+                    <span>⚠️ Не вдалося завантажити зображення</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вибір / Створення колекції -->
+        <div class="collection-section">
+            <div class="form-group collection-search-box">
+                <label>Колекція (опціонально)</label>
+                <div class="collection-input-wrapper">
+                    <input type="text" [(ngModel)]="collectionSearchQuery" (input)="onSearchCollections()"
+                        name="collectionSearchQuery" placeholder="Введіть назву існуючої або нової колекції...">
+
+                    <button type="button" class="btn-clear-col" *ngIf="mediaData.collectionId || collectionSearchQuery"
+                        (click)="clearCollection()" title="Очистити">&times;</button>
+                </div>
+
+                <!-- Підказка про створення нової, якщо її нема в базі -->
+                <div class="new-collection-hint" *ngIf="collectionSearchQuery && !mediaData.collectionId">
+                    <span>✨ Буде створено нову колекцію з назвою: <strong>"{{ collectionSearchQuery }}"</strong></span>
+                </div>
+
+                <!-- Випадаючі результати пошуку існуючих колекцій -->
+                <div class="actor-dropdown-results" *ngIf="collectionSearchResults().length > 0">
+                    <div class="actor-dropdown-item" *ngFor="let col of collectionSearchResults()"
+                        (click)="selectCollection(col)">
+                        <span>📁 {{ col.name }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Жанри та Теги -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Жанри (через кому)</label>
+                <input type="text" [(ngModel)]="genresInput" name="genresInput" placeholder="Мюзикл, Романтика">
+            </div>
+            <div class="form-group">
+                <label>Теги (через кому)</label>
+                <input type="text" [(ngModel)]="tagsInput" name="tagsInput" placeholder="Гослінг, Хіт">
+            </div>
+        </div>
+
+        <!-- Актори (Cast) -->
+        <div class="cast-section">
+            <div class="section-header">
+                <h4>Акторський склад (Cast)</h4>
+            </div>
+
+            <!-- Пошук акторів -->
+            <div class="actor-search-box">
+                <label>Знайти та додати актора</label>
+                <div class="search-input-wrapper">
+                    <input type="text" [(ngModel)]="actorSearchQuery" (input)="onSearchActors()" name="actorSearchQuery"
+                        placeholder="Введіть ім'я актора...">
+                </div>
+
+                <!-- Випадаючі результати пошуку -->
+                <div class="actor-dropdown-results" *ngIf="actorSearchResults().length > 0">
+                    <div class="actor-dropdown-item" *ngFor="let actor of actorSearchResults()"
+                        (click)="addActorToCast(actor)">
+                        <img [src]="actor.photoUrl || 'assets/default-avatar.png'" alt="" class="mini-avatar">
+                        <span>{{ actor.fullName }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Список вибраних акторів -->
+            <div class="selected-cast-list" *ngIf="mediaData.cast.length > 0">
+                <div class="cast-row" *ngFor="let castMember of mediaData.cast; let i = index">
+                    <div class="actor-info-col">
+                        <span class="actor-name">{{ castMember.fullName }}</span>
+                    </div>
+                    <div class="character-col">
+                        <input type="text" [(ngModel)]="castMember.characterName" [name]="'character_' + i"
+                            placeholder="Ім'я персонажа (напр. Томас Шелбі)">
+                    </div>
+                    <button type="button" class="btn-del-sm" (click)="removeActor(i)">&times;</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Блок сезонів (тільки якщо це Серіал) -->
+        <div class="seasons-section" *ngIf="isSeries">
+            <div class="section-header">
+                <h4>Сезони та епізоди</h4>
+                <button type="button" class="btn-sm" (click)="addSeason()">+ Додати сезон</button>
+            </div>
+
+            <div *ngFor="let season of mediaData.seasons; let sIndex = index" class="season-box">
+                <div class="season-title-row">
+                    <span>Сезон {{ season.number }}</span>
+                    <button type="button" class="btn-del" (click)="removeSeason(sIndex)">Видалити сезон</button>
+                </div>
+
+                <div class="episodes-list">
+                    <div *ngFor="let ep of season.episodes; let eIndex = index" class="episode-row">
+                        <span>Серія {{ ep.number }}:</span>
+                        <input type="text" [(ngModel)]="ep.title" [name]="'season_' + sIndex + '_ep_' + eIndex"
+                            placeholder="Назва серії">
+                        <button type="button" class="btn-del-sm"
+                            (click)="removeEpisode(sIndex, eIndex)">&times;</button>
+                    </div>
+                    <button type="button" class="btn-xs" (click)="addEpisode(sIndex)">+ Додати серію</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопка сабміту -->
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">Зберегти медіа</button>
+        </div>
+    </form>
+</div>

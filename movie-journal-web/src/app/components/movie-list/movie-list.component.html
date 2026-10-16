@@ -1,16 +1,24 @@
 <div class="movies-container">
     <div class="header-section">
-        <h2>Каталог фільмів</h2>
-        <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+        <div class="title-area">
+            <h2>Каталог фільмів</h2>
+            <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+
+            <app-add-button label="Додати фільм" (clicked)="openModal()"> </app-add-button>
+        </div>
+
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
+        </app-view-switcher>
     </div>
 
     <div *ngIf="loading()" class="loading">Завантаження фільмів...</div>
 
-    <div class="movies-grid" *ngIf="!loading()">
+    <!-- РЕЖИМ 1: Плитки (Grid) -->
+    <div class="movies-grid" *ngIf="!loading() && viewMode() === 'grid'">
         <div *ngFor="let movie of movies()" class="movie-card">
             <div class="poster-wrapper">
                 <img [src]="movie.posterUrl" [alt]="movie.title" class="poster">
-                <span class="type-badge">{{ mediaTypeLabels[movie.type] || 'Медіа' }}</span>
+                <span class="type-badge">{{ movie.type }}</span>
             </div>
             <div class="movie-info">
                 <h3>{{ movie.title }}</h3>
@@ -20,7 +28,6 @@
                     <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
                 </div>
 
-                <!-- Група з чотирьох кнопок статусів -->
                 <div class="status-buttons">
                     <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
                         (click)="setWatchStatus(movie, opt.status)">
@@ -28,6 +35,54 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ 2: Таблиця / Список (List) -->
+    <div class="movies-list-view" *ngIf="!loading() && viewMode() === 'list'">
+        <table class="movies-table">
+            <thead>
+                <tr>
+                    <th>Постер</th>
+                    <th>Назва</th>
+                    <th>Оригінал / Рік</th>
+                    <th>Тип</th>
+                    <th>Жанри</th>
+                    <th>Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let movie of movies()">
+                    <td class="table-poster-cell">
+                        <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster">
+                    </td>
+                    <td><strong>{{ movie.title }}</strong></td>
+                    <td>{{ movie.originalTitle }} ({{ movie.releaseYear }})</td>
+                    <td><span class="type-badge-inline">{{ movie.type }}</span></td>
+                    <td>
+                        <div class="genres-inline">
+                            <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="list-actions">
+                            <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn-small ' + opt.class"
+                                (click)="setWatchStatus(movie, opt.status)" [title]="opt.label">
+                                {{ opt.label }}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
+
+            <!-- Перевикористовуємо форму створення медіа -->
+            <app-media-form (mediaCreated)="onMediaCreated()"></app-media-form>
         </div>
     </div>
 </div>

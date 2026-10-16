@@ -1,18 +1,47 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { PageResponse } from '../models/pagination.model';
-import { ActorItem } from '../models/actor.model';
+import { ActorItem, ActorSearchParams } from '../models/actor.model';
+import { PageResponse } from '../models/shared.model';
 import { environment } from '../../environments/environment';
+import { CreateActorRequest } from '../models/actor.model';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ActorService {
-    private apiUrl = `${environment.apiUrl}/api/actors/search`;
+    private apiUrl = `${environment.apiUrl}/api/actors`;
     private http = inject(HttpClient);
 
-    searchActors(): Observable<PageResponse<ActorItem>> {
-        return this.http.get<PageResponse<ActorItem>>(this.apiUrl);
+    searchActors(params: ActorSearchParams = {}): Observable<PageResponse<ActorItem>> {
+        let httpParams = new HttpParams();
+
+        if (params.name) {
+            httpParams = httpParams.set('name', params.name);
+        }
+        if (params.birthYear !== undefined && params.birthYear !== null) {
+            httpParams = httpParams.set('birthYear', params.birthYear.toString());
+        }
+        if (params.hasPhoto !== undefined && params.hasPhoto !== null) {
+            httpParams = httpParams.set('hasPhoto', params.hasPhoto.toString());
+        }
+        if (params.sortBy !== undefined && params.sortBy !== null) {
+            httpParams = httpParams.set('sortBy', params.sortBy.toString());
+        }
+        if (params.sort) {
+            httpParams = httpParams.set('sort', params.sort);
+        }
+        if (params.offset !== undefined && params.offset !== null) {
+            httpParams = httpParams.set('offset', params.offset.toString());
+        }
+        if (params.size !== undefined && params.size !== null) {
+            httpParams = httpParams.set('size', params.size.toString());
+        }
+
+        return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });
+    }
+
+    createActor(request: CreateActorRequest): Observable<ActorItem> {
+        return this.http.post<ActorItem>(`${this.apiUrl}`, request);
     }
 }

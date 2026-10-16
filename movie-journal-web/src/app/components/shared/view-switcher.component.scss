@@ -1,0 +1,25 @@
+.view-switcher {
+    display: flex;
+    background: #e2e8f0;
+    padding: 3px;
+    border-radius: 6px;
+
+    button {
+        background: transparent;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+        transition: all 0.2s;
+
+        &.active {
+            background: white;
+            color: #1e293b;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+    }
+}

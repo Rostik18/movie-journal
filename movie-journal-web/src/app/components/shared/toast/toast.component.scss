@@ -1,0 +1,71 @@
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    pointer-events: none;
+    /* Щоб не перекривати кліки поза тостами */
+
+    .toast-item {
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 500;
+        animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.2s forwards;
+
+        /* Кольори за типами */
+        &.success {
+            background-color: #10b981; // Зелений
+        }
+
+        &.error {
+            background-color: #ef4444; // Червоний
+        }
+
+        &.info {
+            background-color: #3b82f6; // Синій
+        }
+
+        .toast-text {
+            margin-right: 15px;
+            word-break: break-word;
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.8;
+            padding: 0;
+            line-height: 1;
+
+            &:hover {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

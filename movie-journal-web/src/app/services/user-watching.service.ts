@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { PageResponse } from '../models/pagination.model';
 import { UserWatchingItem } from '../models/user-watching.model';
 import { CreateUserWatchingRequest } from '../models/create-user-watching.model';
 import { environment } from '../../environments/environment';
+import { PageResponse } from '../models/shared.model';
+import { UserWatchingSearchParams } from '../models/user-watching-search.model';
 
 @Injectable({
     providedIn: 'root'
@@ -13,8 +14,59 @@ export class UserWatchingService {
     private baseUrl = `${environment.apiUrl}/api/user-watching`;
     private http = inject(HttpClient);
 
-    getUserWatchingList(): Observable<PageResponse<UserWatchingItem>> {
-        return this.http.get<PageResponse<UserWatchingItem>>(`${this.baseUrl}/search`);
+    searchUserWatchingList(params: UserWatchingSearchParams = {}): Observable<PageResponse<UserWatchingItem>> {
+        let httpParams = new HttpParams();
+
+        if (params.query) {
+            httpParams = httpParams.set('query', params.query);
+        }
+        if (params.mediaId) {
+            httpParams = httpParams.set('mediaId', params.mediaId);
+        }
+        if (params.status !== undefined && params.status !== null) {
+            httpParams = httpParams.set('status', params.status.toString());
+        }
+        if (params.type) {
+            httpParams = httpParams.set('type', params.type);
+        }
+        if (params.minRating !== undefined && params.minRating !== null) {
+            httpParams = httpParams.set('minRating', params.minRating.toString());
+        }
+        if (params.maxRating !== undefined && params.maxRating !== null) {
+            httpParams = httpParams.set('maxRating', params.maxRating.toString());
+        }
+        if (params.hasRating !== undefined && params.hasRating !== null) {
+            httpParams = httpParams.set('hasRating', params.hasRating.toString());
+        }
+        if (params.hasNotes !== undefined && params.hasNotes !== null) {
+            httpParams = httpParams.set('hasNotes', params.hasNotes.toString());
+        }
+        if (params.startedFromUtc) {
+            httpParams = httpParams.set('startedFromUtc', params.startedFromUtc);
+        }
+        if (params.startedToUtc) {
+            httpParams = httpParams.set('startedToUtc', params.startedToUtc);
+        }
+        if (params.finishedFromUtc) {
+            httpParams = httpParams.set('finishedFromUtc', params.finishedFromUtc);
+        }
+        if (params.finishedToUtc) {
+            httpParams = httpParams.set('finishedToUtc', params.finishedToUtc);
+        }
+        if (params.sortBy) {
+            httpParams = httpParams.set('sortBy', params.sortBy);
+        }
+        if (params.sort) {
+            httpParams = httpParams.set('sort', params.sort);
+        }
+        if (params.offset !== undefined && params.offset !== null) {
+            httpParams = httpParams.set('offset', params.offset.toString());
+        }
+        if (params.size !== undefined && params.size !== null) {
+            httpParams = httpParams.set('size', params.size.toString());
+        }
+
+        return this.http.get<PageResponse<UserWatchingItem>>(`${this.baseUrl}/search`, { params: httpParams });
     }
 
     addToWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {

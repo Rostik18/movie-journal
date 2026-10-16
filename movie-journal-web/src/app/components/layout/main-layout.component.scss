@@ -28,8 +28,23 @@
         }
 
         .server-status {
-            color: #2ecc71;
             font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            &.green {
+                color: #2ecc71;
+            }
+
+            &.yellow {
+                color: #f1c40f;
+            }
+
+            &.red {
+                color: #e74c3c;
+            }
         }
     }
 

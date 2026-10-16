@@ -1,33 +1,92 @@
 <div class="watching-container">
     <div class="header-section">
-        <h2>Мій список перегляду</h2>
-        <span class="count-badge">Всього: {{ totalCount() }}</span>
+        <div class="title-area">
+            <h2>Мій список перегляду</h2>
+            <span class="count-badge">Всього: {{ totalCount() }}</span>
+        </div>
+
+        <!-- Використовуємо наш спільний компонент перемикача -->
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
+        </app-view-switcher>
     </div>
 
     <div *ngIf="loading()" class="loading">Завантаження вашого списку...</div>
 
-    <!-- Список у вигляді карток або таблиці -->
-    <div class="watching-grid" *ngIf="!loading()">
+    <!-- РЕЖИМ 1: Плитки (Grid) -->
+    <div class="watching-grid" *ngIf="!loading() && viewMode() === 'grid'">
         <div *ngFor="let item of watchingList()" class="watching-card">
-            <div class="card-header">
-                <span class="type-badge">{{ mediaTypeLabels[item.type] }}</span>
+            <div class="poster-wrapper">
+                <img [src]="item.media.posterUrl" [alt]="item.media.title" class="poster">
                 <span class="status-badge" [ngClass]="'status-' + item.status">
                     {{ watchStatusLabels[item.status] }}
                 </span>
             </div>
 
             <div class="card-body">
-                <h3>{{ item.title }}</h3>
+                <h3>{{ item.media.title }}</h3>
+                <p class="original-title">{{ item.media.originalTitle }} ({{ item.media.releaseYear }})</p>
 
-                <p *ngIf="item.rating" class="rating">⭐ Оцінка: {{ item.rating }}/10</p>
-
-                <div class="progress-info" *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber">
-                    <span>Сезон: {{ item.currentSeasonNumber || '-' }}</span> |
-                    <span>Серія: {{ item.currentEpisodeNumber || '-' }}</span>
+                <div class="genres">
+                    <span *ngFor="let genre of item.media.genres" class="genre-tag">{{ genre }}</span>
                 </div>
 
-                <p class="notes" *ngIf="item.notes">«{{ item.notes }}»</p>
+                <div class="user-meta">
+                    <p *ngIf="item.rating" class="rating">⭐ Оцінка: {{ item.rating }}/10</p>
+
+                    <div class="progress-info" *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber">
+                        <span>Сезон: {{ item.currentSeasonNumber || '-' }}</span> |
+                        <span>Серія: {{ item.currentEpisodeNumber || '-' }}</span>
+                    </div>
+
+                    <p class="notes" *ngIf="item.notes">«{{ item.notes }}»</p>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- РЕЖИМ 2: Таблиця / Список (List) -->
+    <div class="watching-list-view" *ngIf="!loading() && viewMode() === 'list'">
+        <table class="watching-table">
+            <thead>
+                <tr>
+                    <th>Постер</th>
+                    <th>Назва</th>
+                    <th>Статус</th>
+                    <th>Оцінка</th>
+                    <th>Прогрес</th>
+                    <th>Нотатки</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let item of watchingList()">
+                    <td class="table-poster-cell">
+                        <img [src]="item.media.posterUrl" [alt]="item.media.title" class="table-poster">
+                    </td>
+                    <td>
+                        <strong>{{ item.media.title }}</strong>
+                        <div class="table-sub">{{ item.media.originalTitle }} ({{ item.media.releaseYear }})</div>
+                    </td>
+                    <td>
+                        <span class="status-badge-inline" [ngClass]="'status-' + item.status">
+                            {{ watchStatusLabels[item.status] }}
+                        </span>
+                    </td>
+                    <td>
+                        <span *ngIf="item.rating; else noRating" class="table-rating">⭐ {{ item.rating }}/10</span>
+                        <ng-template #noRating>—</ng-template>
+                    </td>
+                    <td>
+                        <span *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber; else noProgress">
+                            С{{ item.currentSeasonNumber || '?' }} : Е{{ item.currentEpisodeNumber || '?' }}
+                        </span>
+                        <ng-template #noProgress>—</ng-template>
+                    </td>
+                    <td>
+                        <span class="table-notes" *ngIf="item.notes; else noNotes">«{{ item.notes }}»</span>
+                        <ng-template #noNotes>—</ng-template>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>

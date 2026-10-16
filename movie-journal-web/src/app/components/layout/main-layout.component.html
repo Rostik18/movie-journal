@@ -3,7 +3,12 @@
     <header class="app-header">
         <div class="header-left">
             <h2>🎬 Кіножурнал</h2>
-            <span class="server-status">● Сервер активний</span>
+            <span class="server-status" [ngClass]="statusService.serverStatus()">
+                ● Сервер
+                <span *ngIf="statusService.serverStatus() === 'green'">активний</span>
+                <span *ngIf="statusService.serverStatus() === 'yellow'">невідомо</span>
+                <span *ngIf="statusService.serverStatus() === 'red'">недоступний</span>
+            </span>
         </div>
         <div class="header-right">
             <span class="username">Вітаю, {{ getUserName() }}!</span>
@@ -18,8 +23,7 @@
                 <a routerLink="/watchlist" routerLinkActive="active">⭐ Список перегляду</a>
                 <a routerLink="/movies" routerLinkActive="active">Список фільмів</a>
                 <a routerLink="/actors" routerLinkActive="active">Актори</a>
-                <a routerLink="/favorites" routerLinkActive="active">Улюблені</a>
-                <a routerLink="/profile" routerLinkActive="active">Профіль</a>
+                <a routerLink="/collections" routerLinkActive="active">Колекції</a>
             </nav>
         </aside>
 
@@ -27,5 +31,7 @@
         <main class="app-content">
             <router-outlet></router-outlet>
         </main>
+
+        <app-toast></app-toast>
     </div>
 </div>

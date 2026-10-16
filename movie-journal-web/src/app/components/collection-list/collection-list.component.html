@@ -1,0 +1,72 @@
+<div class="collections-container">
+    <div class="header-section">
+        <div class="title-area">
+            <h2>Колекції медіа</h2>
+            <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+
+            <app-add-button label="Додати колекцію" (clicked)="openModal()"> </app-add-button>
+        </div>
+
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
+        </app-view-switcher>
+    </div>
+
+    <div *ngIf="loading()" class="loading">Завантаження колекцій...</div>
+
+    <!-- 1. РЕЖИМ СІТКИ (GRID) -->
+    <div class="collections-grid" *ngIf="!loading() && viewMode() === 'grid'">
+        <div class="collection-card" *ngFor="let col of collections()">
+            <div class="poster-wrapper">
+                <img [src]="col.posterUrl || 'assets/default-poster.png'" [alt]="col.name" class="poster">
+                <span class="visibility-badge">{{ visibilityLabels[col.visibility] }}</span>
+            </div>
+            <div class="collection-info">
+                <h3>{{ col.name }}</h3>
+                <div class="tags" *ngIf="col.tags && col.tags.length > 0">
+                    <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. РЕЖИМ ТАБЛИЦІ / СПИСКУ (LIST) -->
+    <div class="collections-list-view" *ngIf="!loading() && viewMode() === 'list'">
+        <table class="collections-table">
+            <thead>
+                <tr>
+                    <th class="table-poster-cell">Постер</th>
+                    <th>Назва колекції</th>
+                    <th>Теги</th>
+                    <th>Видимість</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let col of collections()">
+                    <td class="table-poster-cell">
+                        <img [src]="col.posterUrl || 'assets/default-poster.png'" alt="" class="table-poster">
+                    </td>
+                    <td>
+                        <span class="collection-title-text">{{ col.name }}</span>
+                    </td>
+                    <td>
+                        <div class="tags-inline" *ngIf="col.tags && col.tags.length > 0">
+                            <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+                        </div>
+                        <span *ngIf="!col.tags || col.tags.length === 0" class="no-tags">—</span>
+                    </td>
+                    <td>
+                        <span class="visibility-badge-inline">{{ visibilityLabels[col.visibility] }}</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
+
+            <app-collection-form (collectionCreated)="onCollectionCreated()"></app-collection-form>
+        </div>
+    </div>
+</div>

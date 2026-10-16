@@ -1,23 +1,32 @@
 .watching-container {
     padding: 10px;
 
+    /* Шапка з перемикачем */
     .header-section {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
 
-        h2 {
-            margin: 0;
-            color: #2c3e50;
-        }
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
 
-        .count-badge {
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            color: #475569;
+            h2 {
+                margin: 0;
+                color: #2c3e50;
+            }
+
+            .count-badge {
+                background: #e2e8f0;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 0.9rem;
+                color: #475569;
+            }
         }
     }
 
@@ -28,71 +37,215 @@
         margin-top: 50px;
     }
 
+    /* Режим плиток (Grid) */
     .watching-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 20px;
 
         .watching-card {
             background: white;
             border-radius: 8px;
-            padding: 15px;
+            overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            border-left: 5px solid #3498db;
+            transition: transform 0.2s;
 
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.8rem;
+            &:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            }
 
-                .type-badge {
-                    background: #f1f5f9;
-                    color: #475569;
-                    padding: 2px 8px;
-                    border-radius: 4px;
+            .poster-wrapper {
+                height: 280px;
+                background: #cbd5e1;
+                position: relative;
+                overflow: hidden;
+
+                .poster {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
 
                 .status-badge {
-                    font-weight: 600;
-                    padding: 2px 8px;
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    padding: 4px 8px;
                     border-radius: 4px;
-                    background: #e2e8f0;
-                    color: #334155;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    color: white;
+
+                    &.status-0 {
+                        background: #d97706;
+                        /* Wishlist */
+                    }
+
+                    &.status-1 {
+                        background: #2563eb;
+                        /* Watching */
+                    }
+
+                    &.status-2 {
+                        background: #059669;
+                        /* Watched */
+                    }
+
+                    &.status-3 {
+                        background: #dc2626;
+                        /* Dropped */
+                    }
                 }
             }
 
             .card-body {
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+
                 h3 {
-                    margin: 0 0 8px 0;
+                    margin: 0 0 4px 0;
                     color: #1e293b;
-                    font-size: 1.2rem;
+                    font-size: 1.1rem;
                 }
 
-                .rating {
-                    color: #d97706;
-                    font-weight: 500;
-                    font-size: 0.9rem;
-                    margin: 4px 0;
-                }
-
-                .progress-info {
-                    font-size: 0.85rem;
+                .original-title {
                     color: #64748b;
-                    margin: 4px 0;
+                    font-size: 0.85rem;
+                    margin-bottom: 10px;
                 }
 
-                .notes {
-                    font-style: italic;
-                    color: #475569;
-                    font-size: 0.85rem;
-                    background: #f8fafc;
-                    padding: 8px;
-                    border-radius: 4px;
-                    margin: 8px 0 0 0;
+                .genres {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin-bottom: 12px;
+
+                    .genre-tag {
+                        background-color: #f1f5f9;
+                        color: #0ea5e9;
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                    }
                 }
+
+                .user-meta {
+                    margin-top: auto;
+                    border-top: 1px solid #f1f5f9;
+                    padding-top: 10px;
+
+                    .rating {
+                        color: #d97706;
+                        font-weight: 600;
+                        font-size: 0.85rem;
+                        margin: 0 0 4px 0;
+                    }
+
+                    .progress-info {
+                        font-size: 0.8rem;
+                        color: #64748b;
+                        margin-bottom: 4px;
+                    }
+
+                    .notes {
+                        font-style: italic;
+                        color: #475569;
+                        font-size: 0.8rem;
+                        background: #f8fafc;
+                        padding: 6px;
+                        border-radius: 4px;
+                        margin: 6px 0 0 0;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Режим таблиці / списку (List) */
+    .watching-list-view {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+
+        .watching-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+
+            th,
+            td {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 0.9rem;
+                color: #334155;
+            }
+
+            th {
+                background: #f8fafc;
+                font-weight: 600;
+                color: #475569;
+            }
+
+            tr:hover {
+                background: #f8fafc;
+            }
+
+            .table-poster-cell {
+                width: 60px;
+
+                .table-poster {
+                    width: 45px;
+                    height: 65px;
+                    object-fit: cover;
+                    border-radius: 4px;
+                }
+            }
+
+            .table-sub {
+                font-size: 0.8rem;
+                color: #64748b;
+            }
+
+            .status-badge-inline {
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: white;
+
+                &.status-0 {
+                    background: #d97706;
+                }
+
+                &.status-1 {
+                    background: #2563eb;
+                }
+
+                &.status-2 {
+                    background: #059669;
+                }
+
+                &.status-3 {
+                    background: #dc2626;
+                }
+            }
+
+            .table-rating {
+                color: #d97706;
+                font-weight: 600;
+            }
+
+            .table-notes {
+                font-style: italic;
+                color: #64748b;
+                font-size: 0.85rem;
             }
         }
     }
