@@ -36,9 +36,9 @@ namespace MovieJournalBackend.Repositories.Implementation
         {
             var filter = user.BuildVisibilityFilter<MediaCollection>();
 
-            var normalizedQuery = name.Trim().ToUpperInvariant();
+            var normalizedQuery = name.Trim();
 
-            filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Name, new($"^{Regex.Escape(normalizedQuery)}")));
+            filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Name, new($"^{Regex.Escape(normalizedQuery)}", "i")));
 
             return Collection.Find(filter).AnyAsync(ct);
         }
@@ -64,8 +64,8 @@ namespace MovieJournalBackend.Repositories.Implementation
 
             if (!string.IsNullOrWhiteSpace(request.Filter.Query))
             {
-                var normalizedQuery = request.Filter.Query.Trim().ToUpperInvariant();
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Name.ToUpper(), new($"^{Regex.Escape(normalizedQuery)}")));
+                var normalizedQuery = request.Filter.Query.Trim();
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Name, new($"^{Regex.Escape(normalizedQuery)}", "i")));
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.Tag))
             {
