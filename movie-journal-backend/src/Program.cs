@@ -49,6 +49,7 @@ app.MapAuthEndpoints();
 app.MapActorEndpoints();
 app.MapMediaCollectionEndpoints();
 app.MapMediaEndpoints();
+app.MapServiceEndpoints();
 app.MapUserEndpoints();
 app.MapUserWatchingEndpoints();
 
