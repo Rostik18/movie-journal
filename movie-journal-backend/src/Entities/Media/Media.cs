@@ -43,7 +43,7 @@ namespace MovieJournalBackend.Entities.Media
 
     public class MediaLink
     {
-        public required string Name { get; set; }
+        public string? Name { get; set; }
         public required string Url { get; set; }
         public MediaLinkType Type { get; set; }
     }
