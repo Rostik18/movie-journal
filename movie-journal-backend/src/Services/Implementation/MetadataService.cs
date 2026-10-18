@@ -29,6 +29,10 @@ namespace MovieJournalBackend.Services.Implementation
             var html = await reader.ReadToEndAsync(ct);
 
             logger.LogInformation(
+                "Metadata HTML preview: {Html}",
+                html.Length > 1000 ? html[..1000] : html);
+
+            logger.LogInformation(
                 "Metadata fetch: Host={Host}, Status={Status}, ContentType={ContentType}",
                 url.Host,
                 (int)response.StatusCode,
