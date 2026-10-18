@@ -3,7 +3,7 @@ using AngleSharp.Html.Parser;
 
 namespace MovieJournalBackend.Services.Implementation
 {
-    public sealed class MetadataService(ILogger<MetadataService> logger, HttpClient httpClient) : IMetadataService
+    public sealed class MetadataService(HttpClient httpClient) : IMetadataService
     {
         private const int MaxHtmlSize = 2 * 1024 * 1024;
 
@@ -28,34 +28,6 @@ namespace MovieJournalBackend.Services.Implementation
 
             var html = await reader.ReadToEndAsync(ct);
 
-            logger.LogInformation(
-                "Metadata HTML preview: {Html}",
-                html.Length > 1000 ? html[..1000] : html);
-
-            logger.LogInformation(
-                "Metadata fetch: Host={Host}, Status={Status}, ContentType={ContentType}",
-                url.Host,
-                (int)response.StatusCode,
-                response.Content.Headers.ContentType?.MediaType);
-
-            logger.LogInformation(
-                "Metadata HTML length: {Length} characters",
-                html.Length);
-
-            logger.LogInformation(
-                "Open Graph tags: title={Title}, description={Description}, image={Image}",
-                html.Contains("og:title", StringComparison.OrdinalIgnoreCase),
-                html.Contains("og:description", StringComparison.OrdinalIgnoreCase),
-                html.Contains("og:image", StringComparison.OrdinalIgnoreCase));
-
-            logger.LogInformation(
-                "Title={Title}, FinalUrl={Url}, Consent={Consent}, BotCheck={Bot}, OgTitle={Og}",
-                html.Contains("og:title", StringComparison.OrdinalIgnoreCase),
-                response.RequestMessage?.RequestUri,
-                html.Contains("consent.youtube.com", StringComparison.OrdinalIgnoreCase),
-                html.Contains("LOGIN_REQUIRED", StringComparison.OrdinalIgnoreCase),
-                html.Contains("og:title", StringComparison.OrdinalIgnoreCase));
-
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 
@@ -74,13 +46,6 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 image = absoluteImageUri.ToString();
             }
-
-            logger.LogInformation(
-                "Metadata parsed: Host={Host}, TitleFound={TitleFound}, DescriptionFound={DescriptionFound}, ImageFound={ImageFound}",
-                url.Host,
-                !string.IsNullOrWhiteSpace(GetMetaContent("og:title")),
-                !string.IsNullOrWhiteSpace(GetMetaContent("og:description")),
-                !string.IsNullOrWhiteSpace(image));
 
             return new MetadataResponse(
                 Title: GetMetaContent("og:title"),
