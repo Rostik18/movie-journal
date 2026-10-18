@@ -7,7 +7,7 @@ export interface MediaActor {
 }
 
 export interface MediaLink {
-    name: string;
+    name?: string | null;
     url: string;
     type: MediaLinkType;
 }

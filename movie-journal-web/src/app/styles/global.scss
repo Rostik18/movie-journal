@@ -2,6 +2,7 @@
    Глобальні стилі форм та полів вводу (Inputs, Selects, Textareas)
    ========================================================== */
 
+/* Глобальні стилі форм */
 .form-group {
     display: flex;
     flex-direction: column;
@@ -13,43 +14,39 @@
         color: #475569;
         margin-bottom: 6px;
     }
+}
 
-    input[type="text"],
-    input[type="number"],
-    input[type="url"],
-    input[type="date"],
-    select,
-    textarea {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        color: #1e293b;
-        background-color: #ffffff;
-        box-sizing: border-box;
-        transition: border-color 0.2s, box-shadow 0.2s;
+/* Загальний клас для всіх полів вводу */
+input[type="text"],
+input[type="number"],
+input[type="url"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #1e293b;
+    background-color: #ffffff;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
 
-        &::placeholder {
-            color: #94a3b8;
-        }
-
-        &:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-        }
-
-        &:disabled {
-            background-color: #f1f5f9;
-            cursor: not-allowed;
-        }
+    &::placeholder {
+        color: #94a3b8;
     }
 
-    textarea {
-        resize: vertical;
-        min-height: 80px;
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .form-row {
@@ -162,5 +159,35 @@
     to {
         transform: translateY(0);
         opacity: 1;
+    }
+}
+
+/* ==========================================================
+   Глобальні стилі мікро-кнопок видалення
+   ========================================================== */
+
+.btn-danger-sm {
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: background-color 0.2s, transform 0.1s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #fecaca;
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
     }
 }

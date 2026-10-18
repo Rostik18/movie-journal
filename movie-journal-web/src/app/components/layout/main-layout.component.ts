@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { UserResponse } from '../../models/user.model';
 import { ToastComponent } from '../shared/toast/toast.component';
-import { ServerStatusService } from '../../services/server-status.service';
+import { ServerService } from '../../services/server-status.service';
 
 @Component({
     selector: 'app-main-layout',
@@ -14,7 +14,7 @@ import { ServerStatusService } from '../../services/server-status.service';
 })
 export class MainLayoutComponent {
     private router = inject(Router);
-    statusService = inject(ServerStatusService);
+    statusService = inject(ServerService);
 
     getUserName(): string {
         const userJson = localStorage.getItem('auth_user');

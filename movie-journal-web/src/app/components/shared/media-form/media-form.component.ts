@@ -1,13 +1,14 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, output, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
+import { MediaLinkType, MediaLinkTypeLabels, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
 import { CreateMediaRequest } from '../../../models/media-create.model';
 import { MediaService } from '../../../services/media.service';
 import { ActorService } from '../../../services/actor.service';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { MediaCollectionResponse } from '../../../models/collection.model';
+import { ServerService } from '../../../services/server-status.service';
 
 @Component({
     selector: 'app-media-form',
@@ -19,8 +20,10 @@ import { MediaCollectionResponse } from '../../../models/collection.model';
 export class MediaFormComponent {
     private mediaService = inject(MediaService);
     private actorService = inject(ActorService);
-    private collectionService = inject(CollectionService); // Впроваджуємо сервіс колекцій
+    private collectionService = inject(CollectionService);
+    private serviceStatusService = inject(ServerService);
     private toastService = inject(ToastService);
+    private cdr = inject(ChangeDetectorRef);
 
     mediaCreated = output<void>();
 
@@ -47,11 +50,6 @@ export class MediaFormComponent {
     actorSearchQuery = '';
     actorSearchResults = signal<any[]>([]);
 
-    // Для вибору / пошуку колекцій
-    collectionSearchQuery = '';
-    collectionSearchResults = signal<MediaCollectionResponse[]>([]);
-    selectedCollectionName = ''; // Відображувана назва обраної колекції
-
     imageError = false;
 
     mediaTypeOptions = Object.values(MediaType).map(type => ({
@@ -70,6 +68,75 @@ export class MediaFormComponent {
 
     onPosterUrlChange() {
         this.imageError = false;
+    }
+
+    linkTypeOptions = Object.values(MediaLinkType)
+        .filter(v => typeof v === 'number')
+        .map(v => ({ value: v as MediaLinkType, label: MediaLinkTypeLabels[v as MediaLinkType] }));
+
+    newLinkName = '';
+    newLinkUrl = '';
+    newLinkType: MediaLinkType = MediaLinkType.Other;
+
+    addLink() {
+        if (!this.newLinkUrl.trim()) {
+            return;
+        }
+
+        this.mediaData.links.push({
+            name: this.newLinkName.trim() || null,
+            url: this.newLinkUrl.trim(),
+            type: Number(this.newLinkType)
+        });
+
+        // Очищаємо інпути
+        this.newLinkName = '';
+        this.newLinkUrl = '';
+    }
+
+    removeLink(index: number) {
+        this.mediaData.links.splice(index, 1);
+    }
+
+    // Автоматичне додавання та завантаження метаданих при втраті фокусу
+    onLinkBlur() {
+        setTimeout(() => {
+            const url = this.newLinkUrl?.trim();
+            if (!url) {
+                return;
+            }
+
+            // 1. Додаємо посилання у список
+            this.mediaData.links.push({
+                name: this.newLinkName?.trim() || null,
+                url: url,
+                type: Number(this.newLinkType)
+            });
+
+            // Очищаємо поля
+            this.newLinkName = '';
+            this.newLinkUrl = '';
+            this.cdr.detectChanges(); // Оновлюємо UI для списку посилань
+
+            // 2. Запитуємо метадані
+            this.serviceStatusService.getMetadata(url).subscribe({
+                next: (meta) => {
+                    if (meta) {
+                        if (!this.mediaData.title?.trim() && meta.title) {
+                            this.mediaData.title = meta.title;
+                        }
+                        if (!this.mediaData.posterUrl?.trim() && meta.image) {
+                            this.mediaData.posterUrl = meta.image;
+                        }
+                        // Примусово кажемо Angular перемалювати форму з новими даними
+                        this.cdr.detectChanges();
+                    }
+                },
+                error: (err) => {
+                    console.error('Помилка отримання метаданих:', err);
+                }
+            });
+        }, 200);
     }
 
     // Пошук акторів
@@ -102,37 +169,59 @@ export class MediaFormComponent {
         this.mediaData.cast.splice(index, 1);
     }
 
-    // Пошук колекцій під час введення
+    collectionSearchQuery = '';
+    collectionSearchResults = signal<MediaCollectionResponse[]>([]);
+    hasSearchedOnce = false;
+
     onSearchCollections() {
         const query = this.collectionSearchQuery.trim();
-        this.selectedCollectionName = query; // Зберігаємо те, що ввів користувач
 
         if (!query) {
             this.mediaData.collectionId = null;
             this.collectionSearchResults.set([]);
+            this.hasSearchedOnce = false;
             return;
         }
 
+        // Шукаємо колекції на бекенді
         this.collectionService.searchCollections({ query, size: 5 }).subscribe({
-            next: (res) => this.collectionSearchResults.set(res.items || []),
-            error: (err) => console.error('Помилка пошуку колекцій:', err)
+            next: (res) => {
+                const items = res.items || [];
+                this.collectionSearchResults.set(items);
+                this.hasSearchedOnce = true;
+
+                // Перевіряємо, чи є точне співпадіння введеного тексту з якоюсь існуючою колекцією
+                const exactMatch = items.find(
+                    c => c.name.toLowerCase() === query.toLowerCase()
+                );
+
+                if (exactMatch) {
+                    // Якщо знайшли точний збіг — одразу беремо її ID
+                    this.mediaData.collectionId = exactMatch.id;
+                } else {
+                    // Якщо точного збігу немає — це означає створення нової колекції, ID поки що null
+                    this.mediaData.collectionId = null;
+                }
+            },
+            error: (err) => {
+                console.error('Помилка пошуку колекцій:', err);
+                this.hasSearchedOnce = true;
+            }
         });
     }
 
-    // Вибір існуючої колекції з випадаючого списку
+    // Коли користувач клікає на колекцію з випадаючого списку
     selectCollection(col: MediaCollectionResponse) {
         this.mediaData.collectionId = col.id;
-        this.collectionSearchQuery = col.name;
-        this.selectedCollectionName = col.name;
-        this.collectionSearchResults.set([]);
+        this.collectionSearchQuery = col.name; // Фіксуємо назву в інпуті
+        this.collectionSearchResults.set([]); // Ховаємо дропдаун
     }
 
-    // Очищення вибору колекції
     clearCollection() {
         this.mediaData.collectionId = null;
         this.collectionSearchQuery = '';
-        this.selectedCollectionName = '';
         this.collectionSearchResults.set([]);
+        this.hasSearchedOnce = false;
     }
 
     // Сезони та епізоди

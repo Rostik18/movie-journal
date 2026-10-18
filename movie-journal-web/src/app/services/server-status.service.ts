@@ -1,13 +1,21 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { interval } from 'rxjs';
+
+export interface MetadataResponse {
+    title?: string | null;
+    description?: string | null;
+    image?: string | null;
+}
 
 @Injectable({
     providedIn: 'root'
 })
-export class ServerStatusService {
+export class ServerService {
     private http = inject(HttpClient);
+    private apiUrl = `${environment.apiUrl}/api/service`;
 
     // Час останнього успішного запиту (в мілісекундах)
     private lastActivityTime = signal<number>(Date.now());
@@ -59,6 +67,11 @@ export class ServerStatusService {
 
     // Метод для примусового пінгу вашого ендпоінту /api/service/status
     pingStatusEndpoint() {
-        return this.http.get(`${environment.apiUrl}/api/service/status`);
+        return this.http.get(`${this.apiUrl}/status`);
+    }
+
+    getMetadata(url: string): Observable<MetadataResponse> {
+        const params = new HttpParams().set('url', url);
+        return this.http.get<MetadataResponse>(`${this.apiUrl}/metadata`, { params });
     }
 }

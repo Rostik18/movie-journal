@@ -1,16 +1,17 @@
-// 1. Типи посилань на медіа
 export enum MediaLinkType {
     Streaming = 1,
     Trailer = 2,
     OfficialWebsite = 3,
-    Purchase = 4
+    Purchase = 4,
+    Other = 5
 }
 
 export const MediaLinkTypeLabels: Record<MediaLinkType, string> = {
-    [MediaLinkType.Streaming]: 'Перегляд',
+    [MediaLinkType.Streaming]: 'Стрімінг',
     [MediaLinkType.Trailer]: 'Трейлер',
     [MediaLinkType.OfficialWebsite]: 'Офіційний сайт',
-    [MediaLinkType.Purchase]: 'Придбати'
+    [MediaLinkType.Purchase]: 'Покупка',
+    [MediaLinkType.Other]: 'Інше'
 };
 
 // 2. Типи медіаконтенту
