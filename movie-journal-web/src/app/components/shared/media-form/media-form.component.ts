@@ -1,4 +1,4 @@
-import { Component, inject, output, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, output, signal, ChangeDetectorRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MediaLinkType, MediaLinkTypeLabels, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
@@ -26,6 +26,12 @@ export class MediaFormComponent {
     private cdr = inject(ChangeDetectorRef);
 
     mediaCreated = output<void>();
+    mediaCreatedWithData = output<any>();
+
+    @Input() embedded = false;
+
+    // Викидаємо модель назовні, щоб батьківський компонент міг її забрати або зберегти самостійно
+    @Output() mediaDataChange = new EventEmitter<any>();
 
     mediaData: CreateMediaRequest = {
         title: '',
@@ -242,7 +248,7 @@ export class MediaFormComponent {
         this.mediaData.seasons[seasonIndex].episodes.splice(epIndex, 1);
     }
 
-    onSubmit() {
+    onSubmitStandalone() {
         if (!this.mediaData.title.trim()) {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
             return;
@@ -284,9 +290,15 @@ export class MediaFormComponent {
 
     private executeCreateMedia() {
         this.mediaService.createMedia(this.mediaData).subscribe({
-            next: () => {
+            next: (createdMedia: any) => {
                 this.toastService.show(`Медіа "${this.mediaData.title}" успішно створено! 🎉`, 'success', 5000);
-                this.mediaCreated.emit();
+
+                // Якщо форма вбудована, передаємо створений об'єкт нагору (наприклад, для UserWatching)
+                if (this.embedded) {
+                    this.mediaCreatedWithData.emit(createdMedia || this.mediaData);
+                } else {
+                    this.mediaCreated.emit();
+                }
             },
             error: (err) => {
                 console.error('Помилка створення медіа:', err);

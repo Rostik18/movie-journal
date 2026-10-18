@@ -1,0 +1,87 @@
+<div class="watching-form-card">
+    <h3>Додати до списку перегляду</h3>
+
+    <form (ngSubmit)="onSubmit()">
+
+        <!-- 1. ПОШУК ІСНУЮЧОГО ФІЛЬМУ -->
+        <div class="form-group collection-section" *ngIf="!isCreatingNewMedia">
+            <label>Фільм / Серіал *</label>
+            <div class="collection-input-wrapper">
+                <input type="text" [(ngModel)]="mediaSearchQuery" (input)="onSearchMedia()" name="mediaSearchQuery"
+                    placeholder="Введіть назву фільму для пошуку...">
+
+                <button type="button" class="btn-danger-sm" *ngIf="formData.mediaId || mediaSearchQuery"
+                    (click)="clearMedia()" title="Очистити">&times;</button>
+            </div>
+
+            <!-- Випадаючий список результатів -->
+            <div class="actor-dropdown-results" *ngIf="mediaSearchResults().length > 0 && !formData.mediaId">
+                <div class="actor-dropdown-item" *ngFor="let media of mediaSearchResults()"
+                    (click)="selectMedia(media)">
+                    <span>🎬 {{ media.title }} ({{ media.releaseYear }})</span>
+                </div>
+            </div>
+
+            <!-- Підказка перемикання на створення нового -->
+            <div class="new-media-prompt"
+                *ngIf="mediaSearchQuery && !formData.mediaId && mediaSearchResults().length === 0">
+                <span>✨ Фільм не знайдено в базі.</span>
+                <button type="button" class="btn-create-inline" (click)="toggleCreateNew()">Створити новий
+                    фільм</button>
+            </div>
+
+            <div class="selected-success" *ngIf="formData.mediaId">
+                <span>✅ Обрано фільм: <strong>{{ selectedMediaTitle }}</strong></span>
+            </div>
+        </div>
+
+        <!-- 2. ПЕРЕВИКОРИСТАННЯ ОРИГІНАЛЬНОГО APP-MEDIA-FORM -->
+        <div class="inline-creation-section" *ngIf="isCreatingNewMedia">
+            <div class="inline-title-row">
+                <span>Створення нового фільму для списку</span>
+                <button type="button" class="btn-cancel-inline" (click)="toggleCreateNew()">Скасувати</button>
+            </div>
+
+            <!-- Викликаємо повноцінну форму медіа у вбудованому режимі -->
+            <app-media-form [embedded]="true"></app-media-form>
+        </div>
+
+        <!-- 3. РЕШТА ПОЛІВ USER-WATCHING (Статус, рейтинг, нотатки) -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Статус перегляду</label>
+                <select [(ngModel)]="formData.status" name="status">
+                    <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Рейтинг (1-10)</label>
+                <input type="number" min="1" max="10" [(ngModel)]="formData.rating" name="rating" placeholder="Напр. 9">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Поточний сезон</label>
+                <input type="number" [(ngModel)]="formData.currentSeasonNumber" name="currentSeasonNumber"
+                    placeholder="1">
+            </div>
+            <div class="form-group">
+                <label>Поточний епізод</label>
+                <input type="number" [(ngModel)]="formData.currentEpisodeNumber" name="currentEpisodeNumber"
+                    placeholder="5">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Нотатки</label>
+            <textarea [(ngModel)]="formData.notes" name="notes" placeholder="Ваші враження..."></textarea>
+        </div>
+
+        <!-- ЄДИНА КНОПКА SUBMIT У САМОМУ НИЗУ ДЛЯ ВСІЄЇ ФОРМИ -->
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">Зберегти у список</button>
+        </div>
+
+    </form>
+</div>

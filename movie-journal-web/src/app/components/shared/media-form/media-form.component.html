@@ -1,7 +1,7 @@
 <div class="media-form-card">
     <h3>Додати новий фільм / серіал</h3>
 
-    <form (ngSubmit)="onSubmit()">
+    <form (ngSubmit)="onSubmitStandalone()">
         <!-- 1. ПОСИЛАННЯ З САМОГО ВЕРХУ (Головний тригер автозаповнення) -->
         <div class="links-section top-link-section">
             <div class="section-header">
@@ -202,8 +202,8 @@
         </div>
 
         <!-- Кнопка сабміту -->
-        <div class="form-actions">
-            <button type="submit" class="btn-submit">Зберегти медіа</button>
+        <div class="form-actions" *ngIf="!embedded">
+            <button type="button" class="btn-submit" (click)="onSubmitStandalone()">Створити медіа</button>
         </div>
     </form>
 </div>
