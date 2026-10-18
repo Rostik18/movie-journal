@@ -38,6 +38,16 @@ namespace MovieJournalBackend.Services.Implementation
                 (int)response.StatusCode,
                 response.Content.Headers.ContentType?.MediaType);
 
+            logger.LogInformation(
+                "Metadata HTML length: {Length} characters",
+                html.Length);
+
+            logger.LogInformation(
+                "Open Graph tags: title={Title}, description={Description}, image={Image}",
+                html.Contains("og:title", StringComparison.OrdinalIgnoreCase),
+                html.Contains("og:description", StringComparison.OrdinalIgnoreCase),
+                html.Contains("og:image", StringComparison.OrdinalIgnoreCase));
+
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 
