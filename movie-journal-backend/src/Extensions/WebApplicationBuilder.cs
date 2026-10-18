@@ -134,6 +134,12 @@ namespace MovieJournalBackend.Extensions
             builder.Services.AddSingleton<IRealtimeService, RealtimeService>();
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserWatchingService, UserWatchingService>();
+            builder.Services.AddHttpClient<IMetadataService, MetadataService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("MovieJournal/1.0");
+            });
         }
 
         public sealed class UserIdProvider : IUserIdProvider
