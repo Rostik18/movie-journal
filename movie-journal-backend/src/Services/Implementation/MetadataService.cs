@@ -48,6 +48,14 @@ namespace MovieJournalBackend.Services.Implementation
                 html.Contains("og:description", StringComparison.OrdinalIgnoreCase),
                 html.Contains("og:image", StringComparison.OrdinalIgnoreCase));
 
+            logger.LogInformation(
+                "Title={Title}, FinalUrl={Url}, Consent={Consent}, BotCheck={Bot}, OgTitle={Og}",
+                html.Contains("og:title", StringComparison.OrdinalIgnoreCase),
+                response.RequestMessage?.RequestUri,
+                html.Contains("consent.youtube.com", StringComparison.OrdinalIgnoreCase),
+                html.Contains("LOGIN_REQUIRED", StringComparison.OrdinalIgnoreCase),
+                html.Contains("og:title", StringComparison.OrdinalIgnoreCase));
+
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 

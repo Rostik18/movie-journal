@@ -142,17 +142,17 @@ namespace MovieJournalBackend.Extensions
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
                     "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                    "Chrome/131.0.0.0 Safari/537.36");
+                    "Twitterbot/1.0");
 
-                client.DefaultRequestHeaders.Accept.ParseAdd(
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+                client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+                client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
             })
             .ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var policy = new AntiSSRFPolicy(PolicyConfigOptions.ExternalOnlyLatest);
 
                 return policy.GetHandler();
-            }); ;
+            });
         }
 
         public sealed class UserIdProvider : IUserIdProvider
