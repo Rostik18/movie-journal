@@ -1,10 +1,9 @@
 ﻿using MovieJournalBackend.Contracts.Service;
+using AngleSharp.Html.Parser;
 
 namespace MovieJournalBackend.Services.Implementation
 {
-    using AngleSharp.Html.Parser;
-
-    public sealed class MetadataService(HttpClient httpClient) : IMetadataService
+    public sealed class MetadataService(ILogger<MetadataService> logger, HttpClient httpClient) : IMetadataService
     {
         private const int MaxHtmlSize = 2 * 1024 * 1024;
 
@@ -29,6 +28,12 @@ namespace MovieJournalBackend.Services.Implementation
 
             var html = await reader.ReadToEndAsync(ct);
 
+            logger.LogInformation(
+                "Metadata fetch: Host={Host}, Status={Status}, ContentType={ContentType}",
+                url.Host,
+                (int)response.StatusCode,
+                response.Content.Headers.ContentType?.MediaType);
+
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 
@@ -47,6 +52,13 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 image = absoluteImageUri.ToString();
             }
+
+            logger.LogInformation(
+                "Metadata parsed: Host={Host}, TitleFound={TitleFound}, DescriptionFound={DescriptionFound}, ImageFound={ImageFound}",
+                url.Host,
+                !string.IsNullOrWhiteSpace(GetMetaContent("og:title")),
+                !string.IsNullOrWhiteSpace(GetMetaContent("og:description")),
+                !string.IsNullOrWhiteSpace(image));
 
             return new MetadataResponse(
                 Title: GetMetaContent("og:title"),
