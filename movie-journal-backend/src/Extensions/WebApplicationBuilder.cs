@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
+using Microsoft.Security.AntiSSRF;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -139,7 +140,13 @@ namespace MovieJournalBackend.Extensions
                 client.Timeout = TimeSpan.FromSeconds(10);
 
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("MovieJournal/1.0");
-            });
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var policy = new AntiSSRFPolicy(PolicyConfigOptions.ExternalOnlyLatest);
+
+                return policy.GetHandler();
+            }); ;
         }
 
         public sealed class UserIdProvider : IUserIdProvider

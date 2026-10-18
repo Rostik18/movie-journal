@@ -23,11 +23,12 @@ namespace MovieJournalBackend.Endpoints
         private static async Task<IResult> GetMetadataAsync([FromQuery] string url, IMetadataService metadataService, CancellationToken ct)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-                (uri.Scheme != Uri.UriSchemeHttp &&
-                 uri.Scheme != Uri.UriSchemeHttps) ||
-                !string.IsNullOrEmpty(uri.UserInfo))
+                uri.Scheme != Uri.UriSchemeHttps ||
+                string.IsNullOrWhiteSpace(uri.Host) ||
+                !string.IsNullOrEmpty(uri.UserInfo) ||
+                !string.IsNullOrEmpty(uri.Fragment))
             {
-                return Results.BadRequest(new { message = "A valid HTTP or HTTPS URL is required." });
+                return Results.BadRequest(new { message = "A valid HTTPS URL is required." });
             }
 
             try

@@ -9,11 +9,12 @@
 	<ItemGroup>
 		<PackageReference Include="AngleSharp" Version="1.8.5" />
 		<PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-		<PackageReference Include="MongoDB.Driver" Version="3.9.0" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+		<PackageReference Include="Microsoft.Security.AntiSSRF" Version="1.0.1" />
+		<PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
 	</ItemGroup>
 
 </Project>
