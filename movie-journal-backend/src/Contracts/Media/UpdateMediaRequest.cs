@@ -7,6 +7,7 @@ namespace MovieJournalBackend.Contracts.Media
     {
         public required string MediaId { get; init; }
         public string? Title { get; init; }
+        public string? Description { get; init; }
         public string? OriginalTitle { get; init; }
         public int? ReleaseYear { get; init; }
         public int? RuntimeMinutes { get; init; }

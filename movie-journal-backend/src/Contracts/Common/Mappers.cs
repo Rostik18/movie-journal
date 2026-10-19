@@ -26,6 +26,7 @@ namespace MovieJournalBackend.Contracts.Common
         public static MediaResponse ToResponse(this Entities.Media.Media media) => new(
             media.Id!,
             media.Title,
+            media.Description,
             media.OriginalTitle,
             media.Type,
             media.ReleaseYear,

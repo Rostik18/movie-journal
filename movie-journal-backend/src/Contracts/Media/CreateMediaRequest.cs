@@ -6,6 +6,7 @@ namespace MovieJournalBackend.Contracts.Media
     public class CreateMediaRequest
     {
         public required string Title { get; init; }
+        public string? Description { get; init; }
         public string? OriginalTitle { get; init; }
         public MediaType Type { get; init; }
         public int ReleaseYear { get; init; }

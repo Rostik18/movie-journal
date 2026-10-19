@@ -7,6 +7,7 @@ namespace MovieJournalBackend.Entities.Media
     public class Media : OwnedEntity
     {
         public required string Title { get; set; }
+        public string? Description { get; set; }
         public string NormalizedTitle { get; set; } = null!;
         public string? OriginalTitle { get; set; }
 

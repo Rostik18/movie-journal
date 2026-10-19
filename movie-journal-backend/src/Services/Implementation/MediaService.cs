@@ -62,6 +62,7 @@ namespace MovieJournalBackend.Services.Implementation
             var media = new Media
             {
                 Title = request.Title,
+                Description = request.Description,
                 NormalizedTitle = Helpers.Normalize(request.Title),
                 OriginalTitle = request.OriginalTitle,
                 Type = request.Type,
@@ -109,6 +110,10 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.Title = request.Title;
                 media.NormalizedTitle = Helpers.Normalize(request.Title);
+            }
+            if (request.Description is not null)
+            {
+                media.Description = request.Description;
             }
             if (request.OriginalTitle is not null)
             {

@@ -5,6 +5,7 @@ namespace MovieJournalBackend.Contracts.Media
     public sealed record MediaResponse(
         string Id,
         string Title,
+        string? Description,
         string? OriginalTitle,
         MediaType Type,
         int ReleaseYear,
