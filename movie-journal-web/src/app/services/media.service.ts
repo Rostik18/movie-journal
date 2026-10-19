@@ -2,9 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { MediaItem } from '../models/media.model';
-import { CreateMediaRequest } from '../models/media-create.model';
-import { MediaSearchParams } from '../models/media-search.model';
+import { MediaItem, CreateMediaRequest, MediaSearchParams } from '../models/media.model';
 import { PageResponse } from '../models/shared.model';
 
 @Injectable({
@@ -59,6 +57,10 @@ export class MediaService {
         }
 
         return this.http.get<PageResponse<MediaItem>>(`${this.apiUrl}/search`, { params: httpParams });
+    }
+
+    getMediaById(id: string): Observable<MediaItem> {
+        return this.http.get<MediaItem>(`${this.apiUrl}/${id}`);
     }
 
     createMedia(request: CreateMediaRequest): Observable<MediaItem> {

@@ -1,12 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UserWatchingItem } from '../models/user-watching.model';
+import { UserWatchingItem, UserWatchingSearchParams } from '../models/user-watching.model';
 import { CreateUserWatchingRequest } from '../models/create-user-watching.model';
 import { WatchStatus } from '../models/enums';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
-import { UserWatchingSearchParams } from '../models/user-watching-search.model';
 
 export interface UpdateUserWatchingRequest {
     mediaId: string;

@@ -3,33 +3,46 @@
         <div class="title-area">
             <h2>Актори</h2>
             <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+
+            <app-add-button label="Додати актора" (clicked)="openModal()" />
         </div>
 
-        <app-add-button label="Додати актора" (clicked)="openModal()"></app-add-button>
-
-        <!-- Використовуємо наш спільний компонент перемикача -->
-        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
-        </app-view-switcher>
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
     </div>
 
-    <!-- Індикатор завантаження -->
-    <div *ngIf="loading()" class="loading">Завантаження акторів...</div>
+    @if (showInitialLoading()) {
+    <div class="loading">Завантаження акторів...</div>
+    } @else if (showError()) {
+    <div class="state-message error">
+        <p>Не вдалося завантажити акторів.</p>
+        <button type="button" class="btn-retry" (click)="loadActors()">Спробувати знову</button>
+    </div>
+    } @else if (showEmpty()) {
+    <div class="state-message">
+        <p><strong>Акторів ще немає.</strong></p>
+        <p>Натисніть «Додати актора», щоб створити першого.</p>
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    @if (viewMode() === 'grid') {
+    <!-- РЕЖИМ 1: Плитки -->
+    <div class="cards-grid">
+        @for (actor of actors(); track actor.id) {
+        <app-grid-card [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName" [title]="actor.fullName"
+            (cardClick)="openDetails(actor)" [visibility]="actor.visibility">
 
-    <!-- РЕЖИМ 1: Плитки (Grid) -->
-    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <app-grid-card *ngFor="let actor of actors()" [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName"
-            [title]="actor.fullName" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(actor)"
-            (deleted)="onDeleted(actor)">
-
-            <p class="birth-date" *ngIf="actor.birthDate">
-                Дата народження: {{ actor.birthDate | date:'yyyy-MM-dd' }}
-            </p>
+            @if (actor.birthDate) {
+            <p class="birth-date">Дата народження: {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }}</p>
+            }
+            @if (actor.biography) {
             <p class="biography">{{ actor.biography }}</p>
+            }
         </app-grid-card>
+        }
     </div>
-
-    <!-- РЕЖИМ 2: Таблиця / Список (List) -->
-    <div class="actors-list-view" *ngIf="!loading() && viewMode() === 'list'">
+    } @else {
+    <!-- РЕЖИМ 2: Таблиця -->
+    <div class="actors-list-view">
         <table class="actors-table">
             <thead>
                 <tr>
@@ -37,38 +50,69 @@
                     <th>Повне ім'я</th>
                     <th>Дата народження</th>
                     <th>Біографія</th>
-                    <th>Дії</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let actor of actors()">
+                @for (actor of actors(); track actor.id) {
+                <tr class="clickable-row" tabindex="0" (click)="openDetails(actor)"
+                    (keydown.enter)="openDetails(actor)">
                     <td class="table-photo-cell">
-                        <img [src]="actor.photoUrl" [alt]="actor.fullName" class="table-photo"
-                            *ngIf="actor.photoUrl; else noPhotoList">
-                        <ng-template #noPhotoList>
-                            <div class="table-no-photo">—</div>
-                        </ng-template>
+                        @if (actor.photoUrl) {
+                        <img [src]="actor.photoUrl" [alt]="actor.fullName" class="table-photo">
+                        } @else {
+                        <div class="table-no-photo">—</div>
+                        }
                     </td>
                     <td><strong>{{ actor.fullName }}</strong></td>
-                    <td>{{ actor.birthDate ? (actor.birthDate | date:'yyyy-MM-dd') : '—' }}</td>
-                    <td><span class="biography-preview">{{ actor.biography || 'Біографія відсутня.' }}</span></td>
                     <td>
-                        <div *ngIf="userService.isAdmin()">
-                            <app-delete-button [deleteAction]="getDeleteCallback(actor)" (deleted)="onDeleted(actor)">
-                            </app-delete-button>
-                        </div>
+                        {{ actor.birthDate ? (actor.birthDate | date:'dd.MM.yyyy':'UTC') : '—' }}
+                    </td>
+                    <td>
+                        <span class="biography-preview">{{ actor.biography || 'Біографія відсутня.' }}</span>
                     </td>
                 </tr>
+                }
             </tbody>
         </table>
     </div>
+    }
+    }
 
     <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА -->
-    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
+    @if (isModalOpen()) {
+    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати нового актора">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
 
-            <app-actor-form (actorCreated)="onActorCreated()" (cancelled)="closeModal()"> </app-actor-form>
+            <app-actor-form (actorCreated)="onActorCreated()" (cancelled)="closeModal()" />
         </div>
     </div>
+    }
+
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedActor()?.fullName ?? ''"
+        [imageUrl]="selectedActor()?.photoUrl" [imageAlt]="selectedActor()?.fullName ?? ''" (closed)="closeSidebar()"
+        (editClicked)="onEditActor()" [deleteAction]="selectedActor() ? getDeleteCallback(selectedActor()!) : undefined"
+        (deleted)="onSidebarActorDeleted()">
+
+        @if (selectedActor(); as actor) {
+        <div class="sidebar-details-info">
+            @if (actor.birthDate) {
+            <p class="detail-row">
+                <strong>Дата народження:</strong> {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }}
+            </p>
+            }
+            <!-- Visibility може бути 0 (falsy), тому перевіряємо на null/undefined -->
+            @if (actor.visibility !== null && actor.visibility !== undefined) {
+            <p class="detail-row">
+                <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}
+            </p>
+            }
+            <div class="bio-section">
+                <h4>Біографія</h4>
+                <p>{{ actor.biography || 'Біографія відсутня.' }}</p>
+            </div>
+        </div>
+        }
+    </app-details-sidebar>
 </div>

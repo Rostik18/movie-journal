@@ -1,17 +1,17 @@
-import { ChangeDetectorRef, Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
 import { MediaLinkType, MediaLinkTypeLabels, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
-import { CreateMediaRequest } from '../../../models/media-create.model';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { MediaService } from '../../../services/media.service';
 import { ActorService } from '../../../services/actor.service';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server-status.service';
+import { CreateMediaRequest } from '../../../models/media.model';
 
 type ActorId = CreateMediaRequest['cast'][number]['actorId'];
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
@@ -52,7 +52,7 @@ const parseCommaList = (value: string): string[] =>
     templateUrl: './media-form.component.html',
     styleUrls: ['./media-form.component.scss']
 })
-export class MediaFormComponent {
+export class MediaFormComponent implements OnInit {
     private readonly mediaService = inject(MediaService);
     private readonly actorService = inject(ActorService);
     private readonly collectionService = inject(CollectionService);
@@ -63,6 +63,10 @@ export class MediaFormComponent {
 
     // ---- API компонента ----
     readonly embedded = input(false);
+
+    /** Початкові значення (для вбудованого режиму), застосовуються один раз при створенні форми. */
+    readonly initialUrl = input<string | null>(null);
+    readonly initialTitle = input('');
     readonly mediaCreated = output<void>();
     readonly mediaCreatedWithData = output<any>();
 
@@ -152,6 +156,18 @@ export class MediaFormComponent {
             const query = this.collectionSearchQuery.trim().toLowerCase();
             this.mediaData.collectionId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
         });
+    }
+
+    ngOnInit(): void {
+        const title = this.initialTitle().trim();
+        if (title) {
+            this.mediaData.title = title;
+        }
+
+        const url = this.initialUrl();
+        if (url) {
+            this.initFromUrl(url);
+        }
     }
 
     get isSeries(): boolean {

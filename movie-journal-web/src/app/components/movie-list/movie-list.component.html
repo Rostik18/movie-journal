@@ -16,14 +16,14 @@
     <!-- РЕЖИМ 1: Плитки (Grid) -->
     <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
         <app-grid-card *ngFor="let mov of movies()" [imageUrl]="mov.posterUrl" [imageAlt]="mov.title"
-            [title]="mov.title" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(mov)"
-            (deleted)="onDeleted(mov)">
+            [title]="mov.title" noImageText="Немає постера" (cardClick)="openDetails(mov)"
+            [visibility]="mov.visibility">
 
             <p class="original-title">{{ mov.originalTitle }} ({{ mov.releaseYear }})</p>
             <div class="genres">
                 <span *ngFor="let genre of mov.genres" class="genre-tag">{{ genre }}</span>
             </div>
-            <div class="status-buttons">
+            <div class="status-buttons" (click)="$event.stopPropagation()">
                 <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
                     (click)="setWatchStatus(mov, opt.status)">{{ opt.label }}</button>
             </div>
@@ -40,33 +40,32 @@
                     <th>Оригінал / Рік</th>
                     <th>Тип</th>
                     <th>Жанри</th>
-                    <th>Дії</th>
+                    <th>Статус</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let movie of movies()">
+                <tr *ngFor="let movie of movies()" (click)="openDetails(movie)" style="cursor: pointer;">
                     <td class="table-poster-cell">
-                        <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster">
+                        <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster"
+                            *ngIf="movie.posterUrl; else noPosterTable">
+                        <ng-template #noPosterTable>
+                            <div class="table-no-poster">—</div>
+                        </ng-template>
                     </td>
                     <td><strong>{{ movie.title }}</strong></td>
                     <td>{{ movie.originalTitle }} ({{ movie.releaseYear }})</td>
                     <td><span class="type-badge-inline">{{ movie.type }}</span></td>
                     <td>
-                        <div class="genres-inline">
+                        <div class="genres-inline" *ngIf="movie.genres?.length">
                             <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
                         </div>
                     </td>
-                    <td>
+                    <td (click)="$event.stopPropagation()">
                         <div class="list-actions">
                             <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn-small ' + opt.class"
                                 (click)="setWatchStatus(movie, opt.status)" [title]="opt.label">
                                 {{ opt.label }}
                             </button>
-                        </div>
-
-                        <div *ngIf="userService.isAdmin()">
-                            <app-delete-button [deleteAction]="getDeleteCallback(movie)" (deleted)="onDeleted(movie)">
-                            </app-delete-button>
                         </div>
                     </td>
                 </tr>
@@ -74,12 +73,43 @@
         </table>
     </div>
 
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ФІЛЬМУ -->
     <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
         <div class="modal-content" (click)="$event.stopPropagation()">
             <button class="modal-close-btn" (click)="closeModal()">&times;</button>
-
-            <!-- Перевикористовуємо форму створення медіа -->
             <app-media-form (mediaCreated)="onMediaCreated()"></app-media-form>
         </div>
     </div>
+
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ -->
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedMovie()?.title ?? ''"
+        [imageUrl]="selectedMovie()?.posterUrl" [imageAlt]="selectedMovie()?.title ?? ''" noImageText="Немає постера"
+        [deleteAction]="selectedMovie() ? getDeleteCallback(selectedMovie()!) : undefined" (closed)="closeSidebar()"
+        (editClicked)="onEditMovie()" (deleted)="onSidebarMovieDeleted()">
+
+        @if (selectedMovie(); as mov) {
+        <div class="sidebar-details-info">
+            <p class="detail-row" *ngIf="mov.originalTitle">
+                <strong>Оригінальна назва:</strong> {{ mov.originalTitle }} ({{ mov.releaseYear }})
+            </p>
+            <p class="detail-row" *ngIf="mov.type !== null && mov.type !== undefined">
+                <strong>Тип:</strong> {{ mediaTypeLabels[mov.type] || mov.type }}
+            </p>
+
+            <div class="genres-section" *ngIf="mov.genres?.length">
+                <h4>Жанри</h4>
+                <div class="genres">
+                    <span *ngFor="let genre of mov.genres" class="genre-tag">{{ genre }}</span>
+                </div>
+            </div>
+
+            @if (mov.description) {
+            <div class="description-section">
+                <h4>Опис</h4>
+                <p>{{ mov.description }}</p>
+            </div>
+            }
+        </div>
+        }
+    </app-details-sidebar>
 </div>

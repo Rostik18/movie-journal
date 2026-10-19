@@ -1,95 +1,206 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { GridCardComponent } from '../shared/grid-card/grid-card.component';
-import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, of } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
 import { UserWatchingService } from '../../services/user-watching.service';
+import { ToastService } from '../../services/toast.service';
 import { UserWatchingItem } from '../../models/user-watching.model';
-import { MediaTypeLabels, WatchStatusLabels } from '../../models/enums';
+import { WatchStatusLabels } from '../../models/enums';
+import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { UserWatchingFormComponent } from '../shared/user-watching-form/user-watching-form.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.component';
-import { ToastService } from '../../services/toast.service';
-import { DeleteButtonComponent } from '../shared/delete-button/delete-button.component';
+import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
+import { DatePipe } from '@angular/common';
+
+type DeleteCallback = () => ReturnType<UserWatchingService['deleteUserWatching']>;
 
 @Component({
     selector: 'app-user-watching-list',
     standalone: true,
-    imports: [CommonModule, ViewSwitcherComponent, AddButtonComponent, UserWatchingFormComponent, RatingStarsComponent, DeleteButtonComponent, GridCardComponent],
+    imports: [
+        ViewSwitcherComponent,
+        AddButtonComponent,
+        UserWatchingFormComponent,
+        RatingStarsComponent,
+        GridCardComponent,
+        DetailsSidebarComponent,
+        DatePipe
+    ],
     templateUrl: './user-watching-list.component.html',
     styleUrls: ['./user-watching-list.component.scss']
 })
 export class UserWatchingListComponent implements OnInit {
-    private userWatchingService = inject(UserWatchingService);
-    private toastService = inject(ToastService);
+    private readonly userWatchingService = inject(UserWatchingService);
+    private readonly toastService = inject(ToastService);
+    private readonly destroyRef = inject(DestroyRef);
 
-    watchingList = signal<UserWatchingItem[]>([]);
-    totalCount = signal<number>(0);
-    loading = signal<boolean>(true);
+    readonly watchingList = signal<UserWatchingItem[]>([]);
+    readonly totalCount = signal(0);
+    readonly loading = signal(true);
+    readonly hasError = signal(false);
 
-    mediaTypeLabels = MediaTypeLabels;
-    watchStatusLabels = WatchStatusLabels;
+    readonly viewMode = signal<'grid' | 'list'>('grid');
+    readonly isModalOpen = signal(false);
 
-    viewMode = signal<'grid' | 'list'>('grid');
+    // Стан сайдбару деталей
+    readonly selectedItem = signal<UserWatchingItem | null>(null);
+    readonly isSidebarOpen = signal(false);
 
-    isModalOpen = signal<boolean>(false);
+    readonly watchStatusLabels = WatchStatusLabels;
 
-    ngOnInit() {
-        this.loadList();
-    }
+    // Окремий стан для шаблону: початкове завантаження / помилка / порожній список
+    readonly showInitialLoading = computed(() => this.loading() && this.watchingList().length === 0);
+    readonly showError = computed(() => this.hasError() && this.watchingList().length === 0);
+    readonly showEmpty = computed(
+        () => !this.loading() && !this.hasError() && this.watchingList().length === 0
+    );
 
-    loadList() {
-        this.loading.set(true);
-        this.userWatchingService.searchUserWatchingList().subscribe({
-            next: (res: any) => {
-                this.watchingList.set(res.items || res);
-                this.totalCount.set(res.totalCount || (res.items ? res.items.length : 0));
-                this.loading.set(false);
-            },
-            error: (err) => {
-                console.error('Помилка завантаження списку перегляду:', err);
-                this.loading.set(false);
+    private readonly reload$ = new Subject<void>();
+    private readonly deleteCallbacks = new Map<string, DeleteCallback>();
+
+    constructor() {
+        // switchMap скасовує попередній запит, якщо список перезавантажили повторно
+        this.reload$.pipe(
+            tap(() => {
+                this.loading.set(true);
+                this.hasError.set(false);
+            }),
+            switchMap(() =>
+                this.userWatchingService.searchUserWatchingList().pipe(
+                    map(res => ({ ok: true as const, ...this.normalizeResponse(res) })),
+                    catchError(err => {
+                        console.error('Помилка завантаження списку перегляду:', err);
+                        return of({ ok: false as const });
+                    })
+                )
+            ),
+            takeUntilDestroyed()
+        ).subscribe(result => {
+            if (result.ok) {
+                this.watchingList.set(result.items);
+                this.totalCount.set(result.total);
+            } else {
+                this.hasError.set(true);
+                this.toastService.show('Не вдалося завантажити список перегляду.', 'error', 4000);
             }
+            this.loading.set(false);
         });
     }
 
-    updateRating(item: UserWatchingItem, newRating: number) {
-        const mediaId = item.media?.id;
-        if (!mediaId) return;
+    ngOnInit(): void {
+        this.loadList();
+    }
 
-        this.userWatchingService.updateWatchlist({
-            mediaId: mediaId,
-            rating: newRating
-        }).subscribe({
-            next: () => {
-                item.rating = newRating; // Оновлюємо локально без перезавантаження всього списку
-                this.toastService.show(`Рейтинг оновлено: ${newRating}/10 ⭐`, 'success', 2500);
-            },
-            error: (err) => {
+    loadList(): void {
+        this.reload$.next();
+    }
+
+    /** API може повертати як сторінку { items, totalCount }, так і простий масив. */
+    private normalizeResponse(res: any): { items: UserWatchingItem[]; total: number } {
+        const items: UserWatchingItem[] = Array.isArray(res) ? res : (res?.items ?? []);
+        const total: number = res?.totalCount ?? items.length;
+        return { items, total };
+    }
+
+    // ====================== Деталі (сайдбар) ======================
+    openDetails(item: UserWatchingItem): void {
+        this.selectedItem.set(item);
+        this.isSidebarOpen.set(true);
+    }
+
+    closeSidebar(): void {
+        this.isSidebarOpen.set(false);
+    }
+
+    onEditItem(): void {
+        console.log('Редагувати елемент списку:', this.selectedItem()?.media?.id);
+    }
+
+    // ====================== Рейтинг ======================
+    /** Оптимістичне оновлення: одразу показуємо нову оцінку, при помилці відкочуємо. */
+    updateRating(item: UserWatchingItem, newRating: number): void {
+        const mediaId = item.media?.id;
+        if (!mediaId) {
+            return;
+        }
+
+        const previousRating = item.rating;
+        this.patchItem(mediaId, { rating: newRating });
+
+        this.userWatchingService.updateWatchlist({ mediaId, rating: newRating }).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: () => this.toastService.show(`Рейтинг оновлено: ${newRating}/10 ⭐`, 'success', 2500),
+            error: err => {
                 console.error('Помилка оновлення рейтингу:', err);
+                this.patchItem(mediaId, { rating: previousRating });
                 this.toastService.show('Не вдалося оновити рейтинг.', 'error', 4000);
             }
         });
     }
 
-    openModal() { this.isModalOpen.set(true); }
-    closeModal() { this.isModalOpen.set(false); }
+    private patchItem(mediaId: string, patch: Partial<UserWatchingItem>): void {
+        this.watchingList.update(list =>
+            list.map(i => (i.media?.id === mediaId ? { ...i, ...patch } : i))
+        );
+    }
 
-    onWatchingCreated() {
+    // ====================== Видалення ======================
+    getDeleteCallback(item: UserWatchingItem): DeleteCallback {
+        const mediaId = item.media.id;
+
+        let callback = this.deleteCallbacks.get(mediaId);
+        if (!callback) {
+            callback = () => this.userWatchingService.deleteUserWatching(mediaId);
+            this.deleteCallbacks.set(mediaId, callback);
+        }
+        return callback;
+    }
+
+    onItemDeleted(item: UserWatchingItem): void {
+        const mediaId = item.media.id;
+
+        this.deleteCallbacks.delete(mediaId);
+        this.watchingList.update(list => list.filter(i => i.media?.id !== mediaId));
+        this.totalCount.update(c => Math.max(0, c - 1));
+        this.toastService.show('Успішно видалено зі списку перегляду', 'success', 3000);
+    }
+
+    onSidebarItemDeleted(): void {
+        const item = this.selectedItem();
+        if (!item) return;
+
+        this.onItemDeleted(item);
+        this.closeSidebar();
+    }
+
+    // ====================== Модальне вікно ======================
+    openModal(): void {
+        this.isModalOpen.set(true);
+    }
+
+    closeModal(): void {
+        this.isModalOpen.set(false);
+    }
+
+    onBackdropMouseDown(event: MouseEvent): void {
+        if (event.target === event.currentTarget) {
+            this.closeModal();
+        }
+    }
+
+    @HostListener('document:keydown.escape')
+    onEscape(): void {
+        if (this.isModalOpen()) {
+            this.closeModal();
+        }
+    }
+
+    onWatchingCreated(): void {
         this.closeModal();
         this.loadList();
-    }
-
-    // Повертаємо функцію запиту для конкретного елемента
-    getDeleteCallback(item: UserWatchingItem) {
-        const mediaId = item.media?.id;
-        return () => this.userWatchingService.deleteUserWatching(mediaId);
-    }
-
-    // Що зробити після успішного видалення (оновлення списку)
-    onItemDeleted(item: UserWatchingItem) {
-        const mediaId = item.media?.id;
-        this.watchingList.update(list => list.filter(i => i.media?.id !== mediaId));
-        this.totalCount.update(c => c - 1);
-        this.toastService.show('Успішно видалено зі списку перегляду', 'success', 3000);
     }
 }

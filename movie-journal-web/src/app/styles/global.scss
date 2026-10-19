@@ -2,7 +2,6 @@
    Глобальні стилі форм та полів вводу (Inputs, Selects, Textareas)
    ========================================================== */
 
-/* Глобальні стилі форм */
 .form-group {
     display: flex;
     flex-direction: column;
@@ -20,6 +19,8 @@
 input[type="text"],
 input[type="number"],
 input[type="url"],
+input[type="email"],
+input[type="search"],
 input[type="date"],
 input[type="password"],
 select,
@@ -43,6 +44,12 @@ textarea {
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
+
+    &:disabled {
+        background-color: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
 }
 
 textarea {
@@ -56,10 +63,12 @@ textarea {
 
     .form-group {
         flex: 1;
+        // Без цього довгі значення в полях розпирають рядок
+        min-width: 0;
     }
 }
 
-/* Глобальний стиль кнопок відправки форм */
+/* Кнопка відправки форм */
 .form-actions {
     margin-top: 20px;
     display: flex;
@@ -77,21 +86,32 @@ textarea {
         box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         transition: all 0.2s ease;
 
-        &:hover {
+        &:hover:not(:disabled) {
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             transform: translateY(-1px);
             box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
         }
 
-        &:active {
+        &:active:not(:disabled) {
             transform: translateY(0);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
         }
     }
 }
 
 
 /* ==========================================================
-   Спільні стилі модального вікна (Modal Overlay & Content)
+   Спільні стилі модального вікна
    ========================================================== */
 
 .modal-backdrop {
@@ -116,6 +136,8 @@ textarea {
         max-width: 700px;
         max-height: 90vh;
         overflow-y: auto;
+        // Прокрутка модалки не "протікає" на сторінку під нею
+        overscroll-behavior: contain;
         position: relative;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         padding: 10px;
@@ -136,6 +158,12 @@ textarea {
 
             &:hover {
                 color: #1e293b;
+            }
+
+            &:focus-visible {
+                outline: 2px solid #93c5fd;
+                outline-offset: 2px;
+                border-radius: 4px;
             }
         }
     }
@@ -163,8 +191,17 @@ textarea {
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+
+    .modal-backdrop,
+    .modal-backdrop .modal-content {
+        animation: none;
+    }
+}
+
+
 /* ==========================================================
-   Глобальні стилі мікро-кнопок видалення
+   Мікро-кнопки видалення
    ========================================================== */
 
 .btn-danger-sm {
@@ -191,9 +228,14 @@ textarea {
     &:active {
         transform: scale(0.95);
     }
+
+    &:focus-visible {
+        outline: 2px solid #fca5a5;
+        outline-offset: 2px;
+    }
 }
 
-// /* Глобальний стильовий клас для позиціонування дій на картках (наприклад, кнопка видалення) */
+/* Позиціонування дій на картках (наприклад, кнопка видалення) */
 .card-action-overlay {
     position: absolute;
     top: 10px;

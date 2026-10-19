@@ -41,6 +41,10 @@ export class ActorService {
         return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });
     }
 
+    getActorById(id: string): Observable<ActorItem> {
+        return this.http.get<ActorItem>(`${this.apiUrl}/${id}`);
+    }
+
     createActor(request: CreateActorRequest): Observable<ActorItem> {
         return this.http.post<ActorItem>(`${this.apiUrl}`, request);
     }

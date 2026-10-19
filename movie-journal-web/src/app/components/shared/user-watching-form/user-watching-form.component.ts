@@ -1,173 +1,269 @@
-import { Component, inject, output, signal, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, computed, inject, output, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { Observable, Subject, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
+
 import { MediaFormComponent } from '../media-form/media-form.component';
-import { WatchStatus, WatchStatusLabels } from '../../../models/enums';
+import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
+import { MediaType, WatchStatus, WatchStatusLabels } from '../../../models/enums';
+import { CreateUserWatchingRequest } from '../../../models/create-user-watching.model';
 import { UserWatchingService } from '../../../services/user-watching.service';
 import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
-import { CreateUserWatchingRequest } from '../../../models/create-user-watching.model';
-import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
+import { MediaItem } from '../../../models/media.model';
+
+type SearchOutcome =
+    | { kind: 'empty' }
+    | { kind: 'url'; url: string }
+    | { kind: 'items'; query: string; items: MediaItem[] };
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+const createEmptyWatching = (): CreateUserWatchingRequest => ({
+    mediaId: '',
+    status: WatchStatus.Watching,
+    rating: null,
+    notes: '',
+    stoppedAtSeconds: null,
+    currentSeasonNumber: null,
+    currentEpisodeNumber: null
+});
 
 @Component({
     selector: 'app-user-watching-form',
     standalone: true,
-    imports: [CommonModule, FormsModule, MediaFormComponent, RatingStarsComponent],
+    imports: [FormsModule, MediaFormComponent, RatingStarsComponent],
     templateUrl: './user-watching-form.component.html',
     styleUrls: ['./user-watching-form.component.scss']
 })
 export class UserWatchingFormComponent {
-    private userWatchingService = inject(UserWatchingService);
-    private mediaService = inject(MediaService);
-    private toastService = inject(ToastService);
+    private readonly userWatchingService = inject(UserWatchingService);
+    private readonly mediaService = inject(MediaService);
+    private readonly toastService = inject(ToastService);
+    private readonly destroyRef = inject(DestroyRef);
 
-    watchingCreated = output<void>();
+    readonly watchingCreated = output<void>();
 
-    @ViewChild(MediaFormComponent) mediaFormComp?: MediaFormComponent;
+    private readonly mediaForm = viewChild(MediaFormComponent);
 
-    formData: CreateUserWatchingRequest = {
-        mediaId: '',
-        status: WatchStatus.Watching,
-        rating: null,
-        notes: '',
-        stoppedAtSeconds: null,
-        currentSeasonNumber: null,
-        currentEpisodeNumber: null
-    };
+    formData: CreateUserWatchingRequest = createEmptyWatching();
 
-    isCreatingNewMedia = false;
+    readonly statusOptions = Object.values(WatchStatus)
+        .filter((v): v is WatchStatus => typeof v === 'number')
+        .map(value => ({ value, label: WatchStatusLabels[value] }));
+
+    // ---- Пошук / вибір медіа ----
     mediaSearchQuery = '';
-    mediaSearchResults = signal<any[]>([]);
     selectedMediaTitle = '';
+    readonly mediaSearchResults = signal<MediaItem[]>([]);
+    readonly hasSearched = signal(false);
+    private readonly mediaQuery$ = new Subject<string>();
 
-    statusOptions = Object.values(WatchStatus)
-        .filter(v => typeof v === 'number')
-        .map(v => ({ value: v as WatchStatus, label: WatchStatusLabels[v as WatchStatus] }));
+    // ---- Створення нового медіа (вбудована форма) ----
+    readonly isCreatingNewMedia = signal(false);
+    readonly newMediaUrl = signal<string | null>(null);
+    readonly newMediaTitle = signal('');
 
-    // Перевірка, чи введений рядок є URL
-    private isUrl(text: string): boolean {
-        return text.startsWith('http://') || text.startsWith('https://');
+    // ---- Стан збереження ----
+    private readonly isSavingWatching = signal(false);
+    readonly isBusy = computed(
+        () => this.isSavingWatching() || (this.mediaForm()?.isSubmitting() ?? false)
+    );
+
+    selectedMediaType: MediaType | null = null;
+
+    // чи показувати сезон/епізод
+    get showProgressFields(): boolean {
+        return this.isCreatingNewMedia()
+            ? (this.mediaForm()?.isSeries ?? false)
+            : !!this.formData.mediaId && this.selectedMediaType === MediaType.Series;
     }
 
-    onSearchMedia() {
-        const query = this.mediaSearchQuery.trim();
+    constructor() {
+        this.mediaQuery$.pipe(
+            debounceTime(SEARCH_DEBOUNCE_MS),
+            distinctUntilChanged(),
+            switchMap((query): Observable<SearchOutcome> => {
+                if (!query) {
+                    return of<SearchOutcome>({ kind: 'empty' });
+                }
+                if (this.isUrl(query)) {
+                    return of<SearchOutcome>({ kind: 'url', url: query });
+                }
+                return this.mediaService.searchMedia({ title: query, size: 5 }).pipe(
+                    map((res): SearchOutcome => ({
+                        kind: 'items',
+                        query,
+                        items: (res.items ?? []) as MediaItem[]
+                    })),
+                    catchError(err => {
+                        console.error('Помилка пошуку медіа:', err);
+                        this.toastService.show('Не вдалося виконати пошук.', 'error', 4000);
+                        return of<SearchOutcome>({ kind: 'empty' });
+                    })
+                );
+            }),
+            takeUntilDestroyed()
+        ).subscribe(outcome => this.applySearchOutcome(outcome));
+    }
+
+    // ====================== Пошук медіа ======================
+    onMediaQueryChange(value: string): void {
+        this.mediaSearchQuery = value;
+        const query = value.trim();
+
+        // Текст змінився -> попередній вибір більше не актуальний
+        this.formData.mediaId = '';
+        this.selectedMediaTitle = '';
+        this.selectedMediaType = null;
+        this.hasSearched.set(false);
         if (!query) {
-            this.formData.mediaId = '';
             this.mediaSearchResults.set([]);
-            this.isCreatingNewMedia = false;
-            return;
         }
-
-        // Якщо користувач вставив URL замість назви фільму
-        if (this.isUrl(query)) {
-            this.mediaSearchResults.set([]);
-            this.isCreatingNewMedia = true;
-            this.formData.mediaId = '';
-
-            // Використовуємо setTimeout, щоб дочекатися поки <app-media-form> з'явиться в DOM
-            setTimeout(() => {
-                if (this.mediaFormComp) {
-                    this.mediaFormComp.initFromUrl(query);
-                }
-            }, 50);
-
-            return;
-        }
-
-        // Звичайний текстовий пошук фільму в базі
-        this.mediaService.searchMedia({ title: query, size: 5 }).subscribe({
-            next: (res) => {
-                const items = res.items || [];
-                this.mediaSearchResults.set(items);
-
-                const exactMatch = items.find(m => m.title.toLowerCase() === query.toLowerCase());
-                if (exactMatch) {
-                    this.formData.mediaId = exactMatch.id;
-                    this.selectedMediaTitle = exactMatch.title;
-                    this.isCreatingNewMedia = false;
-                } else {
-                    this.formData.mediaId = '';
-                }
-            },
-            error: (err) => console.error('Помилка пошуку медіа:', err)
-        });
+        this.mediaQuery$.next(query);
     }
 
-    selectMedia(media: any) {
+    selectMedia(media: MediaItem): void {
         this.formData.mediaId = media.id;
         this.mediaSearchQuery = media.title;
         this.selectedMediaTitle = media.title;
+        this.selectedMediaType = media.type;
         this.mediaSearchResults.set([]);
-        this.isCreatingNewMedia = false;
     }
 
-    clearMedia() {
+    clearMedia(): void {
         this.formData.mediaId = '';
         this.mediaSearchQuery = '';
         this.selectedMediaTitle = '';
+        this.selectedMediaType = null;
         this.mediaSearchResults.set([]);
-        this.isCreatingNewMedia = false;
+        this.hasSearched.set(false);
+        // Скидаємо distinctUntilChanged, щоб той самий запит/URL можна було ввести знову
+        this.mediaQuery$.next('');
     }
 
-    toggleCreateNew() {
-        this.isCreatingNewMedia = !this.isCreatingNewMedia;
-        if (this.isCreatingNewMedia) {
-            this.formData.mediaId = '';
-        }
-    }
+    private applySearchOutcome(outcome: SearchOutcome): void {
+        switch (outcome.kind) {
+            case 'empty':
+                this.mediaSearchResults.set([]);
+                this.hasSearched.set(false);
+                break;
 
-    onSubmit() {
-        if (this.isCreatingNewMedia) {
-            if (!this.mediaFormComp) {
-                return;
-            }
+            case 'url':
+                this.mediaSearchResults.set([]);
+                this.startCreateNew(outcome.url);
+                break;
 
-            const mediaData = this.mediaFormComp.mediaData;
+            case 'items': {
+                this.mediaSearchResults.set(outcome.items);
+                this.hasSearched.set(true);
 
-            if (!mediaData.title.trim()) {
-                this.toastService.show("Будь ласка, введіть або зачекайте на завантаження назви нового фільму.", 'error');
-                return;
-            }
-
-            mediaData.genres = this.mediaFormComp.genresInput
-                ? this.mediaFormComp.genresInput.split(',').map(s => s.trim()).filter(Boolean)
-                : [];
-
-            mediaData.tags = this.mediaFormComp.tagsInput
-                ? this.mediaFormComp.tagsInput.split(',').map(s => s.trim()).filter(Boolean)
-                : [];
-
-            this.toastService.show(`Створення фільму "${mediaData.title}" та додавання у список...`, 'info', 4000);
-
-            this.mediaService.createMedia(mediaData).subscribe({
-                next: (createdMedia: any) => {
-                    this.formData.mediaId = createdMedia.id;
-                    this.sendUserWatchingRequest();
-                },
-                error: (err) => {
-                    console.error('Помилка створення фільму:', err);
-                    this.toastService.show('Не вдалося створити новий фільм.', 'error', 6000);
+                const query = outcome.query.toLowerCase();
+                const exactMatch = outcome.items.find(m => m.title.toLowerCase() === query);
+                if (exactMatch) {
+                    this.formData.mediaId = exactMatch.id;
+                    this.selectedMediaTitle = exactMatch.title;
+                    this.selectedMediaType = exactMatch.type;
                 }
-            });
-        } else {
-            if (!this.formData.mediaId) {
-                this.toastService.show('Будь ласка, оберіть фільм або введіть URL / створіть новий.', 'error');
-                return;
+                break;
             }
-            this.sendUserWatchingRequest();
         }
     }
 
-    private sendUserWatchingRequest() {
-        this.userWatchingService.addToWatchlist(this.formData).subscribe({
+    private isUrl(text: string): boolean {
+        try {
+            const { protocol } = new URL(text);
+            return protocol === 'http:' || protocol === 'https:';
+        } catch {
+            return false;
+        }
+    }
+
+    // ====================== Створення нового медіа ======================
+    /** Відкриває вбудовану форму. Початкові значення передаються через inputs без setTimeout-хаків. */
+    startCreateNew(url: string | null = null): void {
+        this.newMediaUrl.set(url);
+        this.newMediaTitle.set(url ? '' : this.mediaSearchQuery.trim());
+        this.formData.mediaId = '';
+        this.isCreatingNewMedia.set(true);
+    }
+
+    cancelCreateNew(): void {
+        this.isCreatingNewMedia.set(false);
+
+        // Якщо форму відкрив вставлений URL, не залишаємо його в полі пошуку
+        if (this.newMediaUrl()) {
+            this.clearMedia();
+        }
+        this.newMediaUrl.set(null);
+        this.newMediaTitle.set('');
+    }
+
+    /** Викликається вбудованою формою після успішного створення медіа. */
+    onNewMediaCreated(created: any): void {
+        if (!created?.id) {
+            this.toastService.show('Медіа створено, але сервер не повернув його ідентифікатор.', 'error', 6000);
+            return;
+        }
+
+        // Повертаємось до режиму "обрано існуючий фільм": якщо додавання у список
+        // не вдасться, повторна спроба не створить дублікат медіа.
+        this.formData.mediaId = created.id;
+        this.selectedMediaTitle = created.title ?? this.mediaForm()?.mediaData.title ?? '';
+        this.selectedMediaType = created.type ?? this.mediaForm()?.mediaData.type ?? null;
+        this.mediaSearchQuery = this.selectedMediaTitle;
+        this.newMediaUrl.set(null);
+        this.newMediaTitle.set('');
+        this.isCreatingNewMedia.set(false);
+
+        this.saveToWatchlist();
+    }
+
+    // ====================== Збереження ======================
+    onSubmit(): void {
+        if (this.isBusy()) {
+            return;
+        }
+
+        if (this.isCreatingNewMedia()) {
+            // Валідацію, створення колекції та медіа виконує сама форма медіа.
+            // Результат прийде в onNewMediaCreated().
+            this.mediaForm()?.submit();
+            return;
+        }
+
+        if (!this.formData.mediaId) {
+            this.toastService.show('Будь ласка, оберіть фільм або введіть URL / створіть новий.', 'error');
+            return;
+        }
+        this.saveToWatchlist();
+    }
+
+    private saveToWatchlist(): void {
+        this.isSavingWatching.set(true);
+        const payload = this.showProgressFields
+            ? this.formData
+            : { ...this.formData, currentSeasonNumber: null, currentEpisodeNumber: null };
+
+        this.userWatchingService.addToWatchlist(payload).pipe(
+            finalize(() => this.isSavingWatching.set(false)),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
             next: () => {
                 this.toastService.show('Успішно додано до списку перегляду! 🎉', 'success', 4000);
                 this.watchingCreated.emit();
+                this.resetForm();
             },
-            error: (err) => {
-                console.error('Помилка:', err);
+            error: err => {
+                console.error('Помилка додавання до списку перегляду:', err);
                 this.toastService.show('Не вдалося додати до списку перегляду.', 'error', 6000);
             }
         });
+    }
+
+    private resetForm(): void {
+        this.formData = createEmptyWatching();
+        this.clearMedia();
     }
 }

@@ -1,0 +1,152 @@
+@use '../../../styles/global.scss' as *;
+
+$border-color: #e2e8f0;
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+
+    // Закрито: ховаємо після завершення анімації (visibility з затримкою)
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0s linear 0.3s;
+
+    &.open {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.2s ease, visibility 0s;
+    }
+
+    .sidebar-panel {
+        width: 420px;
+        max-width: 100%;
+        height: 100%;
+        background: white;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &.open .sidebar-panel {
+        transform: translateX(0);
+    }
+
+    .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid $border-color;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+
+        h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #1e293b;
+            overflow-wrap: anywhere;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #64748b;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+            transition: color 0.2s;
+
+            &:hover {
+                color: #ef4444;
+            }
+
+            &:focus-visible {
+                outline: 2px solid #93c5fd;
+                outline-offset: 2px;
+                border-radius: 4px;
+            }
+        }
+    }
+
+    .sidebar-body {
+        padding: 20px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        flex: 1;
+
+        .sidebar-image-wrapper {
+            width: 100%;
+            height: 280px;
+            background: #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+
+            .sidebar-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .sidebar-no-image {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #64748b;
+                font-weight: 500;
+            }
+        }
+
+        .sidebar-content-details {
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+    }
+
+    .sidebar-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .btn-edit {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+
+            &:hover {
+                background: #0284c7;
+            }
+
+            &:focus-visible {
+                outline: 2px solid #7dd3fc;
+                outline-offset: 2px;
+            }
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .sidebar-backdrop,
+    .sidebar-backdrop .sidebar-panel {
+        transition: none;
+    }
+}

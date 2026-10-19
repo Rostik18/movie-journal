@@ -1,5 +1,7 @@
 @use '../../styles/global.scss' as *;
 
+$surface: #f8fafc;
+
 .collections-container {
     padding: 10px;
 
@@ -70,6 +72,20 @@
                 background: #f8fafc;
                 font-weight: 600;
                 color: #475569;
+            }
+
+            .clickable-row {
+                cursor: pointer;
+
+                &:hover,
+                &:focus-visible {
+                    background: $surface;
+                }
+
+                &:focus-visible {
+                    outline: 2px solid #93c5fd;
+                    outline-offset: -2px;
+                }
             }
 
             tr:hover {

@@ -48,8 +48,8 @@ export const UserRoleLabels: Record<UserRole, string> = {
 
 // 4. Видимість
 export enum Visibility {
-    Public = 1,
-    Private = 2
+    Public = "Public",
+    Private = "Private"
 }
 
 export const VisibilityLabels: Record<Visibility, string> = {

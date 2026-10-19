@@ -1,0 +1,47 @@
+<div class="sidebar-backdrop" [class.open]="isOpen()" [attr.inert]="isOpen() ? null : ''"
+    (mousedown)="onBackdropMouseDown($event)">
+
+    <aside #panel class="sidebar-panel" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId">
+
+        <!-- Шапка -->
+        <div class="sidebar-header">
+            <h3 [id]="titleId">{{ title() }}</h3>
+            <button #closeButton type="button" class="close-btn" aria-label="Закрити"
+                (click)="closed.emit()">&times;</button>
+        </div>
+
+        <!-- Вміст -->
+        <div class="sidebar-body">
+            <div class="sidebar-image-wrapper">
+                @if (hasImage()) {
+                <img [src]="imageUrl()" [alt]="imageAlt()" class="sidebar-image" (error)="imageFailed.set(true)">
+                } @else {
+                <div class="sidebar-no-image">{{ noImageText() }}</div>
+                }
+            </div>
+
+            <!-- Унікальний контент сутності -->
+            <div class="sidebar-content-details">
+                <ng-content />
+            </div>
+        </div>
+
+        <!-- Футер (дії: видалення та редагування) -->
+        @if (isAdmin) {
+        <div class="sidebar-footer">
+            <div class="footer-actions-left">
+                @if (isAdmin && deleteAction()) {
+                <app-delete-button [deleteAction]="deleteAction()!" (deleted)="deleted.emit()">
+                </app-delete-button>
+                }
+            </div>
+
+            <div class="footer-actions-right">
+                @if (isAdmin) {
+                <button type="button" class="btn-edit" (click)="editClicked.emit()">Редагувати</button>
+                }
+            </div>
+        </div>
+        }
+    </aside>
+</div>

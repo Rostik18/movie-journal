@@ -16,8 +16,7 @@
     <!-- 1. РЕЖИМ СІТКИ (GRID) -->
     <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
         <app-grid-card *ngFor="let col of collections()" [imageUrl]="col.posterUrl" [imageAlt]="col.name"
-            [title]="col.name" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(col)"
-            (deleted)="onDeleted(col)">
+            [title]="col.name" (cardClick)="openDetails(col)" [visibility]="col.visibility">
 
             <div class="tags" *ngIf="col.tags?.length">
                 <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
@@ -33,12 +32,11 @@
                     <th class="table-poster-cell">Постер</th>
                     <th>Назва колекції</th>
                     <th>Теги</th>
-                    <th>Видимість</th>
-                    <th>Дії</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let col of collections()">
+                @for (col of collections(); track col.id) {
+                <tr class="clickable-row" tabindex="0" (click)="openDetails(col)" (keydown.enter)="openDetails(col)">
                     <td class="table-poster-cell">
                         <img [src]="col.posterUrl" alt="" class="table-poster">
                     </td>
@@ -51,16 +49,8 @@
                         </div>
                         <span *ngIf="!col.tags || col.tags.length === 0" class="no-tags">—</span>
                     </td>
-                    <td>
-                        <span class="visibility-badge-inline">{{ visibilityLabels[col.visibility] }}</span>
-                    </td>
-                    <td>
-                        <div *ngIf="userService.isAdmin()">
-                            <app-delete-button [deleteAction]="getDeleteCallback(col)" (deleted)="onDeleted(col)">
-                            </app-delete-button>
-                        </div>
-                    </td>
                 </tr>
+                }
             </tbody>
         </table>
     </div>
@@ -72,4 +62,23 @@
             <app-collection-form (collectionCreated)="onCollectionCreated()"></app-collection-form>
         </div>
     </div>
+
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ КОЛЕКЦІЇ -->
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedCollection()?.name ?? ''"
+        [imageUrl]="selectedCollection()?.posterUrl" [imageAlt]="selectedCollection()?.name ?? ''"
+        noImageText="Немає постера"
+        [deleteAction]="selectedCollection() ? getDeleteCallback(selectedCollection()!) : undefined"
+        (closed)="closeSidebar()" (editClicked)="onEditCollection()" (deleted)="onSidebarCollectionDeleted()">
+
+        @if (selectedCollection(); as col) {
+        <div class="sidebar-details-info">
+            <div class="tags-section" *ngIf="col.tags?.length">
+                <h4>Теги</h4>
+                <div class="tags">
+                    <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+                </div>
+            </div>
+        </div>
+        }
+    </app-details-sidebar>
 </div>

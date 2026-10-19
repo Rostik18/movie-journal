@@ -46,6 +46,10 @@ export class CollectionService {
         return this.http.get<PageResponse<MediaCollectionResponse>>(`${this.apiUrl}/search`, { params: httpParams });
     }
 
+    getCollectionById(id: string): Observable<MediaCollectionResponse> {
+        return this.http.get<MediaCollectionResponse>(`${this.apiUrl}/${id}`);
+    }
+
     createCollection(request: CreateMediaCollectionRequest): Observable<MediaCollectionResponse> {
         return this.http.post<MediaCollectionResponse>(this.apiUrl, request);
     }

@@ -1,9 +1,22 @@
 @use '../../styles/global.scss' as *;
 
+$border-subtle: #f1f5f9;
+$surface: #f8fafc;
+$text-muted: #64748b;
+$text-body: #334155;
+
+// Кольори бейджів статусу (ключ = числове значення WatchStatus)
+$status-colors: (
+    0: #d97706,
+    1: #2563eb,
+    2: #059669,
+    3: #dc2626
+);
+
 .watching-container {
     padding: 10px;
 
-    /* Шапка з перемикачем */
+    /* ---------- Шапка ---------- */
     .header-section {
         display: flex;
         justify-content: space-between;
@@ -32,14 +45,44 @@
         }
     }
 
-    .loading {
+    /* ---------- Стани: завантаження / помилка / порожньо ---------- */
+    .loading,
+    .state-message {
         text-align: center;
-        font-size: 1.2rem;
         color: #718096;
         margin-top: 50px;
     }
 
-    /* Режим плиток (Grid) */
+    .loading {
+        font-size: 1.2rem;
+    }
+
+    .state-message {
+        p {
+            margin: 0 0 8px;
+        }
+
+        &.error {
+            color: #b91c1c;
+        }
+
+        .btn-retry {
+            margin-top: 6px;
+            padding: 7px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            color: $text-body;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:hover {
+                background: $surface;
+            }
+        }
+    }
+
+    /* ---------- Режим плиток ---------- */
     .cards-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -47,7 +90,7 @@
         margin-top: 20px;
 
         .original-title {
-            color: #64748b;
+            color: $text-muted;
             font-size: 0.85rem;
             margin: 0 0 10px 0;
         }
@@ -59,7 +102,7 @@
             margin-bottom: 12px;
 
             .genre-tag {
-                background-color: #f1f5f9;
+                background-color: $border-subtle;
                 color: #0ea5e9;
                 padding: 2px 8px;
                 border-radius: 4px;
@@ -68,20 +111,19 @@
             }
         }
 
-        /* Доданий відсутній стиль для секції рейтингу */
         .card-rating-section {
             display: flex;
             align-items: center;
             margin: 8px 0 12px 0;
             padding-top: 4px;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid $border-subtle;
         }
 
         .notes {
             font-style: italic;
             color: #475569;
             font-size: 0.8rem;
-            background: #f8fafc;
+            background: $surface;
             padding: 8px;
             border-radius: 4px;
             margin: 0;
@@ -89,7 +131,7 @@
         }
     }
 
-    /* Режим таблиці / списку (List) */
+    /* ---------- Режим таблиці ---------- */
     .watching-list-view {
         background: white;
         border-radius: 8px;
@@ -104,35 +146,47 @@
             th,
             td {
                 padding: 12px 16px;
-                border-bottom: 1px solid #f1f5f9;
+                border-bottom: 1px solid $border-subtle;
                 font-size: 0.9rem;
-                color: #334155;
+                color: $text-body;
             }
 
             th {
-                background: #f8fafc;
+                background: $surface;
                 font-weight: 600;
                 color: #475569;
             }
 
-            tr:hover {
-                background: #f8fafc;
+            tbody tr:hover {
+                background: $surface;
             }
 
             .table-poster-cell {
                 width: 60px;
+            }
 
-                .table-poster {
-                    width: 45px;
-                    height: 65px;
-                    object-fit: cover;
-                    border-radius: 4px;
-                }
+            .table-poster,
+            .table-poster-placeholder {
+                width: 45px;
+                height: 65px;
+                border-radius: 4px;
+            }
+
+            .table-poster {
+                object-fit: cover;
+            }
+
+            .table-poster-placeholder {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #e2e8f0;
+                font-size: 1.2rem;
             }
 
             .table-sub {
                 font-size: 0.8rem;
-                color: #64748b;
+                color: $text-muted;
             }
 
             .status-badge-inline {
@@ -142,33 +196,72 @@
                 font-weight: 600;
                 color: white;
 
-                &.status-0 {
-                    background: #d97706;
-                }
-
-                &.status-1 {
-                    background: #2563eb;
-                }
-
-                &.status-2 {
-                    background: #059669;
-                }
-
-                &.status-3 {
-                    background: #dc2626;
+                @each $status, $color in $status-colors {
+                    &.status-#{$status} {
+                        background: $color;
+                    }
                 }
             }
 
-            .table-rating {
-                color: #d97706;
-                font-weight: 600;
-            }
-
+            // Довгі нотатки обрізаються, повний текст у підказці (title)
             .table-notes {
+                display: inline-block;
+                max-width: 280px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                vertical-align: bottom;
                 font-style: italic;
-                color: #64748b;
+                color: $text-muted;
                 font-size: 0.85rem;
             }
+        }
+    }
+}
+
+.sidebar-details-info {
+    .section-divider {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 16px 0;
+    }
+
+    .detail-row {
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: #334155;
+    }
+
+    h4 {
+        font-size: 0.95rem;
+        color: #1e293b;
+        margin: 12px 0 6px 0;
+    }
+
+    .description-section,
+    .notes-section {
+        margin-bottom: 12px;
+
+        p {
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.4;
+        }
+    }
+
+    .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+
+        .tag {
+            background-color: #f1f5f9;
+            color: #64748b;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
     }
 }
