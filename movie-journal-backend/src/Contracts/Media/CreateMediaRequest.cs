@@ -17,6 +17,7 @@ namespace MovieJournalBackend.Contracts.Media
         public List<MediaActor> Cast { get; init; } = [];
         public List<MediaLink> Links { get; init; } = [];
         public List<Season> Seasons { get; init; } = [];
+        public string? Author { get; set; }
         public string? CollectionId { get; init; }
     }
 }

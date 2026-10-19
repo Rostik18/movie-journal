@@ -30,6 +30,7 @@ namespace MovieJournalBackend.Contracts.Common
             media.Type,
             media.ReleaseYear,
             media.PosterUrl,
+            media.Author,
             media.Genres,
             media.Tags);
 

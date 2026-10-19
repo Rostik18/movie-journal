@@ -9,6 +9,7 @@ namespace MovieJournalBackend.Contracts.Media
         MediaType Type,
         int ReleaseYear,
         string? PosterUrl,
+        string? Author,
         List<string> Genres,
         List<string> Tags
         );

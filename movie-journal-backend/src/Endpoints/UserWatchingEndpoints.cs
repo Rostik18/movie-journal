@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
-using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.UserWatching;
 using MovieJournalBackend.Entities.Base;
