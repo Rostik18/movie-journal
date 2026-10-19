@@ -33,5 +33,15 @@ namespace MovieJournalBackend
                 throw new UnauthorizedAccessException("You do not have permission to edit this resource.");
             }
         }
+
+        public bool CanDelete(OwnedEntity entity) => IsAdmin || entity.OwnerUserId == UserId;
+
+        public void EnsureCanDelete(OwnedEntity entity)
+        {
+            if (!CanDelete(entity))
+            {
+                throw new UnauthorizedAccessException("You do not have permission to delete this resource.");
+            }
+        }
     }
 }

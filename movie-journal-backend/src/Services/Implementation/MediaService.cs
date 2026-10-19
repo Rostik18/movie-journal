@@ -199,17 +199,10 @@ namespace MovieJournalBackend.Services.Implementation
 
         public async Task DeleteAsync(string mediaId, UserContext user, CancellationToken ct = default)
         {
-            if (!user.IsAdmin)
-            {
-                throw new UnauthorizedAccessException("Only admins can delete media.");
-            }
+            var media = await _mediaRepository.GetByIdAsync(mediaId, user, ct)
+                ?? throw new InvalidOperationException($"Media '{mediaId}' not found.");
 
-            var media = await _mediaRepository.GetByIdAsync(mediaId, ct);
-
-            if (media is null)
-            {
-                return;
-            }
+            user.EnsureCanDelete(media);
 
             await _mediaRepository.DeleteAsync(mediaId, ct);
 

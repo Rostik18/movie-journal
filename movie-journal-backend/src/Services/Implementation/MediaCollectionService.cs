@@ -1,7 +1,6 @@
 ﻿using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.MediaCollection;
 using MovieJournalBackend.Entities.Media;
-using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 using System.ComponentModel.DataAnnotations;
@@ -90,17 +89,10 @@ namespace MovieJournalBackend.Services.Implementation
 
         public async Task DeleteAsync(string collectionId, UserContext user, CancellationToken ct = default)
         {
-            if (!user.IsAdmin)
-            {
-                throw new ApplicationException("Only admins can delete collections.");
-            }
+            var collection = await _collectionRepository.GetByIdAsync(collectionId, user, ct)
+                ?? throw new ApplicationException($"Collection '{collectionId}' not found.");
 
-            var collection = await _collectionRepository.GetByIdAsync(collectionId, user, ct);
-
-            if (collection is null)
-            {
-                return;
-            }
+            user.EnsureCanDelete(collection);
 
             await _mediaRepository.ResetCollectionAsync(collectionId, ct);
 

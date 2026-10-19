@@ -94,17 +94,10 @@ namespace MovieJournalBackend.Services.Implementation
 
         public async Task DeleteAsync(string actorId, UserContext user, CancellationToken ct = default)
         {
-            if (!user.IsAdmin)
-            {
-                throw new ApplicationException("Only admins can delete actors.");
-            }
+            var actor = await _actorRepository.GetByIdAsync(actorId, user, ct)
+                ?? throw new ApplicationException($"Actor '{actorId}' not found.");
 
-            var actor = await _actorRepository.GetByIdAsync(actorId, user, ct);
-
-            if (actor is null)
-            {
-                return;
-            }
+            user.EnsureCanDelete(actor);
 
             await _actorRepository.DeleteAsync(actorId, ct);
 

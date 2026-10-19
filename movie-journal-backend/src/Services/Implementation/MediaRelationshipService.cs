@@ -1,6 +1,5 @@
 ﻿using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
-using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories;
 using System.ComponentModel.DataAnnotations;
 
