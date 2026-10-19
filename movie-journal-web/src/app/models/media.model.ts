@@ -9,4 +9,5 @@ export interface MediaItem {
     posterUrl: string;
     genres: string[];
     tags: string[];
+    author?: string;
 }

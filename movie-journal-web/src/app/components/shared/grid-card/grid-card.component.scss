@@ -1,0 +1,93 @@
+@use '../../../styles/global.scss' as *;
+
+.card {
+    position: relative;
+    /* База для .card-action-overlay */
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Обгортка зображення */
+    .image-wrapper {
+        position: relative;
+        height: 260px;
+        background: #cbd5e1;
+        overflow: hidden;
+
+        .image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .no-image {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* Бейдж поверх фото (наприклад, статус або тип) */
+        .badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(15, 23, 42, 0.75);
+            color: white;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+    }
+
+    /* Тіло картки */
+    .card-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+
+        h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        /* Гнучкий відступ для контенту (щоб текст біографії притискався до низу, якщо потрібно) */
+        .biography {
+            color: #334155;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-top: auto;
+        }
+
+        .birth-date {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+    }
+}

@@ -21,6 +21,7 @@ input[type="text"],
 input[type="number"],
 input[type="url"],
 input[type="date"],
+input[type="password"],
 select,
 textarea {
     width: 100%;
@@ -190,4 +191,12 @@ textarea {
     &:active {
         transform: scale(0.95);
     }
+}
+
+// /* Глобальний стильовий клас для позиціонування дій на картках (наприклад, кнопка видалення) */
+.card-action-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
 }

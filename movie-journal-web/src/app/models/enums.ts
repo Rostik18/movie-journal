@@ -37,8 +37,8 @@ export const MediaTypeLabels: Record<MediaType, string> = {
 
 // 3. Ролі користувачів
 export enum UserRole {
-    User = 1,
-    Admin = 2
+    User = "User",
+    Admin = "Admin"
 }
 
 export const UserRoleLabels: Record<UserRole, string> = {

@@ -3,9 +3,10 @@ import { SortDirection } from './shared.model';
 
 export enum MediaSortField {
     Title = 1,
-    ReleaseYear = 2,
-    CreatedAt = 3,
-    UpdatedAt = 4
+    Author = 2,
+    ReleaseYear = 3,
+    CreatedAt = 4,
+    UpdatedAt = 5
 }
 
 export interface MediaSearchParams {

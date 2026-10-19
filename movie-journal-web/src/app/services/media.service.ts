@@ -64,4 +64,8 @@ export class MediaService {
     createMedia(request: CreateMediaRequest): Observable<MediaItem> {
         return this.http.post<MediaItem>(`${this.apiUrl}`, request);
     }
+
+    deleteMedia(id: string): Observable<any> {
+        return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    }
 }

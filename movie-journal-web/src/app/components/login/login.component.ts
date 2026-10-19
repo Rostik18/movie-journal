@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
 import { LoginResult } from '../../models/user.model';
+import { UserService } from '../../services/user.service';
 
 @Component({
     selector: 'app-login',
@@ -13,6 +14,8 @@ import { LoginResult } from '../../models/user.model';
     styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
+    userService = inject(UserService);
+
     // Змінні для збереження даних з інпутів
     loginData = {
         login: '',
@@ -35,9 +38,8 @@ export class LoginComponent {
                     localStorage.setItem('auth_token', response.accessToken);
                 }
 
-                // Зберігаємо об'єкт користувача у форматі JSON
                 if (response.user) {
-                    localStorage.setItem('auth_user', JSON.stringify(response.user));
+                    this.userService.setUserData(response.user);
                 }
 
                 this.successMessage = 'Успішна авторизація!';

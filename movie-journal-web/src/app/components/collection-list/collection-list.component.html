@@ -14,19 +14,15 @@
     <div *ngIf="loading()" class="loading">Завантаження колекцій...</div>
 
     <!-- 1. РЕЖИМ СІТКИ (GRID) -->
-    <div class="collections-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <div class="collection-card" *ngFor="let col of collections()">
-            <div class="poster-wrapper">
-                <img [src]="col.posterUrl || 'assets/default-poster.png'" [alt]="col.name" class="poster">
-                <span class="visibility-badge">{{ visibilityLabels[col.visibility] }}</span>
+    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
+        <app-grid-card *ngFor="let col of collections()" [imageUrl]="col.posterUrl" [imageAlt]="col.name"
+            [title]="col.name" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(col)"
+            (deleted)="onDeleted(col)">
+
+            <div class="tags" *ngIf="col.tags?.length">
+                <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
             </div>
-            <div class="collection-info">
-                <h3>{{ col.name }}</h3>
-                <div class="tags" *ngIf="col.tags && col.tags.length > 0">
-                    <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
-                </div>
-            </div>
-        </div>
+        </app-grid-card>
     </div>
 
     <!-- 2. РЕЖИМ ТАБЛИЦІ / СПИСКУ (LIST) -->
@@ -38,12 +34,13 @@
                     <th>Назва колекції</th>
                     <th>Теги</th>
                     <th>Видимість</th>
+                    <th>Дії</th>
                 </tr>
             </thead>
             <tbody>
                 <tr *ngFor="let col of collections()">
                     <td class="table-poster-cell">
-                        <img [src]="col.posterUrl || 'assets/default-poster.png'" alt="" class="table-poster">
+                        <img [src]="col.posterUrl" alt="" class="table-poster">
                     </td>
                     <td>
                         <span class="collection-title-text">{{ col.name }}</span>
@@ -56,6 +53,12 @@
                     </td>
                     <td>
                         <span class="visibility-badge-inline">{{ visibilityLabels[col.visibility] }}</span>
+                    </td>
+                    <td>
+                        <div *ngIf="userService.isAdmin()">
+                            <app-delete-button [deleteAction]="getDeleteCallback(col)" (deleted)="onDeleted(col)">
+                            </app-delete-button>
+                        </div>
                     </td>
                 </tr>
             </tbody>

@@ -1,0 +1,52 @@
+.btn-delete-icon {
+    background: #fee2e2;
+    color: #ef4444;
+    border: 1px solid #fca5a5;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+
+    svg {
+        transition: transform 0.2s ease;
+    }
+
+    .spinner {
+        font-size: 0.75rem;
+        animation: spin 1s linear infinite;
+    }
+
+    &:hover:not(:disabled) {
+        background: #ef4444;
+        color: white;
+        border-color: #dc2626;
+        transform: scale(1.1);
+
+        svg {
+            transform: scale(1.05);
+        }
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #94a3b8;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

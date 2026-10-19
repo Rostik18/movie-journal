@@ -8,7 +8,7 @@
             <label>Фільм / Серіал *</label>
             <div class="collection-input-wrapper">
                 <input type="text" [(ngModel)]="mediaSearchQuery" (input)="onSearchMedia()" name="mediaSearchQuery"
-                    placeholder="Введіть назву фільму для пошуку...">
+                    placeholder="Введіть назву фільму або вставте посилання (URL)...">
 
                 <button type="button" class="btn-danger-sm" *ngIf="formData.mediaId || mediaSearchQuery"
                     (click)="clearMedia()" title="Очистити">&times;</button>
@@ -55,8 +55,10 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Рейтинг (1-10)</label>
-                <input type="number" min="1" max="10" [(ngModel)]="formData.rating" name="rating" placeholder="Напр. 9">
+                <label>Рейтинг</label>
+                <!-- Слухаємо подію ratingChange і записуємо число у formData.rating -->
+                <app-rating-stars [initialRating]="formData.rating ?? null" (ratingChange)="formData.rating = $event">
+                </app-rating-stars>
             </div>
         </div>
 

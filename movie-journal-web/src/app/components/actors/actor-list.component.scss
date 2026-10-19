@@ -38,80 +38,15 @@
         margin-top: 50px;
     }
 
-    /* Режим плиток (Grid) */
-    .actors-grid {
+    /* РЕЖИМ 1: Сітка плиток (тепер використовує <app-grid-card>) */
+    .cards-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 20px;
-
-        .actor-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.2s;
-
-            &:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-            }
-
-            .photo-wrapper {
-                height: 280px;
-                background: #cbd5e1;
-                overflow: hidden;
-
-                .photo {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-
-                .no-photo {
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #64748b;
-                }
-            }
-
-            .actor-info {
-                padding: 15px;
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-
-                h3 {
-                    margin: 0 0 5px 0;
-                    font-size: 1.1rem;
-                    color: #1e293b;
-                }
-
-                .birth-date {
-                    color: #64748b;
-                    font-size: 0.85rem;
-                    margin-bottom: 10px;
-                }
-
-                .biography {
-                    color: #334155;
-                    font-size: 0.9rem;
-                    line-height: 1.4;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 3;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                    margin-top: auto;
-                }
-            }
-        }
+        margin-top: 20px;
     }
 
-    /* Режим таблиці / списку (List) */
+    /* РЕЖИМ 2: Таблиця / Список (List) */
     .actors-list-view {
         background: white;
         border-radius: 8px;
@@ -160,6 +95,7 @@
             .biography-preview {
                 display: -webkit-box;
                 -webkit-line-clamp: 2;
+                line-clamp: 2;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
                 color: #64748b;

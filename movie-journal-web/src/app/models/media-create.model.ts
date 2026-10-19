@@ -35,5 +35,6 @@ export interface CreateMediaRequest {
     cast: MediaActor[];
     links: MediaLink[];
     seasons: Season[];
+    author?: string | null;
     collectionId?: string | null;
 }

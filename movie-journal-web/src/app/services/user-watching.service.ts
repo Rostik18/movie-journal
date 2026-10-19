@@ -3,9 +3,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { UserWatchingItem } from '../models/user-watching.model';
 import { CreateUserWatchingRequest } from '../models/create-user-watching.model';
+import { WatchStatus } from '../models/enums';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
 import { UserWatchingSearchParams } from '../models/user-watching-search.model';
+
+export interface UpdateUserWatchingRequest {
+    mediaId: string;
+    status?: WatchStatus | null;
+    rating?: number | null;
+    notes?: string | null;
+    stoppedAtSeconds?: number | null;
+    currentSeasonNumber?: number | null;
+    currentEpisodeNumber?: number | null;
+}
 
 @Injectable({
     providedIn: 'root'
@@ -71,5 +82,13 @@ export class UserWatchingService {
 
     addToWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {
         return this.http.post<UserWatchingItem>(`${this.baseUrl}/`, request);
+    }
+
+    updateWatchlist(request: UpdateUserWatchingRequest): Observable<UserWatchingItem> {
+        return this.http.put<UserWatchingItem>(`${this.baseUrl}/`, request);
+    }
+
+    deleteUserWatching(id: string): Observable<any> {
+        return this.http.delete<any>(`${this.baseUrl}/media/${id}`);
     }
 }

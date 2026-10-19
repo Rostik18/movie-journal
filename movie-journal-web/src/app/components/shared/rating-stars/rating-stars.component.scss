@@ -1,0 +1,27 @@
+.rating-stars-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+
+    .star {
+        font-size: 1.4rem;
+        color: #cbd5e1; // Сірий колір неактивної зірочки
+        transition: color 0.15s ease, transform 0.1s ease;
+
+        &.active {
+            color: #f59e0b; // Теплий золотавий колір активної зірочки
+        }
+
+        &:hover {
+            transform: scale(1.15);
+        }
+    }
+
+    .rating-value {
+        margin-left: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+}

@@ -44,4 +44,8 @@ export class ActorService {
     createActor(request: CreateActorRequest): Observable<ActorItem> {
         return this.http.post<ActorItem>(`${this.apiUrl}`, request);
     }
+
+    deleteActor(id: string): Observable<any> {
+        return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    }
 }

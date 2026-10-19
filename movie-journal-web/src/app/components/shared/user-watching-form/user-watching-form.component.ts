@@ -1,4 +1,4 @@
-import { Component, inject, output, signal, ViewChild } from '@angular/core';
+import { Component, inject, output, signal, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MediaFormComponent } from '../media-form/media-form.component';
@@ -7,11 +7,12 @@ import { UserWatchingService } from '../../../services/user-watching.service';
 import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
 import { CreateUserWatchingRequest } from '../../../models/create-user-watching.model';
+import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
 
 @Component({
     selector: 'app-user-watching-form',
     standalone: true,
-    imports: [CommonModule, FormsModule, MediaFormComponent],
+    imports: [CommonModule, FormsModule, MediaFormComponent, RatingStarsComponent],
     templateUrl: './user-watching-form.component.html',
     styleUrls: ['./user-watching-form.component.scss']
 })
@@ -22,10 +23,8 @@ export class UserWatchingFormComponent {
 
     watchingCreated = output<void>();
 
-    // Посилання на вбудовану форму медіа, щоб забрати з неї заповнені користувачем дані
     @ViewChild(MediaFormComponent) mediaFormComp?: MediaFormComponent;
 
-    // Поля для UserWatching
     formData: CreateUserWatchingRequest = {
         mediaId: '',
         status: WatchStatus.Watching,
@@ -45,6 +44,11 @@ export class UserWatchingFormComponent {
         .filter(v => typeof v === 'number')
         .map(v => ({ value: v as WatchStatus, label: WatchStatusLabels[v as WatchStatus] }));
 
+    // Перевірка, чи введений рядок є URL
+    private isUrl(text: string): boolean {
+        return text.startsWith('http://') || text.startsWith('https://');
+    }
+
     onSearchMedia() {
         const query = this.mediaSearchQuery.trim();
         if (!query) {
@@ -54,6 +58,23 @@ export class UserWatchingFormComponent {
             return;
         }
 
+        // Якщо користувач вставив URL замість назви фільму
+        if (this.isUrl(query)) {
+            this.mediaSearchResults.set([]);
+            this.isCreatingNewMedia = true;
+            this.formData.mediaId = '';
+
+            // Використовуємо setTimeout, щоб дочекатися поки <app-media-form> з'явиться в DOM
+            setTimeout(() => {
+                if (this.mediaFormComp) {
+                    this.mediaFormComp.initFromUrl(query);
+                }
+            }, 50);
+
+            return;
+        }
+
+        // Звичайний текстовий пошук фільму в базі
         this.mediaService.searchMedia({ title: query, size: 5 }).subscribe({
             next: (res) => {
                 const items = res.items || [];
@@ -96,21 +117,18 @@ export class UserWatchingFormComponent {
     }
 
     onSubmit() {
-        // Якщо обрано режим створення нового фільму через вбудовану форма медіа
         if (this.isCreatingNewMedia) {
             if (!this.mediaFormComp) {
                 return;
             }
 
-            // Забираємо актуальні дані з форми медіа (включно з жанрами, постером тощо)
             const mediaData = this.mediaFormComp.mediaData;
 
             if (!mediaData.title.trim()) {
-                this.toastService.show("Будь ласка, введіть назву нового фільму.", 'error');
+                this.toastService.show("Будь ласка, введіть або зачекайте на завантаження назви нового фільму.", 'error');
                 return;
             }
 
-            // Обробляємо жанри та теги так само, як у самій медіа-формі
             mediaData.genres = this.mediaFormComp.genresInput
                 ? this.mediaFormComp.genresInput.split(',').map(s => s.trim()).filter(Boolean)
                 : [];
@@ -121,10 +139,8 @@ export class UserWatchingFormComponent {
 
             this.toastService.show(`Створення фільму "${mediaData.title}" та додавання у список...`, 'info', 4000);
 
-            // 1. Спершу створюємо медіа за допомогою `MediaService`
             this.mediaService.createMedia(mediaData).subscribe({
                 next: (createdMedia: any) => {
-                    // 2. Отримуємо ID та одразу відправляємо запит у watchlist
                     this.formData.mediaId = createdMedia.id;
                     this.sendUserWatchingRequest();
                 },
@@ -134,9 +150,8 @@ export class UserWatchingFormComponent {
                 }
             });
         } else {
-            // Якщо фільм вже був обраний із пошуку
             if (!this.formData.mediaId) {
-                this.toastService.show('Будь ласка, оберіть фільм або створіть новий.', 'error');
+                this.toastService.show('Будь ласка, оберіть фільм або введіть URL / створіть новий.', 'error');
                 return;
             }
             this.sendUserWatchingRequest();

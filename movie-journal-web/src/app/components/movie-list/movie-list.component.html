@@ -14,28 +14,20 @@
     <div *ngIf="loading()" class="loading">Завантаження фільмів...</div>
 
     <!-- РЕЖИМ 1: Плитки (Grid) -->
-    <div class="movies-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <div *ngFor="let movie of movies()" class="movie-card">
-            <div class="poster-wrapper">
-                <img [src]="movie.posterUrl" [alt]="movie.title" class="poster">
-                <span class="type-badge">{{ movie.type }}</span>
-            </div>
-            <div class="movie-info">
-                <h3>{{ movie.title }}</h3>
-                <p class="original-title">{{ movie.originalTitle }} ({{ movie.releaseYear }})</p>
+    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
+        <app-grid-card *ngFor="let mov of movies()" [imageUrl]="mov.posterUrl" [imageAlt]="mov.title"
+            [title]="mov.title" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(mov)"
+            (deleted)="onDeleted(mov)">
 
-                <div class="genres">
-                    <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
-                </div>
-
-                <div class="status-buttons">
-                    <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
-                        (click)="setWatchStatus(movie, opt.status)">
-                        {{ opt.label }}
-                    </button>
-                </div>
+            <p class="original-title">{{ mov.originalTitle }} ({{ mov.releaseYear }})</p>
+            <div class="genres">
+                <span *ngFor="let genre of mov.genres" class="genre-tag">{{ genre }}</span>
             </div>
-        </div>
+            <div class="status-buttons">
+                <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
+                    (click)="setWatchStatus(mov, opt.status)">{{ opt.label }}</button>
+            </div>
+        </app-grid-card>
     </div>
 
     <!-- РЕЖИМ 2: Таблиця / Список (List) -->
@@ -70,6 +62,11 @@
                                 (click)="setWatchStatus(movie, opt.status)" [title]="opt.label">
                                 {{ opt.label }}
                             </button>
+                        </div>
+
+                        <div *ngIf="userService.isAdmin()">
+                            <app-delete-button [deleteAction]="getDeleteCallback(movie)" (deleted)="onDeleted(movie)">
+                            </app-delete-button>
                         </div>
                     </td>
                 </tr>

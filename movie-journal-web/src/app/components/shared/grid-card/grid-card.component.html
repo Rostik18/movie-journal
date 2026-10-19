@@ -1,0 +1,24 @@
+<div class="card">
+
+    <div class="card-action-overlay" *ngIf="showDelete()">
+        @if (deleteAction()) {
+        <app-delete-button [deleteAction]="deleteAction()!" (deleted)="deleted.emit()">
+        </app-delete-button>
+        }
+    </div>
+
+    <div class="image-wrapper">
+        <img *ngIf="imageUrl(); else noImage" [src]="imageUrl()" [alt]="imageAlt()" class="image">
+        <ng-template #noImage>
+            <div class="no-image">{{ noImageText() }}</div>
+        </ng-template>
+
+        <span *ngIf="badge()" class="badge" [ngClass]="badgeClass()">{{ badge() }}</span>
+    </div>
+
+    <div class="card-body">
+        <h3>{{ title() }}</h3>
+        <!-- Усе унікальне для конкретної сутності -->
+        <ng-content></ng-content>
+    </div>
+</div>

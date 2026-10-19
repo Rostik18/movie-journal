@@ -16,35 +16,21 @@
     <div *ngIf="loading()" class="loading">Завантаження вашого списку...</div>
 
     <!-- РЕЖИМ 1: Плитки (Grid) -->
-    <div class="watching-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <div *ngFor="let item of watchingList()" class="watching-card">
-            <div class="poster-wrapper">
-                <img [src]="item.media.posterUrl" [alt]="item.media.title" class="poster">
-                <span class="status-badge" [ngClass]="'status-' + item.status">
-                    {{ watchStatusLabels[item.status] }}
-                </span>
+    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
+        <app-grid-card *ngFor="let item of watchingList()" [imageUrl]="item.media.posterUrl"
+            [imageAlt]="item.media.title" [title]="item.media.title" [showDelete]="true"
+            [deleteAction]="getDeleteCallback(item)" (deleted)="onItemDeleted(item)">
+
+            <p class="original-title">{{ item.media.originalTitle }} ({{ item.media.releaseYear }})</p>
+            <div class="genres">
+                <span *ngFor="let genre of item.media.genres" class="genre-tag">{{ genre }}</span>
             </div>
-
-            <div class="card-body">
-                <h3>{{ item.media.title }}</h3>
-                <p class="original-title">{{ item.media.originalTitle }} ({{ item.media.releaseYear }})</p>
-
-                <div class="genres">
-                    <span *ngFor="let genre of item.media.genres" class="genre-tag">{{ genre }}</span>
-                </div>
-
-                <div class="user-meta">
-                    <p *ngIf="item.rating" class="rating">⭐ Оцінка: {{ item.rating }}/10</p>
-
-                    <div class="progress-info" *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber">
-                        <span>Сезон: {{ item.currentSeasonNumber || '-' }}</span> |
-                        <span>Серія: {{ item.currentEpisodeNumber || '-' }}</span>
-                    </div>
-
-                    <p class="notes" *ngIf="item.notes">«{{ item.notes }}»</p>
-                </div>
+            <div class="card-rating-section">
+                <app-rating-stars [initialRating]="item.rating" (ratingChange)="updateRating(item, $event)">
+                </app-rating-stars>
             </div>
-        </div>
+            <p class="notes" *ngIf="item.notes">«{{ item.notes }}»</p>
+        </app-grid-card>
     </div>
 
     <!-- РЕЖИМ 2: Таблиця / Список (List) -->
@@ -58,6 +44,7 @@
                     <th>Оцінка</th>
                     <th>Прогрес</th>
                     <th>Нотатки</th>
+                    <th>Дії</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,8 +62,10 @@
                         </span>
                     </td>
                     <td>
-                        <span *ngIf="item.rating; else noRating" class="table-rating">⭐ {{ item.rating }}/10</span>
-                        <ng-template #noRating>—</ng-template>
+                        <div class="card-rating-section">
+                            <app-rating-stars [initialRating]="item.rating" (ratingChange)="updateRating(item, $event)">
+                            </app-rating-stars>
+                        </div>
                     </td>
                     <td>
                         <span *ngIf="item.currentSeasonNumber || item.currentEpisodeNumber; else noProgress">
@@ -87,6 +76,10 @@
                     <td>
                         <span class="table-notes" *ngIf="item.notes; else noNotes">«{{ item.notes }}»</span>
                         <ng-template #noNotes>—</ng-template>
+                    </td>
+                    <td>
+                        <app-delete-button [deleteAction]="getDeleteCallback(item)" (deleted)="onItemDeleted(item)">
+                        </app-delete-button>
                     </td>
                 </tr>
             </tbody>

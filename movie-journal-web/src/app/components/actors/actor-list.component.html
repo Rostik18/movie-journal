@@ -16,24 +16,16 @@
     <div *ngIf="loading()" class="loading">Завантаження акторів...</div>
 
     <!-- РЕЖИМ 1: Плитки (Grid) -->
-    <div class="actors-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <div *ngFor="let actor of actors()" class="actor-card">
-            <div class="photo-wrapper">
-                <img [src]="actor.photoUrl" [alt]="actor.fullName" class="photo"
-                    *ngIf="actor.photoUrl; else noPhotoGrid">
-                <ng-template #noPhotoGrid>
-                    <div class="no-photo">Немає фото</div>
-                </ng-template>
-            </div>
+    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
+        <app-grid-card *ngFor="let actor of actors()" [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName"
+            [title]="actor.fullName" [showDelete]="userService.isAdmin()" [deleteAction]="getDeleteCallback(actor)"
+            (deleted)="onDeleted(actor)">
 
-            <div class="actor-info">
-                <h3>{{ actor.fullName }}</h3>
-                <p class="birth-date" *ngIf="actor.birthDate">
-                    Дата народження: {{ actor.birthDate | date:'yyyy-MM-dd' }}
-                </p>
-                <p class="biography">{{ actor.biography || 'Біографія відсутня.' }}</p>
-            </div>
-        </div>
+            <p class="birth-date" *ngIf="actor.birthDate">
+                Дата народження: {{ actor.birthDate | date:'yyyy-MM-dd' }}
+            </p>
+            <p class="biography">{{ actor.biography }}</p>
+        </app-grid-card>
     </div>
 
     <!-- РЕЖИМ 2: Таблиця / Список (List) -->
@@ -45,6 +37,7 @@
                     <th>Повне ім'я</th>
                     <th>Дата народження</th>
                     <th>Біографія</th>
+                    <th>Дії</th>
                 </tr>
             </thead>
             <tbody>
@@ -59,6 +52,12 @@
                     <td><strong>{{ actor.fullName }}</strong></td>
                     <td>{{ actor.birthDate ? (actor.birthDate | date:'yyyy-MM-dd') : '—' }}</td>
                     <td><span class="biography-preview">{{ actor.biography || 'Біографія відсутня.' }}</span></td>
+                    <td>
+                        <div *ngIf="userService.isAdmin()">
+                            <app-delete-button [deleteAction]="getDeleteCallback(actor)" (deleted)="onDeleted(actor)">
+                            </app-delete-button>
+                        </div>
+                    </td>
                 </tr>
             </tbody>
         </table>
