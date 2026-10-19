@@ -12,6 +12,7 @@ namespace MovieJournalBackend.Contracts.Media
         string? PosterUrl,
         string? Author,
         List<string> Genres,
-        List<string> Tags
+        List<string> Tags,
+        Visibility Visibility
         );
 }

@@ -33,7 +33,8 @@ namespace MovieJournalBackend.Contracts.Common
             media.PosterUrl,
             media.Author,
             media.Genres,
-            media.Tags);
+            media.Tags,
+            media.Visibility);
 
         public static MediaCollectionResponse ToResponse(this Entities.Media.MediaCollection collection) => new(
             collection.Id,
