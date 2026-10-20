@@ -1,8 +1,8 @@
 <div class="media-form-card">
     <h3>Додати новий фільм / серіал</h3>
 
-    <!-- Enter у полях не повинен сабмітити форму -->
-    <form (ngSubmit)="submit()" (keydown.enter)="$event.preventDefault()">
+    <!-- Enter у текстових полях не сабмітить форму (кнопки працюють як звичайно) -->
+    <form (ngSubmit)="submit()" (keydown.enter)="onFormEnter($event)">
         <!-- 1. Швидке додавання за посиланням (тригер автозаповнення) -->
         <div class="top-link-section">
             <div class="section-header">
@@ -59,7 +59,8 @@
             </div>
             <div class="form-group">
                 <label for="type">Тип</label>
-                <select id="type" [(ngModel)]="mediaData.type" name="type">
+                <!-- Ручний вибір типу блокує його автозаповнення з метаданих -->
+                <select id="type" [ngModel]="mediaData.type" (ngModelChange)="onTypeChange($event)" name="type">
                     @for (opt of mediaTypeOptions; track opt.value) {
                     <option [ngValue]="opt.value">{{ opt.label }}</option>
                     }
@@ -91,7 +92,8 @@
                     <label for="collection">Колекція (опціонально)</label>
                     <div class="collection-input-wrapper">
                         <input id="collection" type="text" [(ngModel)]="collectionSearchQuery"
-                            (input)="onSearchCollections()" name="collectionSearchQuery" autocomplete="off"
+                            (input)="onSearchCollections()" (keydown.escape)="onCollectionEscape($event)"
+                            name="collectionSearchQuery" autocomplete="off"
                             placeholder="Введіть назву існуючої або нової колекції...">
 
                         @if (mediaData.collectionId || collectionSearchQuery) {
@@ -103,9 +105,9 @@
                     @if (collectionSearchResults().length > 0) {
                     <div class="actor-dropdown-results">
                         @for (col of collectionSearchResults(); track col.id) {
-                        <div class="actor-dropdown-item" (click)="selectCollection(col)">
+                        <button type="button" class="actor-dropdown-item" (click)="selectCollection(col)">
                             <span>📁 {{ col.name }}</span>
-                        </div>
+                        </button>
                         }
                     </div>
                     }
@@ -123,7 +125,6 @@
                     </div>
                     }
                 </div>
-
             </div>
 
             <div class="poster-preview-section" title="Прев'ю постера">
@@ -161,15 +162,16 @@
             <div class="form-group actor-search-box">
                 <label for="actorSearch">Знайти та додати актора</label>
                 <input id="actorSearch" type="text" [(ngModel)]="actorSearchQuery" (input)="onSearchActors()"
-                    name="actorSearchQuery" autocomplete="off" placeholder="Введіть ім'я актора...">
+                    (keydown.escape)="onActorEscape($event)" name="actorSearchQuery" autocomplete="off"
+                    placeholder="Введіть ім'я актора...">
 
                 @if (actorSearchResults().length > 0) {
                 <div class="actor-dropdown-results">
                     @for (actor of actorSearchResults(); track actor.id ?? actor.actorId) {
-                    <div class="actor-dropdown-item" (click)="addActorToCast(actor)">
+                    <button type="button" class="actor-dropdown-item" (click)="addActorToCast(actor)">
                         <img [src]="actor.photoUrl || 'assets/default-avatar.png'" alt="" class="mini-avatar">
                         <span>{{ actor.fullName }}</span>
-                    </div>
+                    </button>
                     }
                 </div>
                 }

@@ -251,18 +251,30 @@ $primary: #3b82f6;
         z-index: 100;
         margin-top: 4px;
 
+        // Пункти - це <button>, тому доступні з клавіатури (Tab, Enter, Space)
         .actor-dropdown-item {
             display: flex;
             align-items: center;
             gap: 10px;
+            width: 100%;
             padding: 8px 12px;
-            cursor: pointer;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font: inherit;
             font-size: 0.9rem;
             color: $text-main;
+            cursor: pointer;
             transition: background 0.15s;
 
-            &:hover {
+            &:hover,
+            &:focus-visible {
                 background: #f1f5f9;
+            }
+
+            &:focus-visible {
+                outline: 2px solid #93c5fd;
+                outline-offset: -2px;
             }
 
             .mini-avatar {

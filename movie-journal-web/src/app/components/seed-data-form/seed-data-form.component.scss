@@ -1,0 +1,98 @@
+@use '../../styles/global.scss' as *;
+
+.seed-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    h3 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        textarea,
+        input,
+        select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: #fff;
+
+            &:focus {
+                outline: none;
+                border-color: #0ea5e9;
+                box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+            }
+        }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace; // Зручно для табличних даних з табами
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+
+        .form-group {
+            flex: 1;
+        }
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 10px;
+
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #334155;
+
+            &:hover {
+                background: #cbd5e1;
+            }
+        }
+
+        .btn-submit {
+            background: #0ea5e9;
+            color: white;
+
+            &:hover {
+                background: #0284c7;
+            }
+
+            &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+        }
+    }
+}

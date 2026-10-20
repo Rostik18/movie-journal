@@ -1,37 +1,38 @@
 <div class="app-layout">
-    <!-- 1. Верхня смуга (Header) -->
+    <!-- 1. Верхня смуга -->
     <header class="app-header">
         <div class="header-left">
             <h2>🎬 Кіножурнал</h2>
-            <span class="server-status" [ngClass]="statusService.serverStatus()">
-                ● Сервер
-                <span *ngIf="statusService.serverStatus() === 'green'">активний</span>
-                <span *ngIf="statusService.serverStatus() === 'yellow'">невідомо</span>
-                <span *ngIf="statusService.serverStatus() === 'red'">недоступний</span>
+            <span class="server-status" [class]="serverStatus()" role="status">
+                <span class="status-dot" aria-hidden="true">●</span>
+                Сервер {{ statusLabel() }}
             </span>
         </div>
         <div class="header-right">
-            <span class="username">Вітаю, {{ getUserName() }}!</span>
-            <button (click)="logout()" class="logout-btn">Вихід</button>
+            <span class="username">Вітаю, {{ userName }}!</span>
+            <button type="button" class="logout-btn" (click)="logout()">Вихід</button>
         </div>
     </header>
 
     <div class="app-body">
-        <!-- 2. Бічне меню (Sidebar) -->
+        <!-- 2. Бічне меню -->
         <aside class="app-sidebar">
-            <nav>
-                <a routerLink="/watchlist" routerLinkActive="active">⭐ Список перегляду</a>
-                <a routerLink="/movies" routerLinkActive="active">Список фільмів</a>
-                <a routerLink="/actors" routerLinkActive="active">Актори</a>
-                <a routerLink="/collections" routerLinkActive="active">Колекції</a>
+            <nav aria-label="Головна навігація">
+                @for (item of navItems; track item.path) {
+                @if (item.render) {
+                <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+                    {{ item.label }}
+                </a>
+                }
+                }
             </nav>
         </aside>
 
-        <!-- 3. Основний простір для сторінок (Content) -->
+        <!-- 3. Основний простір для сторінок -->
         <main class="app-content">
-            <router-outlet></router-outlet>
+            <router-outlet />
         </main>
-
-        <app-toast></app-toast>
     </div>
+
+    <app-toast />
 </div>

@@ -1,9 +1,9 @@
 export enum MediaLinkType {
-    Streaming = 1,
-    Trailer = 2,
-    OfficialWebsite = 3,
-    Purchase = 4,
-    Other = 5
+    Streaming = "Streaming",
+    Trailer = "Trailer",
+    OfficialWebsite = "OfficialWebsite",
+    Purchase = "Purchase",
+    Other = "Other"
 }
 
 export const MediaLinkTypeLabels: Record<MediaLinkType, string> = {
@@ -58,10 +58,10 @@ export const VisibilityLabels: Record<Visibility, string> = {
 };
 
 export enum WatchStatus {
-    Wishlist = 0,
-    Watching = 1,
-    Watched = 2,
-    Dropped = 3
+    Wishlist = "Wishlist",
+    Watching = "Watching",
+    Watched = "Watched",
+    Dropped = "Dropped"
 }
 
 export const WatchStatusLabels: Record<WatchStatus, string> = {

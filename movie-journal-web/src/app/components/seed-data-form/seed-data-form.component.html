@@ -1,0 +1,65 @@
+<form class="seed-form" (ngSubmit)="onSubmit()">
+    <h3>Імпорт / Seed даних</h3>
+
+    <div class="form-row">
+
+        <div class="form-group">
+            <label>Видимість:</label>
+            <select [ngModel]="selectedVisibility()" (ngModelChange)="selectedVisibility.set($event)" name="visibility">
+                @for (opt of visibilityOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Статус:</label>
+            <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)" name="status">
+                @for (opt of statusOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Тип медіа:</label>
+            <select [ngModel]="selectedType()" (ngModelChange)="selectedType.set($event)" name="type">
+                @for (opt of typeOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Тип посилання:</label>
+            <select [ngModel]="selectedLinkType()" (ngModelChange)="selectedLinkType.set($event)" name="linkType">
+                @for (opt of linkTypeOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Теги (через кому):</label>
+        <input type="text" [ngModel]="tagsInput()" (ngModelChange)="tagsInput.set($event)" name="tags"
+            placeholder="action, sci-fi, top">
+    </div>
+
+    <div class="form-group">
+        <label>Дані (Payload):</label>
+        <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
+            placeholder="https://example1.com    name1    6&#10;https://example2.com    name2    7" required>
+        </textarea>
+        <small class="hint">Вставте рядки у форматі: URL [TAB] Назва [TAB] Значення</small>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancelled.emit()">Скасувати</button>
+        <button type="submit" class="btn-submit" [disabled]="loading()">
+            @if (loading()) { Надсилання... } @else { Виконати Seed }
+        </button>
+    </div>
+</form>
