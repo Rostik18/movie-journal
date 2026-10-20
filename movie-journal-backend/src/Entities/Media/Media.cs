@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Entities.Media
 
         [BsonRepresentation(BsonType.String)]
         public MediaType Type { get; set; }
-        public int ReleaseYear { get; set; }
+        public int? ReleaseYear { get; set; }
         public int? RuntimeMinutes { get; set; }
         public string? PosterUrl { get; set; }
 

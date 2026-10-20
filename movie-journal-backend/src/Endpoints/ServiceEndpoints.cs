@@ -99,7 +99,7 @@ namespace MovieJournalBackend.Endpoints
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
                         RuntimeMinutes = metadata.DurationSeconds / 60,
-                        ReleaseYear = metadata.PublishedAtUtc?.Year ?? 1900,
+                        ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [new() { Url = parsedItem.Url, Type = request.MediaLinkType }],
                     }, new(userId!, [UserRole.Admin]), ct);
 
