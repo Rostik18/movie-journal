@@ -4,6 +4,7 @@ using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace MovieJournalBackend.Endpoints
 {
@@ -12,53 +13,16 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapServiceEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
-            app.MapGet("/api/service/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
             app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
+            app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
+            app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
             app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();
 
             return app;
         }
 
         private static async Task<IResult> GetStatusAsync(CancellationToken ct) => Results.Ok("Alive");
-
-        private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
-        {
-            var fileName = $"movie-journal-backup-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.zip";
-            var tempPath = Path.Combine(Path.GetTempPath(), $"movie-journal-{Guid.NewGuid():N}.zip");
-
-            try
-            {
-                await backupService.ExportToFileAsync(tempPath, ct);
-
-                context.Response.OnCompleted(() =>
-                {
-                    try { File.Delete(tempPath); } catch { }
-
-                    return Task.CompletedTask;
-                });
-
-                var stream = new FileStream(
-                    tempPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    bufferSize: 81920,
-                    options: FileOptions.Asynchronous |
-                             FileOptions.SequentialScan);
-
-                return Results.Stream(
-                    stream,
-                    contentType: "application/zip",
-                    fileDownloadName: fileName);
-            }
-            catch
-            {
-                try { File.Delete(tempPath); } catch { }
-
-                throw;
-            }
-        }
 
         private static async Task<IResult> GetMetadataAsync([FromQuery] string url, IMetadataService metadataService, CancellationToken ct)
         {
@@ -154,6 +118,80 @@ namespace MovieJournalBackend.Endpoints
             }
 
             return Results.Ok("Done");
+        }
+
+        private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
+        {
+            var fileName = $"movie-journal-backup-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.zip";
+            var tempPath = Path.Combine(Path.GetTempPath(), $"movie-journal-{Guid.NewGuid():N}.zip");
+
+            try
+            {
+                await backupService.ExportToFileAsync(tempPath, ct);
+
+                context.Response.OnCompleted(() =>
+                {
+                    try { File.Delete(tempPath); } catch { }
+
+                    return Task.CompletedTask;
+                });
+
+                var stream = new FileStream(
+                    tempPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 81920,
+                    options: FileOptions.Asynchronous |
+                             FileOptions.SequentialScan);
+
+                return Results.Stream(
+                    stream,
+                    contentType: "application/zip",
+                    fileDownloadName: fileName);
+            }
+            catch
+            {
+                try { File.Delete(tempPath); } catch { }
+
+                throw;
+            }
+        }
+
+        private static async Task<IResult> RestoreAsync([FromForm] RestoreBackupRequest request, IDatabaseBackupService service, CancellationToken ct)
+        {
+            var file = request.File;
+
+            if (file is null || file.Length == 0)
+            {
+                return Results.BadRequest(new { Message = "Please provide a non-empty ZIP file in the 'file' field." });
+            }
+
+            if (!string.Equals(Path.GetExtension(file.FileName), ".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.BadRequest(new { Message = "Only ZIP backup files are supported." });
+            }
+
+            try
+            {
+                await using var stream = file.OpenReadStream();
+
+                var result = await service.RestoreAsync(stream, ct);
+
+                return Results.Ok(result);
+            }
+            catch (InvalidDataException ex)
+            {
+                return Results.BadRequest(new { ex.Message });
+            }
+            catch (JsonException)
+            {
+                return Results.BadRequest(new { Message = "The backup manifest contains invalid JSON." });
+            }
+            catch (FormatException)
+            {
+                return Results.BadRequest(new { Message = "The backup contains an invalid BSON/JSON document." });
+            }
         }
 
         private static async Task<IResult> DropCollectionsAsync(IDatabaseBackupService service, CancellationToken ct) =>
