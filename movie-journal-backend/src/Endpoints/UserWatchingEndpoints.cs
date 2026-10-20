@@ -114,7 +114,7 @@ namespace MovieJournalBackend.Endpoints
             IUserWatchingService service,
             CancellationToken ct)
         {
-            var updated = await service.UpdateAsync(request, principal.ToUserContext(), ct);
+            var updated = await service.UpdateAsync(request, principal.ToUserContext(), null, ct);
 
             return Results.Ok(updated);
         }
