@@ -62,7 +62,17 @@ namespace MovieJournalBackend.Services.Implementation
 
             if (existing is not null)
             {
-                throw new ValidationException("Media already exists in user journal.");
+                return await UpdateAsync(new()
+                {
+                    MediaId = request.MediaId,
+                    Status = request.Status,
+                    Rating = request.Rating,
+                    StoppedAtSeconds = request.StoppedAtSeconds,
+                    CurrentEpisodeNumber = request.CurrentEpisodeNumber,
+                    CurrentSeasonNumber = request.CurrentSeasonNumber,
+                    Notes = request.Notes
+                },
+                user, existing, ct);
             }
 
             var entity = new UserWatching
@@ -90,9 +100,10 @@ namespace MovieJournalBackend.Services.Implementation
             return entity.ToResponse(media.ToResponse());
         }
 
-        public async Task<UserWatchingResponse> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
+        public async Task<UserWatchingResponse> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, UserWatching? existingEntity = null, CancellationToken ct = default)
         {
-            var entity = await watchingRepository.GetByUserAndMediaAsync(user.UserId, request.MediaId, ct)
+            var entity = existingEntity
+                ?? await watchingRepository.GetByUserAndMediaAsync(user.UserId, request.MediaId, ct)
                 ?? throw new NotFoundException("User watching entry not found.");
 
             if (request.Status.HasValue && entity.Status != request.Status.Value)
