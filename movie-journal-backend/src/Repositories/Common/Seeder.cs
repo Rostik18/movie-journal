@@ -27,7 +27,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Biography = "Canadian film actor. Three-time Oscar nominee for roles in the drama Half Nelson, the musical La La Land and the comedy Barbie, winner of the Golden Globe Award for his role in La La Land. Gosling's band Dead Man's Bones released their self-titled album in 2009.",
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
-                PhotoUrl = "https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcSGm1HLLA32H2mtH_lpTrRs9PlK0aWCjFixoZmiGrnR66c2kZdTxo07tKlPU_WbZ6M6_WxadD818BXLIi8"
+                PhotoUrl = "https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcSGm1HLLA32H2mtH_lpTrRs9PlK0aWCjFixoZmiGrnR66c2kZdTxo07tKlPU_WbZ6M6_WxadD818BXLIi8",
+                Visibility = Visibility.Public
             },
             new()
             {
@@ -37,7 +38,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Biography = "American actress and film producer. Winner of numerous awards, including two Academy Awards, two BAFTA Awards, two Golden Globe Awards, and three Screen Actors Guild Awards. In 2017, Stone was the highest-paid actress according to Forbes magazine, with earnings of $26 million.",
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
-                PhotoUrl = "https://assets.vogue.com/photos/68f8bc236a14a6c83b5d66d9/master/w_2560%2Cc_limit/GettyImages-2242466644.jpg"
+                PhotoUrl = "https://assets.vogue.com/photos/68f8bc236a14a6c83b5d66d9/master/w_2560%2Cc_limit/GettyImages-2242466644.jpg",
+                Visibility = Visibility.Public
             },
             new()
             {
@@ -47,7 +49,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Biography = "Cuban-Spanish film actress and model. After success in her homeland and in Spain, she moved to Hollywood and became famous for her roles in the films Blade Runner 2049, Knives Out, No Time to Die and Blonde.",
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
-                PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfTx05VA0WTNjVDivEHJAbrH3X5-71Dk6UW65yK1TV-3yyCSPAFllspoNvT_tjEzI0ju5GoTLRzG-UY27L4tbaYh30S0wXfKGIgFbVg&s=10"
+                PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfTx05VA0WTNjVDivEHJAbrH3X5-71Dk6UW65yK1TV-3yyCSPAFllspoNvT_tjEzI0ju5GoTLRzG-UY27L4tbaYh30S0wXfKGIgFbVg&s=10",
+                Visibility = Visibility.Public
             }
         ];
         private static MediaCollection[] _mediaCollection = [
@@ -55,7 +58,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Name = "Той, хто біжить по лезу",
                 OwnerUserId = _adminId,
                 CreatedByUserId = _adminId,
-                Tags = ["Гослінг"]
+                Tags = ["Гослінг"],
+                Visibility = Visibility.Public
             }
         ];
         private static Media[] _media = [
@@ -74,7 +78,8 @@ namespace MovieJournalBackend.Repositories.Common
                     new() { ActorId = _actors[1].Id, FullName = _actors[1].FullName }
                     ],
                 CreatedByUserId = _adminId,
-                OwnerUserId = _adminId
+                OwnerUserId = _adminId,
+                Visibility = Visibility.Public
             },
             new()
             {
@@ -95,7 +100,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Collection = new(){
                     Id = _mediaCollection[0].Id,
                     Name = _mediaCollection[0].Name
-                }
+                },
+                Visibility = Visibility.Public
             }
         ];
 

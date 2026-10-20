@@ -15,14 +15,12 @@ namespace MovieJournalBackend.Endpoints
             app.MapGet("/api/service/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
             app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
+            app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();
 
             return app;
         }
 
-        private static async Task<IResult> GetStatusAsync(CancellationToken ct)
-        {
-            return Results.Ok("Alive");
-        }
+        private static async Task<IResult> GetStatusAsync(CancellationToken ct) => Results.Ok("Alive");
 
         private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
         {
@@ -157,6 +155,9 @@ namespace MovieJournalBackend.Endpoints
 
             return Results.Ok("Done");
         }
+
+        private static async Task<IResult> DropCollectionsAsync(IDatabaseBackupService service, CancellationToken ct) =>
+            Results.Ok(await service.ClearDbAsync(ct));
 
         private record UrlNameRate(string Url, string? Name, int? Rate);
 

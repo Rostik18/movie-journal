@@ -1,14 +1,17 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Driver;
+using MovieJournalBackend.Repositories.Common;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
 namespace MovieJournalBackend.Services.Implementation
 {
-    public sealed class DatabaseBackupService(IMongoDatabase database) : IDatabaseBackupService
+    public sealed class DatabaseBackupService(IMongoDatabase database, MongoDbIndexInitializer initializer) : IDatabaseBackupService
     {
+        private static readonly string[] preservedCollections = ["users"];
+
         private static readonly JsonWriterSettings JsonSettings = new()
         {
             OutputMode = JsonOutputMode.CanonicalExtendedJson
@@ -76,6 +79,36 @@ namespace MovieJournalBackend.Services.Implementation
                 manifestStream,
                 manifest,
                 cancellationToken: ct);
+        }
+
+        public async Task<string> ClearDbAsync(CancellationToken ct = default)
+        {
+            var collectionNames = await database
+                .ListCollectionNames(cancellationToken: ct)
+                .ToListAsync(ct);
+
+            var droppedCollections = new List<string>();
+
+            foreach (var collectionName in collectionNames)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (preservedCollections.Contains(collectionName)) continue;
+                if (collectionName.StartsWith("system.", StringComparison.Ordinal)) continue;
+
+                await database.DropCollectionAsync(collectionName, ct);
+
+                droppedCollections.Add(collectionName);
+            }
+
+            await initializer.InitializeAsync(ct);
+
+            return JsonSerializer.Serialize(new
+            {
+                Message = "Database collections dropped successfully.",
+                PreservedCollections = preservedCollections,
+                DroppedCollections = droppedCollections
+            });
         }
 
         private sealed record BackupManifest(
