@@ -1,8 +1,14 @@
 @use '../../styles/global.scss' as *;
 
+$border-subtle: #f1f5f9;
+$surface: #f8fafc;
+$text-muted: #64748b;
+$text-body: #334155;
+
 .movies-container {
     padding: 10px;
 
+    /* ---------- Шапка ---------- */
     .header-section {
         display: flex;
         justify-content: space-between;
@@ -31,14 +37,44 @@
         }
     }
 
-    .loading {
+    /* ---------- Стани: завантаження / помилка / порожньо ---------- */
+    .loading,
+    .state-message {
         text-align: center;
-        font-size: 1.2rem;
         color: #718096;
         margin-top: 50px;
     }
 
-    /* Режим сітки (Grid) */
+    .loading {
+        font-size: 1.2rem;
+    }
+
+    .state-message {
+        p {
+            margin: 0 0 8px;
+        }
+
+        &.error {
+            color: #b91c1c;
+        }
+
+        .btn-retry {
+            margin-top: 6px;
+            padding: 7px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            color: $text-body;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:hover {
+                background: $surface;
+            }
+        }
+    }
+
+    /* ---------- Режим плиток ---------- */
     .cards-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -46,8 +82,9 @@
         margin-top: 20px;
     }
 
+    // Вміст, що проєктується в картку / сайдбар
     .original-title {
-        color: #64748b;
+        color: $text-muted;
         font-size: 0.85rem;
         margin-bottom: 12px;
     }
@@ -59,7 +96,7 @@
         margin-bottom: 15px;
 
         .genre-tag {
-            background-color: #f1f5f9;
+            background-color: $border-subtle;
             color: #0ea5e9;
             padding: 2px 8px;
             border-radius: 4px;
@@ -68,48 +105,67 @@
         }
     }
 
-    .status-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        margin-top: auto;
+    /* ---------- Оцінка та закладка ---------- */
+    .watch-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: auto; // у картці притискає блок до низу
+        padding-top: 8px;
+        border-top: 1px solid $border-subtle;
+    }
 
-        .status-btn {
-            border: none;
-            padding: 6px 4px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 600;
-            transition: opacity 0.2s;
+    .bookmark-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: white;
+        color: $text-muted;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 
-            &:hover {
-                opacity: 0.85;
+        svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        &:hover {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        // Фільм у планах: закладка заповнена
+        &.active {
+            background: #fef3c7;
+            color: #b45309;
+            border-color: #fde68a;
+
+            svg {
+                fill: currentColor;
             }
+        }
 
-            &.wishlist {
-                background-color: #fef3c7;
-                color: #92400e;
-            }
-
-            &.watching {
-                background-color: #dbeafe;
-                color: #1e40af;
-            }
-
-            &.watched {
-                background-color: #d1fae5;
-                color: #065f46;
-            }
-
-            &.dropped {
-                background-color: #fee2e2;
-                color: #991b1b;
-            }
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
         }
     }
 
-    /* Стилі для табличного вигляду (List) */
+    /* ---------- Режим таблиці ---------- */
     .movies-list-view {
         background: white;
         border-radius: 8px;
@@ -124,19 +180,41 @@
             th,
             td {
                 padding: 12px 16px;
-                border-bottom: 1px solid #f1f5f9;
+                border-bottom: 1px solid $border-subtle;
                 font-size: 0.9rem;
-                color: #334155;
+                color: $text-body;
             }
 
             th {
-                background: #f8fafc;
+                background: $surface;
                 font-weight: 600;
                 color: #475569;
             }
 
-            tr:hover {
-                background: #f8fafc;
+            .clickable-row {
+                cursor: pointer;
+
+                &:hover,
+                &:focus-visible {
+                    background: $surface;
+                }
+
+                &:focus-visible {
+                    outline: 2px solid #93c5fd;
+                    outline-offset: -2px;
+                }
+            }
+
+            .actions-cell {
+                cursor: default;
+
+                // У таблиці блок дій без верхньої лінії та притискання
+                .watch-actions {
+                    margin-top: 0;
+                    padding-top: 0;
+                    border-top: none;
+                    flex-wrap: nowrap;
+                }
             }
 
             .table-poster-cell {
@@ -148,10 +226,15 @@
                     object-fit: cover;
                     border-radius: 4px;
                 }
+
+                .table-no-poster {
+                    color: #94a3b8;
+                    text-align: center;
+                }
             }
 
             .type-badge-inline {
-                background: #f1f5f9;
+                background: $border-subtle;
                 color: #475569;
                 padding: 2px 6px;
                 border-radius: 4px;
@@ -163,44 +246,32 @@
                 flex-wrap: wrap;
                 gap: 4px;
             }
+        }
+    }
 
-            .list-actions {
-                display: flex;
-                gap: 4px;
+    /* ---------- Вміст сайдбару (проєктується з цього компонента) ---------- */
+    .sidebar-details-info {
+        .detail-row {
+            margin: 0 0 8px 0;
+        }
 
-                .status-btn-small {
-                    border: none;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    transition: opacity 0.2s;
+        .genres-section,
+        .description-section {
+            margin-top: 16px;
 
-                    &:hover {
-                        opacity: 0.85;
-                    }
+            h4 {
+                margin: 0 0 6px 0;
+                color: #1e293b;
+            }
 
-                    &.wishlist {
-                        background-color: #fef3c7;
-                        color: #92400e;
-                    }
+            p {
+                margin: 0;
+                // Зберігає переноси рядків в описі
+                white-space: pre-line;
+            }
 
-                    &.watching {
-                        background-color: #dbeafe;
-                        color: #1e40af;
-                    }
-
-                    &.watched {
-                        background-color: #d1fae5;
-                        color: #065f46;
-                    }
-
-                    &.dropped {
-                        background-color: #fee2e2;
-                        color: #991b1b;
-                    }
-                }
+            .genres {
+                margin-bottom: 0;
             }
         }
     }

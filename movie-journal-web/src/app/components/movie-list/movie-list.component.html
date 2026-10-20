@@ -4,34 +4,59 @@
             <h2>Каталог фільмів</h2>
             <span class="count-badge">Знайдено: {{ totalCount() }}</span>
 
-            <app-add-button label="Додати фільм" (clicked)="openModal()"> </app-add-button>
+            <app-add-button label="Додати фільм" (clicked)="openModal()" />
         </div>
 
-        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
-        </app-view-switcher>
+        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
     </div>
 
-    <div *ngIf="loading()" class="loading">Завантаження фільмів...</div>
-
-    <!-- РЕЖИМ 1: Плитки (Grid) -->
-    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <app-grid-card *ngFor="let mov of movies()" [imageUrl]="mov.posterUrl" [imageAlt]="mov.title"
-            [title]="mov.title" noImageText="Немає постера" (cardClick)="openDetails(mov)"
-            [visibility]="mov.visibility">
+    @if (showInitialLoading()) {
+    <div class="loading">Завантаження фільмів...</div>
+    } @else if (showError()) {
+    <div class="state-message error">
+        <p>Не вдалося завантажити фільми.</p>
+        <button type="button" class="btn-retry" (click)="loadMovies()">Спробувати знову</button>
+    </div>
+    } @else if (showEmpty()) {
+    <div class="state-message">
+        <p><strong>Каталог порожній.</strong></p>
+        <p>Натисніть «Додати фільм», щоб створити перший запис.</p>
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    @if (viewMode() === 'grid') {
+    <!-- РЕЖИМ 1: Плитки -->
+    <div class="cards-grid">
+        @for (mov of movies(); track mov.id) {
+        <app-grid-card [imageUrl]="mov.posterUrl" [imageAlt]="mov.title" [title]="mov.title" noImageText="Немає постера"
+            [visibility]="mov.visibility" (cardClick)="openDetails(mov)">
 
             <p class="original-title">{{ mov.originalTitle }} ({{ mov.releaseYear }})</p>
+
             <div class="genres">
-                <span *ngFor="let genre of mov.genres" class="genre-tag">{{ genre }}</span>
+                @for (genre of mov.genres; track genre) {
+                <span class="genre-tag">{{ genre }}</span>
+                }
             </div>
-            <div class="status-buttons" (click)="$event.stopPropagation()">
-                <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn ' + opt.class"
-                    (click)="setWatchStatus(mov, opt.status)">{{ opt.label }}</button>
+
+            <!-- Дії не повинні відкривати сайдбар -->
+            <div class="watch-actions" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
+                <app-rating-stars [initialRating]="ratingOf(mov)" (ratingChange)="rateMovie(mov, $event)" />
+
+                <button type="button" class="bookmark-btn" [class.active]="isWishlisted(mov)"
+                    [attr.aria-pressed]="isWishlisted(mov)" aria-label="Додати до планів" title="Додати до планів"
+                    (click)="addToWishlist(mov)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                    </svg>
+                </button>
             </div>
         </app-grid-card>
+        }
     </div>
-
-    <!-- РЕЖИМ 2: Таблиця / Список (List) -->
-    <div class="movies-list-view" *ngIf="!loading() && viewMode() === 'list'">
+    } @else {
+    <!-- РЕЖИМ 2: Таблиця -->
+    <div class="movies-list-view">
         <table class="movies-table">
             <thead>
                 <tr>
@@ -40,68 +65,95 @@
                     <th>Оригінал / Рік</th>
                     <th>Тип</th>
                     <th>Жанри</th>
-                    <th>Статус</th>
+                    <th>Оцінка / План</th>
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let movie of movies()" (click)="openDetails(movie)" style="cursor: pointer;">
+                @for (movie of movies(); track movie.id) {
+                <tr class="clickable-row" tabindex="0" (click)="openDetails(movie)"
+                    (keydown.enter)="openDetails(movie)">
                     <td class="table-poster-cell">
-                        <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster"
-                            *ngIf="movie.posterUrl; else noPosterTable">
-                        <ng-template #noPosterTable>
-                            <div class="table-no-poster">—</div>
-                        </ng-template>
+                        @if (movie.posterUrl) {
+                        <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster">
+                        } @else {
+                        <div class="table-no-poster">—</div>
+                        }
                     </td>
                     <td><strong>{{ movie.title }}</strong></td>
                     <td>{{ movie.originalTitle }} ({{ movie.releaseYear }})</td>
-                    <td><span class="type-badge-inline">{{ movie.type }}</span></td>
+                    <td><span class="type-badge-inline">{{ typeLabel(movie.type) }}</span></td>
                     <td>
-                        <div class="genres-inline" *ngIf="movie.genres?.length">
-                            <span *ngFor="let genre of movie.genres" class="genre-tag">{{ genre }}</span>
+                        @if (movie.genres?.length) {
+                        <div class="genres-inline">
+                            @for (genre of movie.genres; track genre) {
+                            <span class="genre-tag">{{ genre }}</span>
+                            }
                         </div>
+                        }
                     </td>
-                    <td (click)="$event.stopPropagation()">
-                        <div class="list-actions">
-                            <button *ngFor="let opt of watchStatusOptions" [class]="'status-btn-small ' + opt.class"
-                                (click)="setWatchStatus(movie, opt.status)" [title]="opt.label">
-                                {{ opt.label }}
+                    <!-- Дії не повинні відкривати сайдбар -->
+                    <td class="actions-cell" (click)="$event.stopPropagation()"
+                        (keydown.enter)="$event.stopPropagation()">
+                        <div class="watch-actions">
+                            <app-rating-stars [initialRating]="ratingOf(movie)"
+                                (ratingChange)="rateMovie(movie, $event)" />
+
+                            <button type="button" class="bookmark-btn" [class.active]="isWishlisted(movie)"
+                                [attr.aria-pressed]="isWishlisted(movie)" aria-label="Додати до планів"
+                                title="Додати до планів" (click)="addToWishlist(movie)">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                                </svg>
                             </button>
                         </div>
                     </td>
                 </tr>
+                }
             </tbody>
         </table>
     </div>
+    }
+    }
 
     <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ФІЛЬМУ -->
-    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
-            <app-media-form (mediaCreated)="onMediaCreated()"></app-media-form>
+    @if (isModalOpen()) {
+    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати новий фільм">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
+            <app-media-form (mediaCreated)="onMediaCreated()" />
         </div>
     </div>
+    }
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ -->
     <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedMovie()?.title ?? ''"
         [imageUrl]="selectedMovie()?.posterUrl" [imageAlt]="selectedMovie()?.title ?? ''" noImageText="Немає постера"
-        [deleteAction]="selectedMovie() ? getDeleteCallback(selectedMovie()!) : undefined" (closed)="closeSidebar()"
-        (editClicked)="onEditMovie()" (deleted)="onSidebarMovieDeleted()">
+        [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()" (editClicked)="onEditMovie()"
+        (deleted)="onSidebarMovieDeleted()">
 
         @if (selectedMovie(); as mov) {
         <div class="sidebar-details-info">
-            <p class="detail-row" *ngIf="mov.originalTitle">
+            @if (mov.originalTitle) {
+            <p class="detail-row">
                 <strong>Оригінальна назва:</strong> {{ mov.originalTitle }} ({{ mov.releaseYear }})
             </p>
-            <p class="detail-row" *ngIf="mov.type !== null && mov.type !== undefined">
-                <strong>Тип:</strong> {{ mediaTypeLabels[mov.type] || mov.type }}
+            }
+            @if (mov.type != null) {
+            <p class="detail-row">
+                <strong>Тип:</strong> {{ typeLabel(mov.type) }}
             </p>
+            }
 
-            <div class="genres-section" *ngIf="mov.genres?.length">
+            @if (mov.genres?.length) {
+            <div class="genres-section">
                 <h4>Жанри</h4>
                 <div class="genres">
-                    <span *ngFor="let genre of mov.genres" class="genre-tag">{{ genre }}</span>
+                    @for (genre of mov.genres; track genre) {
+                    <span class="genre-tag">{{ genre }}</span>
+                    }
                 </div>
             </div>
+            }
 
             @if (mov.description) {
             <div class="description-section">

@@ -1,70 +1,89 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Subject, EMPTY, of } from 'rxjs';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { MediaFormComponent } from '../shared/media-form/media-form.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
+import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.component';
 import { ToastService } from '../../services/toast.service';
 import { MediaService } from '../../services/media.service';
 import { UserWatchingService } from '../../services/user-watching.service';
 import { MediaItem } from '../../models/media.model';
 import { MediaTypeLabels, WatchStatus } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CreateUserWatchingRequest } from '../../models/user-watching.model';
 
 type DeleteCallback = () => ReturnType<MediaService['deleteMedia']>;
 type MediaId = MediaItem['id'];
+
+/** Стан користувача для фільму в межах цієї сторінки (оцінка та статус). */
+interface WatchState {
+    status: WatchStatus;
+    rating: number | null;
+}
 
 @Component({
     selector: 'app-movie-list',
     standalone: true,
     imports: [
-        CommonModule,
         ViewSwitcherComponent,
         MediaFormComponent,
         AddButtonComponent,
         GridCardComponent,
-        DetailsSidebarComponent
+        DetailsSidebarComponent,
+        RatingStarsComponent
     ],
     templateUrl: './movie-list.component.html',
     styleUrls: ['./movie-list.component.scss']
 })
 export class MovieListComponent implements OnInit {
-    private mediaService = inject(MediaService);
-    private userWatchingService = inject(UserWatchingService);
-    private toastService = inject(ToastService);
+    private readonly mediaService = inject(MediaService);
+    private readonly userWatchingService = inject(UserWatchingService);
+    private readonly toastService = inject(ToastService);
+    private readonly destroyRef = inject(DestroyRef);
 
     readonly movies = signal<MediaItem[]>([]);
-    readonly totalCount = signal<number>(0);
-    readonly loading = signal<boolean>(true);
+    readonly totalCount = signal(0);
+    readonly loading = signal(true);
     readonly hasError = signal(false);
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
-    readonly isModalOpen = signal<boolean>(false);
+    readonly isModalOpen = signal(false);
 
     readonly selectedMovie = signal<MediaItem | null>(null);
-    readonly isSidebarOpen = signal<boolean>(false);
+    readonly isSidebarOpen = signal(false);
 
     readonly mediaTypeLabels = MediaTypeLabels;
-    readonly watchStatusOptions = [
-        { status: WatchStatus.Wishlist, label: 'У планах', class: 'wishlist' },
-        { status: WatchStatus.Watching, label: 'Дивлюся', class: 'watching' },
-        { status: WatchStatus.Watched, label: 'Переглянуто', class: 'watched' },
-        { status: WatchStatus.Dropped, label: 'Покинуто', class: 'dropped' }
-    ];
 
+    // Стани для шаблону: початкове завантаження / помилка / порожній список
     readonly showInitialLoading = computed(() => this.loading() && this.movies().length === 0);
     readonly showError = computed(() => this.hasError() && this.movies().length === 0);
     readonly showEmpty = computed(() => !this.loading() && !this.hasError() && this.movies().length === 0);
 
+    /**
+     * Оцінки та статуси, які користувач виставив на цій сторінці. Потрібні, щоб зірки та закладка
+     * не скидались при перемиканні плитки/таблиця й щоб при помилці запиту можна було відкотити зміну.
+     * Якщо бекенд віддає в списку фільмів статус/оцінку користувача, мапу варто заповнювати з відповіді.
+     */
+    private readonly watchStates = signal<ReadonlyMap<MediaId, WatchState>>(new Map());
+
     private readonly reload$ = new Subject<void>();
     private readonly details$ = new Subject<MediaId>();
 
+    /** Колбеки видалення кешуються, щоб у шаблоні не створювалась нова функція на кожен цикл CD. */
+    private readonly deleteCallbacks = new Map<MediaId, DeleteCallback>();
+
+    readonly selectedDeleteCallback = computed(() => {
+        const movie = this.selectedMovie();
+        return movie ? this.getDeleteCallback(movie) : undefined;
+    });
+
     constructor() {
-        // Реактивне завантаження списку фільмів
+        // switchMap скасовує попередній запит, якщо список перезавантажили повторно
         this.reload$.pipe(
             tap(() => {
                 this.loading.set(true);
@@ -95,7 +114,7 @@ export class MovieListComponent implements OnInit {
             this.loading.set(false);
         });
 
-        // Реактивне завантаження деталей фільму для сайдбару (з можливістю скасування)
+        // Деталі для сайдбару: швидкі кліки по різних фільмах скасовують попередній запит
         this.details$.pipe(
             switchMap(id =>
                 this.mediaService.getMediaById(id).pipe(
@@ -113,68 +132,152 @@ export class MovieListComponent implements OnInit {
         });
     }
 
+    ngOnInit(): void {
+        this.loadMovies();
+    }
+
     loadMovies(): void {
         this.reload$.next();
     }
 
+    // ====================== Оцінка та план перегляду ======================
+    ratingOf(movie: MediaItem): number | null {
+        return this.watchStates().get(movie.id)?.rating ?? null;
+    }
+
+    isWishlisted(movie: MediaItem): boolean {
+        return this.watchStates().get(movie.id)?.status === WatchStatus.Wishlist;
+    }
+
+    /** Клік по зірці: фільм позначається переглянутим з обраною оцінкою. */
+    rateMovie(movie: MediaItem, rating: number): void {
+        this.updateWatchlist(
+            movie,
+            { mediaId: movie.id, status: WatchStatus.Watched, rating },
+            `Оцінку "${movie.title}" збережено: ${rating}/10 ⭐`
+        );
+    }
+
+    /** Клік по закладці: фільм додається до планів. Оцінка в запит не передається. */
+    addToWishlist(movie: MediaItem): void {
+        this.updateWatchlist(
+            movie,
+            { mediaId: movie.id, status: WatchStatus.Wishlist },
+            `"${movie.title}" додано до планів 🔖`
+        );
+    }
+
+    /** Оптимістичне оновлення: інтерфейс реагує одразу, при помилці стан відкочується. */
+    private updateWatchlist(movie: MediaItem, request: CreateUserWatchingRequest, successMessage: string): void {
+        const previous = this.watchStates().get(movie.id);
+
+        this.setWatchState(movie.id, {
+            status: request.status,
+            rating: request.rating ?? previous?.rating ?? null
+        });
+
+        this.userWatchingService.createOrUpdateWatchlist(request).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: () => this.toastService.show(successMessage, 'success', 3000),
+            error: err => {
+                console.error('Помилка оновлення списку перегляду:', err);
+                this.setWatchState(movie.id, previous);
+                this.toastService.show(`Не вдалося оновити "${movie.title}".`, 'error', 4000);
+            }
+        });
+    }
+
+    private setWatchState(id: MediaId, state: WatchState | undefined): void {
+        this.watchStates.update(current => {
+            const next = new Map(current);
+            if (state) {
+                next.set(id, state);
+            } else {
+                next.delete(id);
+            }
+            return next;
+        });
+    }
+
+    // ====================== Деталі (сайдбар) ======================
     openDetails(movie: MediaItem): void {
         this.details$.next(movie.id);
     }
 
-    ngOnInit() {
-        this.loadMovies();
-    }
-
-    closeSidebar() {
+    /**
+     * selectedMovie навмисно не скидається: поки панель виїжджає, її вміст має лишатись на місці.
+     * Наступне відкриття перезаписує його свіжими даними.
+     */
+    closeSidebar(): void {
         this.isSidebarOpen.set(false);
     }
 
-    onEditMovie() {
+    onEditMovie(): void {
         console.log('Редагувати фільм:', this.selectedMovie()?.id);
     }
 
-    // Методи відкриття/закриття модалки додавання
-    openModal() {
-        this.isModalOpen.set(true);
+    typeLabel(type: MediaItem['type'] | null | undefined): string {
+        return type == null ? '—' : (this.mediaTypeLabels[type] ?? String(type));
     }
 
-    closeModal() {
-        this.isModalOpen.set(false);
-    }
-
-    onMediaCreated() {
-        this.closeModal();
-        this.loadMovies();
-    }
-
-    setWatchStatus(movie: MediaItem, status: WatchStatus) {
-        const request = {
-            mediaId: movie.id,
-            status: status
-        };
-
-        this.userWatchingService.addToWatchlist(request).subscribe({
-            next: () => this.toastService.show(`Статус фільму "${movie.title}" оновлено! 🎬`, 'success', 3000)
-        });
-    }
-
+    // ====================== Видалення ======================
     getDeleteCallback(movie: MediaItem): DeleteCallback {
         const movieId = movie.id;
-        return () => this.mediaService.deleteMedia(movieId);
+
+        let callback = this.deleteCallbacks.get(movieId);
+        if (!callback) {
+            callback = () => this.mediaService.deleteMedia(movieId);
+            this.deleteCallbacks.set(movieId, callback);
+        }
+        return callback;
     }
 
-    onDeleted(movie: MediaItem) {
+    onDeleted(movie: MediaItem): void {
         const movieId = movie.id;
+
+        this.deleteCallbacks.delete(movieId);
+        this.setWatchState(movieId, undefined);
         this.movies.update(list => list.filter(m => m.id !== movieId));
         this.totalCount.update(c => Math.max(0, c - 1));
         this.toastService.show('Фільм успішно видалено', 'success', 3000);
     }
 
-    onSidebarMovieDeleted() {
+    onSidebarMovieDeleted(): void {
         const movie = this.selectedMovie();
-        if (!movie) return;
+        if (!movie) {
+            return;
+        }
 
         this.onDeleted(movie);
         this.closeSidebar();
+    }
+
+    // ====================== Модальне вікно ======================
+    openModal(): void {
+        this.isModalOpen.set(true);
+    }
+
+    closeModal(): void {
+        this.isModalOpen.set(false);
+    }
+
+    /** Закриваємо лише коли mousedown стався саме на підложці (а не після виділення тексту). */
+    onBackdropMouseDown(event: MouseEvent): void {
+        if (event.target === event.currentTarget) {
+            this.closeModal();
+        }
+    }
+
+    @HostListener('document:keydown.escape')
+    onEscape(): void {
+        if (this.isModalOpen()) {
+            this.closeModal();
+        }
+    }
+
+    onMediaCreated(): void {
+        this.closeModal();
+        this.loadMovies();
     }
 }

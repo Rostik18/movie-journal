@@ -7,11 +7,11 @@ import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMa
 import { MediaFormComponent } from '../media-form/media-form.component';
 import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
 import { MediaType, WatchStatus, WatchStatusLabels } from '../../../models/enums';
-import { CreateUserWatchingRequest } from '../../../models/create-user-watching.model';
 import { UserWatchingService } from '../../../services/user-watching.service';
 import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
 import { MediaItem } from '../../../models/media.model';
+import { CreateUserWatchingRequest } from '../../../models/user-watching.model';
 
 type SearchOutcome =
     | { kind: 'empty' }
@@ -246,7 +246,7 @@ export class UserWatchingFormComponent {
             ? this.formData
             : { ...this.formData, currentSeasonNumber: null, currentEpisodeNumber: null };
 
-        this.userWatchingService.addToWatchlist(payload).pipe(
+        this.userWatchingService.createOrUpdateWatchlist(payload).pipe(
             finalize(() => this.isSavingWatching.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({

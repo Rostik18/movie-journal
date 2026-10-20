@@ -42,3 +42,23 @@ export interface UserWatchingSearchParams {
     offset?: number;
     size?: number;
 }
+
+export interface CreateUserWatchingRequest {
+    mediaId: string;
+    status: WatchStatus;
+    rating?: number | null;
+    notes?: string | null;
+    stoppedAtSeconds?: number | null;
+    currentSeasonNumber?: number | null;
+    currentEpisodeNumber?: number | null;
+}
+
+export interface UpdateUserWatchingRequest {
+    mediaId: string;
+    status?: WatchStatus | null;
+    rating?: number | null;
+    notes?: string | null;
+    stoppedAtSeconds?: number | null;
+    currentSeasonNumber?: number | null;
+    currentEpisodeNumber?: number | null;
+}

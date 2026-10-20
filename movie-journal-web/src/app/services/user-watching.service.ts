@@ -1,21 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UserWatchingItem, UserWatchingSearchParams } from '../models/user-watching.model';
-import { CreateUserWatchingRequest } from '../models/create-user-watching.model';
-import { WatchStatus } from '../models/enums';
+import { UserWatchingItem, UserWatchingSearchParams, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
-
-export interface UpdateUserWatchingRequest {
-    mediaId: string;
-    status?: WatchStatus | null;
-    rating?: number | null;
-    notes?: string | null;
-    stoppedAtSeconds?: number | null;
-    currentSeasonNumber?: number | null;
-    currentEpisodeNumber?: number | null;
-}
 
 @Injectable({
     providedIn: 'root'
@@ -79,7 +67,7 @@ export class UserWatchingService {
         return this.http.get<PageResponse<UserWatchingItem>>(`${this.baseUrl}/search`, { params: httpParams });
     }
 
-    addToWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {
+    createOrUpdateWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {
         return this.http.post<UserWatchingItem>(`${this.baseUrl}/`, request);
     }
 

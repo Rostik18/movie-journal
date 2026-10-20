@@ -1,11 +1,9 @@
-import { Component, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, linkedSignal, output, signal } from '@angular/core';
 
 @Component({
-    selector: 'app-rating-stars',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-rating-stars',
+  standalone: true,
+  template: `
     <div class="rating-stars-container">
       @for (star of stars; track star) {
         <span 
@@ -22,36 +20,35 @@ import { CommonModule } from '@angular/common';
       }
     </div>
   `,
-    styleUrls: ['./rating-stars.component.scss']
+  styleUrls: ['./rating-stars.component.scss']
 })
 export class RatingStarsComponent {
-    // Дозволяємо передати початкове значення (опціонально)
-    initialRating = input<number | null>(null);
+  // Початкове (або серверне) значення. При зміні входу оцінка синхронізується з ним.
+  readonly initialRating = input<number | null>(null);
 
-    // Подія, яку слухатиме батьківський компонент
-    ratingChange = output<number>();
+  // Подія, яку слухатиме батьківський компонент
+  readonly ratingChange = output<number>();
 
-    stars = Array.from({ length: 10 }, (_, i) => i + 1);
+  readonly stars = Array.from({ length: 10 }, (_, i) => i + 1);
 
-    currentRating = signal<number>(0);
-    hoverRating = signal<number>(0);
+  /**
+   * Залежить від initialRating: раніше значення читалось один раз в ngOnInit,
+   * тому зміна входу (наприклад, відкат після помилки збереження або скидання форми)
+   * не оновлювала зірки. Клік користувача перезаписує значення до наступної зміни входу.
+   */
+  readonly currentRating = linkedSignal(() => this.initialRating() ?? 0);
+  readonly hoverRating = signal(0);
 
-    ngOnInit() {
-        if (this.initialRating()) {
-            this.currentRating.set(this.initialRating()!);
-        }
-    }
+  onMouseEnter(star: number): void {
+    this.hoverRating.set(star);
+  }
 
-    onMouseEnter(star: number) {
-        this.hoverRating.set(star);
-    }
+  onMouseLeave(): void {
+    this.hoverRating.set(0);
+  }
 
-    onMouseLeave() {
-        this.hoverRating.set(0);
-    }
-
-    selectRating(star: number) {
-        this.currentRating.set(star);
-        this.ratingChange.emit(star); // Передаємо число від 1 до 10 нагору
-    }
+  selectRating(star: number): void {
+    this.currentRating.set(star);
+    this.ratingChange.emit(star); // Передаємо число від 1 до 10 нагору
+  }
 }
