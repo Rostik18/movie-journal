@@ -89,7 +89,7 @@ namespace MovieJournalBackend.Services.Implementation
                 return null;
             }
 
-            var image = GetMetaContent("og:image");
+            var image = GetMetaContent("og:image", "twitter:image");
 
             if (!string.IsNullOrWhiteSpace(image) &&
                 Uri.TryCreate(url, image, out var absoluteImageUri))
@@ -137,8 +137,8 @@ namespace MovieJournalBackend.Services.Implementation
             var mediaType = GetMediaType();
 
             return new MetadataResponse(
-                Title: GetMetaContent("og:title"),
-                Description: GetMetaContent("og:description"),
+                Title: GetMetaContent("og:title", "twitter:title"),
+                Description: GetMetaContent("og:description", "twitter:description"),
                 Image: image,
                 DurationSeconds: durationSeconds,
                 Author: author,
