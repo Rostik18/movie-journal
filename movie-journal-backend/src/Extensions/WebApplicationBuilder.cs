@@ -135,6 +135,7 @@ namespace MovieJournalBackend.Extensions
             builder.Services.AddSingleton<IRealtimeService, RealtimeService>();
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserWatchingService, UserWatchingService>();
+            builder.Services.AddSingleton<IDatabaseBackupService, DatabaseBackupService>();
             builder.Services.AddHttpClient<IMetadataService, MetadataService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(10);

@@ -12,6 +12,7 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapServiceEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
+            app.MapGet("/api/service/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
             app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
 
@@ -21,6 +22,44 @@ namespace MovieJournalBackend.Endpoints
         private static async Task<IResult> GetStatusAsync(CancellationToken ct)
         {
             return Results.Ok("Alive");
+        }
+
+        private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
+        {
+            var fileName = $"movie-journal-backup-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.zip";
+            var tempPath = Path.Combine(Path.GetTempPath(), $"movie-journal-{Guid.NewGuid():N}.zip");
+
+            try
+            {
+                await backupService.ExportToFileAsync(tempPath, ct);
+
+                context.Response.OnCompleted(() =>
+                {
+                    try { File.Delete(tempPath); } catch { }
+
+                    return Task.CompletedTask;
+                });
+
+                var stream = new FileStream(
+                    tempPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 81920,
+                    options: FileOptions.Asynchronous |
+                             FileOptions.SequentialScan);
+
+                return Results.Stream(
+                    stream,
+                    contentType: "application/zip",
+                    fileDownloadName: fileName);
+            }
+            catch
+            {
+                try { File.Delete(tempPath); } catch { }
+
+                throw;
+            }
         }
 
         private static async Task<IResult> GetMetadataAsync([FromQuery] string url, IMetadataService metadataService, CancellationToken ct)
