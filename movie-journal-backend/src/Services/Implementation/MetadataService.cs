@@ -1,5 +1,7 @@
-﻿using MovieJournalBackend.Contracts.Service;
-using AngleSharp.Html.Parser;
+﻿using AngleSharp.Html.Parser;
+using MovieJournalBackend.Contracts.Service;
+using MovieJournalBackend.Entities.Base;
+using System.Globalization;
 
 namespace MovieJournalBackend.Services.Implementation
 {
@@ -23,7 +25,6 @@ namespace MovieJournalBackend.Services.Implementation
             await using var stream = await response.Content.ReadAsStreamAsync(ct);
 
             using var limitedStream = new LimitedReadStream(stream, MaxHtmlSize);
-
             using var reader = new StreamReader(limitedStream);
 
             var html = await reader.ReadToEndAsync(ct);
@@ -31,12 +32,61 @@ namespace MovieJournalBackend.Services.Implementation
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 
-            string? GetMetaContent(string property)
+            string? GetMetaContent(params string[] names)
             {
-                return document
-                    .QuerySelector($"meta[property='{property}']")
-                    ?.GetAttribute("content")
-                    ?.Trim();
+                foreach (var name in names)
+                {
+                    var content = document
+                        .QuerySelector(
+                            $"meta[property='{name}'], meta[name='{name}']")
+                        ?.GetAttribute("content")
+                        ?.Trim();
+
+                    if (!string.IsNullOrWhiteSpace(content))
+                    {
+                        return content;
+                    }
+                }
+
+                return null;
+            }
+
+            string[] GetMetaContents(params string[] names) =>
+            [.. names
+                .SelectMany(name => document.QuerySelectorAll($"meta[property='{name}'], meta[name='{name}']"))
+                .Select(element => element.GetAttribute("content")?.Trim())
+                .Where(content => !string.IsNullOrWhiteSpace(content))
+                .Select(content => content!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+            ];
+
+            MediaType? GetMediaType()
+            {
+                foreach (var rawType in GetMetaContents("og:type"))
+                {
+                    var type = rawType.ToLowerInvariant();
+
+                    var mediaType = type switch
+                    {
+                        "video.movie" => MediaType.Movie,
+
+                        "video.tv_show" => MediaType.Series,
+                        "video.episode" => MediaType.Series,
+
+                        "video.other" or
+                        "video:other" or
+                        "video" => MediaType.Video,
+
+                        _ => (MediaType?)null
+                    };
+
+                    if (mediaType.HasValue)
+                    {
+                        return mediaType;
+                    }
+                }
+
+                return null;
             }
 
             var image = GetMetaContent("og:image");
@@ -47,10 +97,54 @@ namespace MovieJournalBackend.Services.Implementation
                 image = absoluteImageUri.ToString();
             }
 
+            var durationText = GetMetaContent(
+                "og:video:duration",
+                "video:duration");
+
+            int? durationSeconds =
+                int.TryParse(
+                    durationText,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out var seconds) && seconds >= 0
+                        ? seconds
+                        : null;
+
+            var publishedAtText = GetMetaContent(
+                "article:published_time",
+                "og:video:release_date",
+                "datePublished",
+                "video:release_date");
+
+            DateTime? publishedAtUtc =
+                DateTimeOffset.TryParse(
+                    publishedAtText,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var publishedAt)
+                        ? publishedAt.UtcDateTime
+                        : null;
+
+            var author = GetMetaContent(
+                "author",
+                "article:author",
+                "og:video:actor");
+
+            var tags = GetMetaContents(
+                "og:video:tag",
+                "video:tag");
+
+            var mediaType = GetMediaType();
+
             return new MetadataResponse(
                 Title: GetMetaContent("og:title"),
                 Description: GetMetaContent("og:description"),
-                Image: image);
+                Image: image,
+                DurationSeconds: durationSeconds,
+                Author: author,
+                PublishedAtUtc: publishedAtUtc,
+                Type: mediaType,
+                Tags: tags);
         }
     }
 

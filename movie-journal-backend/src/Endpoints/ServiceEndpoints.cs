@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MovieJournalBackend.Contracts.Service;
+using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Services;
+using System.Security.Claims;
 
 namespace MovieJournalBackend.Endpoints
 {
@@ -11,6 +13,7 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
+            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
 
             return app;
         }
@@ -56,5 +59,81 @@ namespace MovieJournalBackend.Endpoints
                     title: ex.Message);
             }
         }
+
+        private static async Task<IResult> SeedAsync(
+            SeedRequest request,
+            ClaimsPrincipal principal,
+            IMetadataService metadataService,
+            IMediaService mediaService,
+            IUserWatchingService uwService,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            var userId = request.UserId ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var parsedPayload = Parse(request.Payload);
+
+            foreach (var parsedItem in parsedPayload)
+            {
+                try
+                {
+                    if (!Uri.TryCreate(parsedItem.Url, UriKind.Absolute, out var uri) ||
+                        uri.Scheme != Uri.UriSchemeHttps ||
+                        string.IsNullOrWhiteSpace(uri.Host) ||
+                        !string.IsNullOrEmpty(uri.UserInfo) ||
+                        !string.IsNullOrEmpty(uri.Fragment))
+                    {
+                        continue;
+                    }
+
+                    var metadata = await metadataService.GetMetadataAsync(uri, ct);
+
+                    var media = await mediaService.CreateAsync(new()
+                    {
+                        Title = metadata.Title ?? parsedItem.Name ?? "",
+                        OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
+                        Description = metadata.Description,
+                        Author = metadata.Author,
+                        Type = metadata.Type ?? request.Type,
+                        Visibility = request.Visibility,
+                        PosterUrl = metadata.Image,
+                        Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
+                        RuntimeMinutes = metadata.DurationSeconds / 60,
+                        ReleaseYear = metadata.PublishedAtUtc?.Year ?? 1900,
+                        Links = [new() { Url = parsedItem.Url, Type = request.MediaLinkType }],
+                    }, new(userId!, [UserRole.Admin]), ct);
+
+                    var created = await uwService.CreateAsync(new()
+                    {
+                        MediaId = media.Id,
+                        Rating = parsedItem.Rate,
+                        Status = request.Status
+                    }, principal.ToUserContext(), ct);
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            return Results.Ok("Done");
+        }
+
+        private record UrlNameRate(string Url, string? Name, int? Rate);
+
+        private static UrlNameRate[] Parse(string text) =>
+        [.. text
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns => new UrlNameRate(
+                Url: columns[0],
+                Name: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                    ? columns[1]
+                    : null,
+                Rate: columns.Length > 2 &&
+                        int.TryParse(columns[2], out var rate)
+                    ? rate
+                    : null))
+        ];
     }
 }

@@ -1,0 +1,16 @@
+﻿using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Journal;
+
+namespace MovieJournalBackend.Contracts.Service
+{
+    public class SeedRequest
+    {
+        public string? UserId { get; set; }
+        public Visibility Visibility { get; set; } = Visibility.Private;
+        public WatchStatus Status { get; init; } = WatchStatus.Watched;
+        public MediaType Type { get; init; } = MediaType.Video;
+        public MediaLinkType MediaLinkType { get; init; } = MediaLinkType.Other;
+        public List<string> Tags { get; init; } = [];
+        public string Payload { get; set; } = "";
+    }
+}
