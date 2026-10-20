@@ -14,7 +14,7 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
-            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
+            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().AllowAnonymous();
             app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
             app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();
@@ -79,7 +79,6 @@ namespace MovieJournalBackend.Endpoints
                 try
                 {
                     if (!Uri.TryCreate(parsedItem.Url, UriKind.Absolute, out var uri) ||
-                        uri.Scheme != Uri.UriSchemeHttps ||
                         string.IsNullOrWhiteSpace(uri.Host) ||
                         !string.IsNullOrEmpty(uri.UserInfo) ||
                         !string.IsNullOrEmpty(uri.Fragment))

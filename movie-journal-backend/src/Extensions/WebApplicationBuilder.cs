@@ -150,7 +150,10 @@ namespace MovieJournalBackend.Extensions
             })
             .ConfigurePrimaryHttpMessageHandler(() =>
             {
-                var policy = new AntiSSRFPolicy(PolicyConfigOptions.ExternalOnlyLatest);
+                var policy = new AntiSSRFPolicy(PolicyConfigOptions.ExternalOnlyLatest)
+                {
+                    AllowPlainTextHttp = true,
+                };
 
                 return policy.GetHandler();
             });

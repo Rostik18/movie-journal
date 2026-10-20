@@ -10,6 +10,7 @@ namespace MovieJournalBackend.Contracts.Media
         string? OriginalTitle,
         MediaType Type,
         int ReleaseYear,
+        int? Dudation,
         string? PosterUrl,
         string? Author,
         List<string> Genres,
