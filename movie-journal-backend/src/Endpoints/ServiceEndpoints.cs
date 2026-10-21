@@ -14,7 +14,7 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
-            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().AllowAnonymous();
+            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
             app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
             app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();

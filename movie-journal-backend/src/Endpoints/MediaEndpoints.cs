@@ -82,7 +82,7 @@ namespace MovieJournalBackend.Endpoints
         }
 
         private static async Task<IResult> SearchAsync(
-            [FromQuery] string? title,
+            [FromQuery] string? query,
             [FromQuery] MediaType? type,
             [FromQuery] Visibility? visibility,
             [FromQuery] int? releaseYear,
@@ -108,7 +108,7 @@ namespace MovieJournalBackend.Endpoints
                 Sort = sortBy.HasValue ? new(sortBy.Value, sort ?? SortDirection.Ascending) : null,
                 Filter = new()
                 {
-                    Title = title,
+                    Query = query,
                     Type = type,
                     Visibility = visibility,
                     ReleaseYear = releaseYear,

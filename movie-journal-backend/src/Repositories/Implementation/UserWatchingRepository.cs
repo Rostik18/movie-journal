@@ -43,9 +43,9 @@ namespace MovieJournalBackend.Repositories.Implementation
             }
             if (!string.IsNullOrWhiteSpace(f.Query))
             {
-                var normalizedQuery = f.Query.Trim().ToUpperInvariant();
+                var query = f.Query.Trim().ToUpperInvariant();
 
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new Regex($"^{Regex.Escape(normalizedQuery)}")));
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new(Regex.Escape(query), "i")));
             }
             if (!string.IsNullOrWhiteSpace(f.MediaId))
             {

@@ -4,7 +4,7 @@ namespace MovieJournalBackend.Contracts.Media
 {
     public sealed class MediaFilter
     {
-        public string? Title { get; init; }
+        public string? Query { get; init; }
         public MediaType? Type { get; init; }
         public Visibility? Visibility { get; init; }
         public int? ReleaseYear { get; init; }

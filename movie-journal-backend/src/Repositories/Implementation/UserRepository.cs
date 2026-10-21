@@ -35,11 +35,11 @@ namespace MovieJournalBackend.Repositories.Implementation
 
             if (!string.IsNullOrWhiteSpace(request.Filter.Name))
             {
-                var normalizedQuery = request.Filter.Name.Trim();
+                var query = request.Filter.Name.Trim();
 
                 var sub = _fBuilder.Or(
-                    _fBuilder.Regex(x => x.Login, new($"^{Regex.Escape(normalizedQuery)}", "i")),
-                    _fBuilder.Regex(x => x.DisplayName, new($"^{Regex.Escape(normalizedQuery)}", "i")));
+                    _fBuilder.Regex(x => x.Login, new(Regex.Escape(query), "i")),
+                    _fBuilder.Regex(x => x.DisplayName, new(Regex.Escape(query), "i")));
 
                 filter = _fBuilder.And(filter, sub);
             }

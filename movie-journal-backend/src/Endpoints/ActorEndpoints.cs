@@ -32,7 +32,7 @@ namespace MovieJournalBackend.Endpoints
         }
 
         private static async Task<IResult> SearchAsync(
-            [FromQuery] string? name,
+            [FromQuery] string? query,
             [FromQuery] int? birthYear,
             [FromQuery] bool? hasPhoto,
 
@@ -52,7 +52,7 @@ namespace MovieJournalBackend.Endpoints
                 Sort = sortBy.HasValue ? new(sortBy.Value, sort ?? SortDirection.Ascending) : null,
                 Filter = new()
                 {
-                    Name = name,
+                    Query = query,
                     BirthYear = birthYear,
                     HasPhoto = hasPhoto,
                 }

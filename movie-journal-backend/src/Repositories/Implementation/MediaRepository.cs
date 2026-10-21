@@ -49,9 +49,9 @@ namespace MovieJournalBackend.Repositories.Implementation
         {
             var filter = user.BuildVisibilityFilter<Media>();
 
-            var normalizedQuery = title.Trim().ToUpperInvariant();
+            var query = title.Trim().ToUpperInvariant();
 
-            filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new($"^{Regex.Escape(normalizedQuery)}")));
+            filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new(Regex.Escape(query), "i")));
 
             return Collection.Find(filter).AnyAsync(ct);
         }
@@ -77,11 +77,15 @@ namespace MovieJournalBackend.Repositories.Implementation
 
             if (request.Filter is null) return filter;
 
-            if (!string.IsNullOrWhiteSpace(request.Filter.Title))
+            if (!string.IsNullOrWhiteSpace(request.Filter.Query))
             {
-                var normalizedQuery = request.Filter.Title.Trim().ToUpperInvariant();
+                var query = request.Filter.Query.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new($"^{Regex.Escape(normalizedQuery)}")));
+                var sub = _fBuilder.Or(
+                    _fBuilder.Regex(x => x.NormalizedTitle, new(Regex.Escape(query), "i")),
+                    _fBuilder.Regex(x => x.Description, new(Regex.Escape(query), "i")));
+
+                filter = _fBuilder.And(filter, sub);
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.Genre))
             {
@@ -93,8 +97,9 @@ namespace MovieJournalBackend.Repositories.Implementation
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.Author))
             {
-                var normalizedQuery = request.Filter.Author.Trim().ToUpperInvariant();
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedAuthor, new($"^{Regex.Escape(normalizedQuery)}")));
+                var query = request.Filter.Author.Trim();
+
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedAuthor, new(Regex.Escape(query), "i")));
             }
             if (request.Filter.Type.HasValue)
             {

@@ -49,11 +49,11 @@ namespace MovieJournalBackend.Repositories.Implementation
 
             if (request.Filter is null) return filter;
 
-            if (!string.IsNullOrWhiteSpace(request.Filter.Name))
+            if (!string.IsNullOrWhiteSpace(request.Filter.Query))
             {
-                var normalizedQuery = request.Filter.Name.Trim().ToUpperInvariant();
+                var query = request.Filter.Query.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedFullName, new($"^{Regex.Escape(normalizedQuery)}")));
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedFullName, new(Regex.Escape(query), "i")));
             }
             if (request.Filter.HasPhoto.HasValue)
             {
