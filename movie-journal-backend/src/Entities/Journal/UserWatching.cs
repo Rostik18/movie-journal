@@ -24,6 +24,8 @@ namespace MovieJournalBackend.Entities.Journal
         public int? CurrentSeasonNumber { get; set; }
         public int? CurrentEpisodeNumber { get; set; }
 
+        public Visibility Visibility { get; set; }
+
         [BsonIgnore]
         public bool IsCompleted => Status == WatchStatus.Watched;
         [BsonIgnore]

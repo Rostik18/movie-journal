@@ -48,6 +48,7 @@ namespace MovieJournalBackend.Endpoints
             [FromQuery] DateTime? startedToUtc,
             [FromQuery] DateTime? finishedFromUtc,
             [FromQuery] DateTime? finishedToUtc,
+            [FromQuery] Visibility? visibility,
 
             [FromQuery] UserWatchingSortField? sortBy,
             [FromQuery] SortDirection? sort,
@@ -78,7 +79,8 @@ namespace MovieJournalBackend.Endpoints
                     StartedFromUtc = startedFromUtc,
                     StartedToUtc = startedToUtc,
                     FinishedFromUtc = finishedFromUtc,
-                    FinishedToUtc = finishedToUtc
+                    FinishedToUtc = finishedToUtc,
+                    Visibility = visibility
                 }
             };
 

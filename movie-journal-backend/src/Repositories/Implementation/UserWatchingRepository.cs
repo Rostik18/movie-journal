@@ -100,6 +100,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Lte(x => x.FinishedAtUtc, f.FinishedToUtc.Value));
             }
+            if (f.Visibility.HasValue)
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Visibility, f.Visibility.Value));
+            }
 
             return filter;
         }

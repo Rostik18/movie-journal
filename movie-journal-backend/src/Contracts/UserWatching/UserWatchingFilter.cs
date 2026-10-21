@@ -17,5 +17,6 @@ namespace MovieJournalBackend.Contracts.UserWatching
         public DateTime? StartedToUtc { get; init; }
         public DateTime? FinishedFromUtc { get; init; }
         public DateTime? FinishedToUtc { get; init; }
+        public Visibility? Visibility { get; init; }
     }
 }

@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
+using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
@@ -35,6 +36,7 @@ namespace MovieJournalBackend.Endpoints
             [FromQuery] string? query,
             [FromQuery] int? birthYear,
             [FromQuery] bool? hasPhoto,
+            [FromQuery] Visibility? visibility,
 
             [FromQuery] ActorSortField? sortBy,
             [FromQuery] SortDirection? sort,
@@ -55,6 +57,7 @@ namespace MovieJournalBackend.Endpoints
                     Query = query,
                     BirthYear = birthYear,
                     HasPhoto = hasPhoto,
+                    Visibility = visibility
                 }
             }, principal.ToUserContext(), ct);
 

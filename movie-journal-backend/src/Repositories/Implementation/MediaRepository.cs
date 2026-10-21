@@ -105,6 +105,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Type, request.Filter.Type));
             }
+            if (request.Filter.Visibility.HasValue)
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Visibility, request.Filter.Visibility.Value));
+            }
 
             return filter;
         }

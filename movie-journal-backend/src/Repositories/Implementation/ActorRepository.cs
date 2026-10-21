@@ -65,6 +65,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Where(x => x.BirthDate.HasValue && x.BirthDate.Value.Year == request.Filter.BirthYear));
             }
+            if (request.Filter.Visibility.HasValue)
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Visibility, request.Filter.Visibility.Value));
+            }
 
             return filter;
         }

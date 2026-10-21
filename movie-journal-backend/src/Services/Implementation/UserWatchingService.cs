@@ -4,7 +4,6 @@ using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Journal;
 using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
-using System.ComponentModel.DataAnnotations;
 
 namespace MovieJournalBackend.Services.Implementation
 {
@@ -67,6 +66,7 @@ namespace MovieJournalBackend.Services.Implementation
                     MediaId = request.MediaId,
                     Status = request.Status,
                     Rating = request.Rating,
+                    Visibility = request.Visibility,
                     StoppedAtSeconds = request.StoppedAtSeconds,
                     CurrentEpisodeNumber = request.CurrentEpisodeNumber,
                     CurrentSeasonNumber = request.CurrentSeasonNumber,
@@ -85,6 +85,7 @@ namespace MovieJournalBackend.Services.Implementation
                 Status = request.Status,
                 Rating = request.Rating,
                 Notes = request.Notes,
+                Visibility = request.Visibility ?? media.Visibility,
                 StoppedAtSeconds = request.StoppedAtSeconds,
                 CurrentSeasonNumber = request.CurrentSeasonNumber,
                 CurrentEpisodeNumber = request.CurrentEpisodeNumber,
@@ -138,6 +139,10 @@ namespace MovieJournalBackend.Services.Implementation
             if (request.CurrentEpisodeNumber.HasValue)
             {
                 entity.CurrentEpisodeNumber = request.CurrentEpisodeNumber.Value;
+            }
+            if (request.Visibility.HasValue)
+            {
+                entity.Visibility = request.Visibility.Value;
             }
 
             await watchingRepository.UpdateAsync(entity, ct);

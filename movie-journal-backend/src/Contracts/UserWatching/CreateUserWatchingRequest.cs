@@ -1,4 +1,5 @@
-﻿using MovieJournalBackend.Entities.Journal;
+﻿using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Journal;
 
 namespace MovieJournalBackend.Contracts.UserWatching
 {
@@ -6,6 +7,7 @@ namespace MovieJournalBackend.Contracts.UserWatching
     {
         public required string MediaId { get; init; }
         public WatchStatus Status { get; init; }
+        public Visibility? Visibility { get; init; } //if null, media visibility will be used
         public int? Rating { get; init; }
         public string? Notes { get; init; }
         public int? StoppedAtSeconds { get; init; }
