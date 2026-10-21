@@ -7,11 +7,13 @@ export interface MediaItem {
     description: string;
     originalTitle: string;
     type: MediaType;
-    releaseYear: number;
+    releaseYear: number | null;
+    duration: number | null;
     posterUrl: string;
+    author?: string;
     genres: string[];
     tags: string[];
-    author?: string;
+    links: MediaLink[];
     visibility: Visibility;
 }
 
@@ -41,7 +43,7 @@ export interface CreateMediaRequest {
     title: string;
     originalTitle?: string | null;
     type: MediaType;
-    releaseYear: number;
+    releaseYear: number | null;
     runtimeMinutes?: number | null;
     posterUrl?: string | null;
     visibility: Visibility;

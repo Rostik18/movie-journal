@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
-import { MediaLinkType, MediaLinkTypeLabels, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
+import { MediaLinkType, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { MediaService } from '../../../services/media.service';
 import { ActorService } from '../../../services/actor.service';
@@ -16,7 +16,6 @@ import { CreateMediaRequest } from '../../../models/media.model';
 type ActorId = CreateMediaRequest['cast'][number]['actorId'];
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
 
-/** Тип відповіді getMetadata без прив'язки до файлу, де оголошено MetadataResponse. */
 type MediaMetadata = ReturnType<ServerService['getMetadata']> extends Observable<infer T> ? T : never;
 
 interface ActorSearchItem {
@@ -29,7 +28,6 @@ interface ActorSearchItem {
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_RELEASE_YEAR = 1888;
 const MAX_RELEASE_YEAR = 2100;
-/** Скільки тегів максимум додає автозаповнення (сторінки на кшталт YouTube віддають десятки). */
 const MAX_AUTO_TAGS = 10;
 
 const createEmptyMedia = (): CreateMediaRequest => ({
@@ -37,7 +35,7 @@ const createEmptyMedia = (): CreateMediaRequest => ({
     originalTitle: '',
     author: null,
     type: MediaType.Movie,
-    releaseYear: new Date().getFullYear(),
+    releaseYear: null, // Тепер опціонально (за замовчуванням null)
     runtimeMinutes: null,
     posterUrl: '',
     visibility: Visibility.Public,
@@ -69,23 +67,18 @@ export class MediaFormComponent implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-    // ---- API компонента ----
     readonly embedded = input(false);
-
-    /** Початкові значення (для вбудованого режиму), застосовуються один раз при створенні форми. */
     readonly initialUrl = input<string | null>(null);
     readonly initialTitle = input('');
     readonly mediaCreated = output<void>();
     readonly mediaCreatedWithData = output<any>();
 
-    // ---- Стан форми ----
     mediaData: CreateMediaRequest = createEmptyMedia();
     genresInput = '';
     tagsInput = '';
     imageError = false;
     readonly isSubmitting = signal(false);
 
-    /** Користувач сам обрав тип: автозаповнення більше його не змінює. */
     private typeTouched = false;
 
     readonly mediaTypeOptions = Object.values(MediaType).map(type => ({
@@ -98,14 +91,8 @@ export class MediaFormComponent implements OnInit {
         label: VisibilityLabels[value]
     }));
 
-    readonly linkTypeOptions = Object.values(MediaLinkType)
-        .filter((v): v is MediaLinkType => typeof v === 'number')
-        .map(value => ({ value, label: MediaLinkTypeLabels[value] }));
-
-    // ---- Посилання ----
-    newLinkName = '';
+    // ---- Посилання (Name та Type приховані) ----
     newLinkUrl = '';
-    newLinkType: MediaLinkType = MediaLinkType.Other;
     private metadataSub: Subscription | null = null;
 
     // ---- Актори ----
@@ -120,7 +107,6 @@ export class MediaFormComponent implements OnInit {
     private readonly collectionQuery$ = new Subject<string>();
 
     constructor() {
-        // debounce + switchMap: менше запитів і немає гонки відповідей
         this.actorQuery$.pipe(
             debounceTime(SEARCH_DEBOUNCE_MS),
             distinctUntilChanged(),
@@ -164,7 +150,6 @@ export class MediaFormComponent implements OnInit {
             this.collectionSearchResults.set(items);
             this.hasSearchedOnce.set(true);
 
-            // Точний збіг -> беремо існуючу колекцію, інакше буде створена нова
             const query = this.collectionSearchQuery.trim().toLowerCase();
             this.mediaData.collectionId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
         });
@@ -186,18 +171,12 @@ export class MediaFormComponent implements OnInit {
         return this.mediaData.type === MediaType.Series;
     }
 
-    // ====================== Форма: загальна поведінка ======================
-    /**
-     * Enter у текстових полях не сабмітить форму. Кнопки при цьому не чіпаємо,
-     * інакше Enter не активував би «Створити медіа», «×» та пункти списків.
-     */
     onFormEnter(event: Event): void {
         if ((event.target as HTMLElement).tagName === 'INPUT') {
             event.preventDefault();
         }
     }
 
-    /** Клік поза полем колекції / акторів закриває відповідний випадаючий список. */
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
         const target = event.target as Element | null;
@@ -218,19 +197,15 @@ export class MediaFormComponent implements OnInit {
         return !!container && this.host.nativeElement.contains(container);
     }
 
-    // ====================== Тип ======================
     onTypeChange(type: MediaType): void {
         this.mediaData.type = type;
         this.typeTouched = true;
     }
 
-    // ====================== Постер ======================
     onPosterUrlChange(): void {
         this.imageError = false;
     }
 
-    // ====================== Посилання ======================
-    /** Публічний метод для батьківського компонента (ініціалізація за URL). */
     initFromUrl(url: string): void {
         const trimmed = url?.trim();
         if (!trimmed) {
@@ -238,12 +213,11 @@ export class MediaFormComponent implements OnInit {
         }
 
         const isFirstLink = this.mediaData.links.length === 0;
-        if (this.addLink(trimmed, null, MediaLinkType.Other) && isFirstLink) {
+        if (this.addLink(trimmed) && isFirstLink) {
             this.loadMetadataForUrl(trimmed);
         }
     }
 
-    /** Викликається на blur та Enter у полі посилання. */
     onLinkCommit(event?: Event): void {
         event?.preventDefault();
 
@@ -253,15 +227,12 @@ export class MediaFormComponent implements OnInit {
         }
 
         const isFirstLink = this.mediaData.links.length === 0;
-        const name = this.newLinkName.trim() || null;
-        if (!this.addLink(url, name, this.newLinkType)) {
+        if (!this.addLink(url)) {
             return;
         }
 
         this.newLinkUrl = '';
-        this.newLinkName = '';
 
-        // Метадані підтягуємо лише для першого посилання
         if (isFirstLink) {
             this.loadMetadataForUrl(url);
         }
@@ -271,7 +242,7 @@ export class MediaFormComponent implements OnInit {
         this.mediaData.links.splice(index, 1);
     }
 
-    private addLink(url: string, name: string | null, type: MediaLinkType): boolean {
+    private addLink(url: string): boolean {
         if (!this.isValidUrl(url)) {
             this.toastService.show('Некоректне посилання.', 'error', 3000);
             return false;
@@ -280,7 +251,8 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Це посилання вже додано.', 'info', 3000);
             return false;
         }
-        this.mediaData.links.push({ name, url, type });
+        // name та type приховані, передаємо дефолтні значення відповідно до вимог
+        this.mediaData.links.push({ name: null, url, type: MediaLinkType.Other });
         return true;
     }
 
@@ -293,12 +265,9 @@ export class MediaFormComponent implements OnInit {
         }
     }
 
-    // ====================== Автозаповнення з метаданих ======================
     private loadMetadataForUrl(url: string): void {
         this.toastService.show('Аналіз посилання та завантаження метаданих...', 'info', 3000);
 
-        // Попередній запит (якщо був) скасовується; resetForm теж скасовує його,
-        // щоб запізніла відповідь не заповнила вже очищену форму
         this.metadataSub?.unsubscribe();
         this.metadataSub = this.serverService.getMetadata(url).pipe(
             takeUntilDestroyed(this.destroyRef)
@@ -324,10 +293,6 @@ export class MediaFormComponent implements OnInit {
         });
     }
 
-    /**
-     * Заповнює лише порожні поля: те, що користувач уже ввів, не перезаписується.
-     * Повертає назви заповнених полів для повідомлення.
-     */
     private applyMetadata(meta: MediaMetadata): string[] {
         const filled: string[] = [];
         const data = this.mediaData;
@@ -354,7 +319,6 @@ export class MediaFormComponent implements OnInit {
             filled.push('тривалість');
         }
 
-        // Тип міняємо, лише якщо користувач ще не обирав його сам
         if (
             meta.mediaType != null &&
             !this.typeTouched &&
@@ -376,7 +340,6 @@ export class MediaFormComponent implements OnInit {
         return seconds && seconds > 0 ? Math.max(1, Math.round(seconds / 60)) : null;
     }
 
-    /** Додає нові теги до введених користувачем (без дублікатів, без урахування регістру). */
     private mergeTags(incoming?: string[] | null): boolean {
         if (!incoming?.length) {
             return false;
@@ -387,7 +350,6 @@ export class MediaFormComponent implements OnInit {
         const added: string[] = [];
 
         for (const raw of incoming) {
-            // Кома є роздільником у полі, тому всередині тегу її не лишаємо
             const tag = raw.replace(/,/g, ' ').trim();
             const key = tag.toLowerCase();
             if (!tag || seen.has(key)) {
@@ -408,7 +370,6 @@ export class MediaFormComponent implements OnInit {
         return true;
     }
 
-    // ====================== Актори ======================
     onSearchActors(): void {
         const query = this.actorSearchQuery.trim();
         if (!query) {
@@ -431,7 +392,6 @@ export class MediaFormComponent implements OnInit {
         this.mediaData.cast.splice(index, 1);
     }
 
-    /** Escape закриває відкритий список і не доходить до модалки, яка закрила б усю форму. */
     onActorEscape(event: Event): void {
         if (this.actorSearchResults().length > 0) {
             event.stopPropagation();
@@ -439,11 +399,9 @@ export class MediaFormComponent implements OnInit {
         }
     }
 
-    // ====================== Колекції ======================
     onSearchCollections(): void {
         const query = this.collectionSearchQuery.trim();
 
-        // Текст змінився -> попередній вибір більше не актуальний
         this.mediaData.collectionId = null;
         this.hasSearchedOnce.set(false);
         if (!query) {
@@ -473,14 +431,12 @@ export class MediaFormComponent implements OnInit {
         }
     }
 
-    // ====================== Сезони та епізоди ======================
     addSeason(): void {
         this.mediaData.seasons.push({ number: this.mediaData.seasons.length + 1, episodes: [] });
     }
 
     removeSeason(index: number): void {
         this.mediaData.seasons.splice(index, 1);
-        // Перенумеровуємо, щоб не було дублів/пропусків
         this.mediaData.seasons.forEach((s, i) => (s.number = i + 1));
     }
 
@@ -495,8 +451,6 @@ export class MediaFormComponent implements OnInit {
         season.episodes.forEach((e, i) => (e.number = i + 1));
     }
 
-    // ====================== Збереження ======================
-    /** Публічний метод: його можна викликати з батьківського компонента в embedded-режимі. */
     submit(): void {
         if (this.isSubmitting() || !this.validate()) {
             return;
@@ -517,7 +471,6 @@ export class MediaFormComponent implements OnInit {
         });
     }
 
-    /** @deprecated Використовуйте submit(). Залишено для зворотної сумісності. */
     onSubmitStandalone(): void {
         this.submit();
     }
@@ -529,7 +482,8 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
             return false;
         }
-        if (!releaseYear || releaseYear < MIN_RELEASE_YEAR || releaseYear > MAX_RELEASE_YEAR) {
+        // releaseYear тепер опціональний, але якщо введений — перевіряємо його межі
+        if (releaseYear != null && (releaseYear < MIN_RELEASE_YEAR || releaseYear > MAX_RELEASE_YEAR)) {
             this.toastService.show(`Рік випуску має бути між ${MIN_RELEASE_YEAR} та ${MAX_RELEASE_YEAR}.`, 'error');
             return false;
         }
@@ -554,16 +508,11 @@ export class MediaFormComponent implements OnInit {
             genres: parseCommaList(this.genresInput),
             tags: parseCommaList(this.tagsInput),
             cast: this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })),
-            // Сезони, додані до зміни типу на «не серіал», не повинні потрапити в запит
             seasons: this.isSeries ? this.mediaData.seasons : [],
             collectionId
         };
     }
 
-    /**
-     * Повертає id колекції: обраний, знайдений за точною назвою
-     * (на випадок швидкого сабміту до завершення debounce) або щойно створений.
-     */
     private resolveCollectionId(): Observable<CollectionId | null> {
         if (this.mediaData.collectionId) {
             return of(this.mediaData.collectionId as CollectionId);
@@ -612,9 +561,7 @@ export class MediaFormComponent implements OnInit {
         this.genresInput = '';
         this.tagsInput = '';
         this.imageError = false;
-        this.newLinkName = '';
         this.newLinkUrl = '';
-        this.newLinkType = MediaLinkType.Other;
         this.actorSearchQuery = '';
         this.actorSearchResults.set([]);
         this.clearCollection();

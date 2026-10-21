@@ -80,6 +80,24 @@ $text-body: #334155;
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 20px;
         margin-top: 20px;
+
+        // Зірки в картці приховані й з'являються при наведенні (або фокусі всередині картки)
+        .watch-actions {
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        app-grid-card:hover .watch-actions,
+        app-grid-card:focus-within .watch-actions {
+            opacity: 1;
+        }
+    }
+
+    // На пристроях без наведення (тач) зірки показуємо завжди
+    @media (hover: none) {
+        .cards-grid .watch-actions {
+            opacity: 1;
+        }
     }
 
     // Вміст, що проєктується в картку / сайдбар
@@ -103,6 +121,29 @@ $text-body: #334155;
             font-size: 0.75rem;
             font-weight: 500;
         }
+
+        .tag-chip {
+            background-color: $border-subtle;
+            color: #475569;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    }
+
+    /* ---------- Оверлеї на постері ---------- */
+    // Позиціонування (верх справа / низ справа) задає grid-card через слоти
+    .duration-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        background: rgba(15, 23, 42, 0.75);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.3;
+        pointer-events: none;
     }
 
     /* ---------- Оцінка та закладка ---------- */
@@ -162,6 +203,33 @@ $text-body: #334155;
         &:focus-visible {
             outline: 2px solid #93c5fd;
             outline-offset: 2px;
+        }
+
+        // Варіант для накладання на постер: коло 28px у стилі іконки видимості grid-card
+        &.poster-bookmark {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.75);
+            color: white;
+            border-color: transparent;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            &:hover {
+                background: rgba(15, 23, 42, 0.9);
+                color: #fde68a;
+            }
+
+            &.active {
+                background: #fef3c7;
+                color: #b45309;
+            }
         }
     }
 
@@ -256,6 +324,7 @@ $text-body: #334155;
         }
 
         .genres-section,
+        .tags-section,
         .description-section {
             margin-top: 16px;
 

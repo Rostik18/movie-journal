@@ -49,9 +49,13 @@ export class UserWatchingFormComponent {
 
     formData: CreateUserWatchingRequest = createEmptyWatching();
 
-    readonly statusOptions = Object.values(WatchStatus)
-        .filter((v): v is WatchStatus => typeof v === 'number')
-        .map(value => ({ value, label: WatchStatusLabels[value] }));
+    // Робимо WatchStatus доступним у шаблоні
+    readonly WatchStatus = WatchStatus;
+
+    readonly statusOptions = Object.values(WatchStatus).map(type => ({
+        value: type,
+        label: WatchStatusLabels[type]
+    }));
 
     // ---- Пошук / вибір медіа ----
     mediaSearchQuery = '';
@@ -72,6 +76,19 @@ export class UserWatchingFormComponent {
     );
 
     selectedMediaType: MediaType | null = null;
+
+    // Геттер та сеттер для конвертації хвилин у секунди та навпаки
+    get stoppedAtMinutes(): number | null {
+        return this.formData.stoppedAtSeconds != null
+            ? Math.round(this.formData.stoppedAtSeconds / 60)
+            : null;
+    }
+
+    set stoppedAtMinutes(value: number | null) {
+        this.formData.stoppedAtSeconds = value != null && !isNaN(value)
+            ? Math.round(value * 60)
+            : null;
+    }
 
     // чи показувати сезон/епізод
     get showProgressFields(): boolean {
@@ -113,7 +130,6 @@ export class UserWatchingFormComponent {
         this.mediaSearchQuery = value;
         const query = value.trim();
 
-        // Текст змінився -> попередній вибір більше не актуальний
         this.formData.mediaId = '';
         this.selectedMediaTitle = '';
         this.selectedMediaType = null;
@@ -139,7 +155,6 @@ export class UserWatchingFormComponent {
         this.selectedMediaType = null;
         this.mediaSearchResults.set([]);
         this.hasSearched.set(false);
-        // Скидаємо distinctUntilChanged, щоб той самий запит/URL можна було ввести знову
         this.mediaQuery$.next('');
     }
 
@@ -181,7 +196,6 @@ export class UserWatchingFormComponent {
     }
 
     // ====================== Створення нового медіа ======================
-    /** Відкриває вбудовану форму. Початкові значення передаються через inputs без setTimeout-хаків. */
     startCreateNew(url: string | null = null): void {
         this.newMediaUrl.set(url);
         this.newMediaTitle.set(url ? '' : this.mediaSearchQuery.trim());
@@ -192,7 +206,6 @@ export class UserWatchingFormComponent {
     cancelCreateNew(): void {
         this.isCreatingNewMedia.set(false);
 
-        // Якщо форму відкрив вставлений URL, не залишаємо його в полі пошуку
         if (this.newMediaUrl()) {
             this.clearMedia();
         }
@@ -200,15 +213,12 @@ export class UserWatchingFormComponent {
         this.newMediaTitle.set('');
     }
 
-    /** Викликається вбудованою формою після успішного створення медіа. */
     onNewMediaCreated(created: any): void {
         if (!created?.id) {
             this.toastService.show('Медіа створено, але сервер не повернув його ідентифікатор.', 'error', 6000);
             return;
         }
 
-        // Повертаємось до режиму "обрано існуючий фільм": якщо додавання у список
-        // не вдасться, повторна спроба не створить дублікат медіа.
         this.formData.mediaId = created.id;
         this.selectedMediaTitle = created.title ?? this.mediaForm()?.mediaData.title ?? '';
         this.selectedMediaType = created.type ?? this.mediaForm()?.mediaData.type ?? null;
@@ -227,8 +237,6 @@ export class UserWatchingFormComponent {
         }
 
         if (this.isCreatingNewMedia()) {
-            // Валідацію, створення колекції та медіа виконує сама форма медіа.
-            // Результат прийде в onNewMediaCreated().
             this.mediaForm()?.submit();
             return;
         }
@@ -242,6 +250,12 @@ export class UserWatchingFormComponent {
 
     private saveToWatchlist(): void {
         this.isSavingWatching.set(true);
+
+        // Очищаємо stoppedAtSeconds якщо статус не Watching
+        if (this.formData.status !== WatchStatus.Watching) {
+            this.formData.stoppedAtSeconds = null;
+        }
+
         const payload = this.showProgressFields
             ? this.formData
             : { ...this.formData, currentSeasonNumber: null, currentEpisodeNumber: null };

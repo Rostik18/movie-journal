@@ -13,15 +13,6 @@
                 <input type="url" [(ngModel)]="newLinkUrl" name="newLinkUrl"
                     placeholder="Вставте посилання (напр. YouTube, Netflix) та вийдіть з поля..." class="input-url"
                     (blur)="onLinkCommit()" (keydown.enter)="onLinkCommit($event)">
-
-                <input type="text" [(ngModel)]="newLinkName" name="newLinkName"
-                    placeholder="Назва посилання (опціонально)" class="input-name">
-
-                <select [(ngModel)]="newLinkType" name="newLinkType" class="input-type">
-                    @for (t of linkTypeOptions; track t.value) {
-                    <option [ngValue]="t.value">{{ t.label }}</option>
-                    }
-                </select>
             </div>
         </div>
 
@@ -41,9 +32,9 @@
                     placeholder="La La Land">
             </div>
             <div class="form-group">
-                <label for="releaseYear">Рік випуску *</label>
-                <input id="releaseYear" type="number" [(ngModel)]="mediaData.releaseYear" name="releaseYear" required
-                    min="1888" max="2100">
+                <label for="releaseYear">Рік випуску</label>
+                <input id="releaseYear" type="number" [(ngModel)]="mediaData.releaseYear" name="releaseYear" min="1888"
+                    max="2100" placeholder="2024">
             </div>
         </div>
 
@@ -236,7 +227,6 @@
             <div class="selected-links-list">
                 @for (link of mediaData.links; track link.url; let i = $index) {
                 <div class="link-row">
-                    <span class="link-name"><strong>{{ link.name || 'Посилання' }}</strong></span>
                     <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url }}</a>
                     <button type="button" class="btn-danger-sm" (click)="removeLink(i)">&times;</button>
                 </div>

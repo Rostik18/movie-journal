@@ -82,6 +82,37 @@ $status-colors: (
         }
     }
 
+    /* ---------- Спільний вміст карток і сайдбару ---------- */
+    // Жанри використовуються і в картках, і в сайдбарі, тому стилі не прив'язані до .cards-grid
+    .genres {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+
+        .genre-tag {
+            background-color: $border-subtle;
+            color: #0ea5e9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    }
+
+    // Позиціонування (низ справа) задає grid-card через слот [poster-bottom-right]
+    .duration-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        background: rgba(15, 23, 42, 0.75);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.3;
+        pointer-events: none;
+    }
+
     /* ---------- Режим плиток ---------- */
     .cards-grid {
         display: grid;
@@ -95,28 +126,21 @@ $status-colors: (
             margin: 0 0 10px 0;
         }
 
-        .genres {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-
-            .genre-tag {
-                background-color: $border-subtle;
-                color: #0ea5e9;
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-size: 0.75rem;
-                font-weight: 500;
-            }
-        }
-
         .card-rating-section {
             display: flex;
             align-items: center;
             margin: 8px 0 12px 0;
             padding-top: 4px;
             border-top: 1px solid $border-subtle;
+
+            // Зірки в картці приховані й з'являються при наведенні (або фокусі всередині картки)
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        app-grid-card:hover .card-rating-section,
+        app-grid-card:focus-within .card-rating-section {
+            opacity: 1;
         }
 
         .notes {
@@ -128,6 +152,18 @@ $status-colors: (
             border-radius: 4px;
             margin: 0;
             border-left: 3px solid #cbd5e1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    }
+
+    // На пристроях без наведення (тач) зірки показуємо завжди
+    @media (hover: none) {
+        .cards-grid .card-rating-section {
+            opacity: 1;
         }
     }
 
@@ -157,8 +193,22 @@ $status-colors: (
                 color: #475569;
             }
 
-            tbody tr:hover {
-                background: $surface;
+            .clickable-row {
+                cursor: pointer;
+
+                &:hover,
+                &:focus-visible {
+                    background: $surface;
+                }
+
+                &:focus-visible {
+                    outline: 2px solid #93c5fd;
+                    outline-offset: -2px;
+                }
+            }
+
+            .actions-cell {
+                cursor: default;
             }
 
             .table-poster-cell {
@@ -219,6 +269,7 @@ $status-colors: (
     }
 }
 
+/* ---------- Вміст сайдбару (проєктується з цього компонента) ---------- */
 .sidebar-details-info {
     .section-divider {
         border: none;
@@ -246,6 +297,8 @@ $status-colors: (
             font-size: 0.9rem;
             color: #475569;
             line-height: 1.4;
+            // Зберігає переноси рядків в описі та нотатках
+            white-space: pre-line;
         }
     }
 

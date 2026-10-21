@@ -31,7 +31,24 @@
         <app-grid-card [imageUrl]="mov.posterUrl" [imageAlt]="mov.title" [title]="mov.title" noImageText="Немає постера"
             [visibility]="mov.visibility" (cardClick)="openDetails(mov)">
 
-            <p class="original-title">{{ mov.originalTitle }} ({{ mov.releaseYear }})</p>
+            <!-- Оверлеї постера: слоти [poster-top-left] та [poster-bottom-right] у grid-card -->
+            <button poster-top-left type="button" class="bookmark-btn poster-bookmark"
+                [class.active]="isWishlisted(mov)" [attr.aria-pressed]="isWishlisted(mov)" aria-label="Додати до планів"
+                title="Додати до планів" (click)="$event.stopPropagation(); addToWishlist(mov)"
+                (keydown.enter)="$event.stopPropagation()">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+            </button>
+
+            @if (mov.duration) {
+            <span poster-bottom-right class="duration-badge">{{ formatDuration(mov.duration) }}</span>
+            }
+
+            <!-- Тіло картки -->
+            @if (subtitle(mov); as subtitleText) {
+            <p class="original-title">{{ subtitleText }}</p>
+            }
 
             <div class="genres">
                 @for (genre of mov.genres; track genre) {
@@ -39,17 +56,9 @@
                 }
             </div>
 
-            <!-- Дії не повинні відкривати сайдбар -->
+            <!-- Зірки з'являються при наведенні на картку -->
             <div class="watch-actions" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
                 <app-rating-stars [initialRating]="ratingOf(mov)" (ratingChange)="rateMovie(mov, $event)" />
-
-                <button type="button" class="bookmark-btn" [class.active]="isWishlisted(mov)"
-                    [attr.aria-pressed]="isWishlisted(mov)" aria-label="Додати до планів" title="Додати до планів"
-                    (click)="addToWishlist(mov)">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-                    </svg>
-                </button>
             </div>
         </app-grid-card>
         }
@@ -64,6 +73,7 @@
                     <th>Назва</th>
                     <th>Оригінал / Рік</th>
                     <th>Тип</th>
+                    <th>Тривалість</th>
                     <th>Жанри</th>
                     <th>Оцінка / План</th>
                 </tr>
@@ -80,8 +90,9 @@
                         }
                     </td>
                     <td><strong>{{ movie.title }}</strong></td>
-                    <td>{{ movie.originalTitle }} ({{ movie.releaseYear }})</td>
+                    <td>{{ subtitle(movie) || '—' }}</td>
                     <td><span class="type-badge-inline">{{ typeLabel(movie.type) }}</span></td>
+                    <td>{{ formatDuration(movie.duration) || '—' }}</td>
                     <td>
                         @if (movie.genres?.length) {
                         <div class="genres-inline">
@@ -134,14 +145,19 @@
         @if (selectedMovie(); as mov) {
         <div class="sidebar-details-info">
             @if (mov.originalTitle) {
-            <p class="detail-row">
-                <strong>Оригінальна назва:</strong> {{ mov.originalTitle }} ({{ mov.releaseYear }})
-            </p>
+            <p class="detail-row"><strong>Оригінальна назва:</strong> {{ mov.originalTitle }}</p>
+            }
+            @if (mov.releaseYear) {
+            <p class="detail-row"><strong>Рік випуску:</strong> {{ mov.releaseYear }}</p>
             }
             @if (mov.type != null) {
-            <p class="detail-row">
-                <strong>Тип:</strong> {{ typeLabel(mov.type) }}
-            </p>
+            <p class="detail-row"><strong>Тип:</strong> {{ typeLabel(mov.type) }}</p>
+            }
+            @if (mov.author) {
+            <p class="detail-row"><strong>Автор:</strong> {{ mov.author }}</p>
+            }
+            @if (mov.duration) {
+            <p class="detail-row"><strong>Тривалість:</strong> {{ formatDuration(mov.duration) }}</p>
             }
 
             @if (mov.genres?.length) {
@@ -150,6 +166,17 @@
                 <div class="genres">
                     @for (genre of mov.genres; track genre) {
                     <span class="genre-tag">{{ genre }}</span>
+                    }
+                </div>
+            </div>
+            }
+
+            @if (mov.tags?.length) {
+            <div class="tags-section">
+                <h4>Теги</h4>
+                <div class="genres">
+                    @for (tag of mov.tags; track tag) {
+                    <span class="tag-chip">{{ tag }}</span>
                     }
                 </div>
             </div>

@@ -6,7 +6,9 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { UserWatchingService } from '../../services/user-watching.service';
 import { ToastService } from '../../services/toast.service';
 import { UserWatchingItem } from '../../models/user-watching.model';
-import { WatchStatusLabels } from '../../models/enums';
+import { MediaItem } from '../../models/media.model';
+import { MediaTypeLabels, WatchStatus, WatchStatusLabels } from '../../models/enums';
+import { formatDuration, formatSubtitle, formatTimecode } from '../../utils/media-format.util';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { UserWatchingFormComponent } from '../shared/user-watching-form/user-watching-form.component';
@@ -50,6 +52,12 @@ export class UserWatchingListComponent implements OnInit {
     readonly isSidebarOpen = signal(false);
 
     readonly watchStatusLabels = WatchStatusLabels;
+    readonly mediaTypeLabels = MediaTypeLabels;
+
+    // Форматування, спільне зі списком фільмів (utils/media-format.util.ts)
+    readonly subtitle = formatSubtitle;
+    readonly formatDuration = formatDuration;
+    readonly formatTimecode = formatTimecode;
 
     // Окремий стан для шаблону: початкове завантаження / помилка / порожній список
     readonly showInitialLoading = computed(() => this.loading() && this.watchingList().length === 0);
@@ -60,6 +68,11 @@ export class UserWatchingListComponent implements OnInit {
 
     private readonly reload$ = new Subject<void>();
     private readonly deleteCallbacks = new Map<string, DeleteCallback>();
+
+    readonly selectedDeleteCallback = computed(() => {
+        const item = this.selectedItem();
+        return item ? this.getDeleteCallback(item) : undefined;
+    });
 
     constructor() {
         // switchMap скасовує попередній запит, якщо список перезавантажили повторно
@@ -105,6 +118,28 @@ export class UserWatchingListComponent implements OnInit {
         return { items, total };
     }
 
+    // ====================== Відображення полів ======================
+    /** Бейдж оцінки на постері: «★ 7». Для null бейджа немає. */
+    ratingBadge(rating: number | null | undefined): string | null {
+        return rating == null ? null : `★ ${rating}`;
+    }
+
+    typeLabel(type: MediaItem['type'] | null | undefined): string {
+        return type == null ? '—' : (this.mediaTypeLabels[type] ?? String(type));
+    }
+
+    /** «Сезон 2 / Серія 5»; якщо задано лише одне з чисел, зайвого роздільника немає. */
+    progressLabel(item: UserWatchingItem): string {
+        const parts: string[] = [];
+        if (item.currentSeasonNumber) {
+            parts.push(`Сезон ${item.currentSeasonNumber}`);
+        }
+        if (item.currentEpisodeNumber) {
+            parts.push(`Серія ${item.currentEpisodeNumber}`);
+        }
+        return parts.join(' / ');
+    }
+
     // ====================== Деталі (сайдбар) ======================
     openDetails(item: UserWatchingItem): void {
         this.selectedItem.set(item);
@@ -130,7 +165,7 @@ export class UserWatchingListComponent implements OnInit {
         const previousRating = item.rating;
         this.patchItem(mediaId, { rating: newRating });
 
-        this.userWatchingService.updateWatchlist({ mediaId, rating: newRating }).pipe(
+        this.userWatchingService.updateWatchlist({ mediaId, rating: newRating, status: WatchStatus.Watched }).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: () => this.toastService.show(`Рейтинг оновлено: ${newRating}/10 ⭐`, 'success', 2500),
@@ -171,7 +206,9 @@ export class UserWatchingListComponent implements OnInit {
 
     onSidebarItemDeleted(): void {
         const item = this.selectedItem();
-        if (!item) return;
+        if (!item) {
+            return;
+        }
 
         this.onItemDeleted(item);
         this.closeSidebar();

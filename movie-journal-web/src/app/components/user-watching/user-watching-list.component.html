@@ -28,10 +28,19 @@
     <!-- РЕЖИМ 1: Плитки -->
     <div class="cards-grid">
         @for (item of watchingList(); track item.media.id) {
+        <!-- Бейдж зліва зверху: оцінка «★ 7» (лише якщо вона є) -->
         <app-grid-card [imageUrl]="item.media.posterUrl" [imageAlt]="item.media.title" [title]="item.media.title"
-            noImageText="Немає постера" (cardClick)="openDetails(item)" [visibility]="item.media.visibility">
+            noImageText="Немає постера" [visibility]="item.media.visibility" [badge]="ratingBadge(item.rating)"
+            (cardClick)="openDetails(item)">
 
-            <p class="original-title">{{ item.media.originalTitle }} ({{ item.media.releaseYear }})</p>
+            <!-- Оверлей постера справа знизу: слот [poster-bottom-right] у grid-card -->
+            @if (item.media.duration) {
+            <span poster-bottom-right class="duration-badge">{{ formatDuration(item.media.duration) }}</span>
+            }
+
+            @if (subtitle(item.media); as subtitleText) {
+            <p class="original-title">{{ subtitleText }}</p>
+            }
 
             <div class="genres">
                 @for (genre of item.media.genres; track genre) {
@@ -39,7 +48,9 @@
                 }
             </div>
 
-            <div class="card-rating-section" (click)="$event.stopPropagation()">
+            <!-- Зірки з'являються при наведенні на картку -->
+            <div class="card-rating-section" (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()">
                 <app-rating-stars [initialRating]="item.rating" (ratingChange)="updateRating(item, $event)" />
             </div>
 
@@ -65,7 +76,7 @@
             </thead>
             <tbody>
                 @for (item of watchingList(); track item.media.id) {
-                <tr (click)="openDetails(item)" style="cursor: pointer;">
+                <tr class="clickable-row" tabindex="0" (click)="openDetails(item)" (keydown.enter)="openDetails(item)">
                     <td class="table-poster-cell">
                         @if (item.media.posterUrl) {
                         <img [src]="item.media.posterUrl" [alt]="item.media.title" class="table-poster">
@@ -75,16 +86,18 @@
                     </td>
                     <td>
                         <strong>{{ item.media.title }}</strong>
-                        <div class="table-sub">
-                            {{ item.media.originalTitle }} ({{ item.media.releaseYear }})
-                        </div>
+                        @if (subtitle(item.media); as subtitleText) {
+                        <div class="table-sub">{{ subtitleText }}</div>
+                        }
                     </td>
                     <td>
                         <span class="status-badge-inline" [class]="'status-' + item.status">
                             {{ watchStatusLabels[item.status] }}
                         </span>
                     </td>
-                    <td (click)="$event.stopPropagation()">
+                    <!-- Оцінка не повинна відкривати сайдбар -->
+                    <td class="actions-cell" (click)="$event.stopPropagation()"
+                        (keydown.enter)="$event.stopPropagation()">
                         <div class="card-rating-section">
                             <app-rating-stars [initialRating]="item.rating"
                                 (ratingChange)="updateRating(item, $event)" />
@@ -126,8 +139,8 @@
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
     <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedItem()?.media?.title ?? ''"
         [imageUrl]="selectedItem()?.media?.posterUrl" [imageAlt]="selectedItem()?.media?.title ?? ''"
-        noImageText="Немає постера" [deleteAction]="selectedItem() ? getDeleteCallback(selectedItem()!) : undefined"
-        (closed)="closeSidebar()" (editClicked)="onEditItem()" (deleted)="onSidebarItemDeleted()">
+        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()"
+        (editClicked)="onEditItem()" (deleted)="onSidebarItemDeleted()">
 
         @if (selectedItem(); as item) {
         <div class="sidebar-details-info">
@@ -135,19 +148,31 @@
             <!-- === БЛОК 1: ІНФОРМАЦІЯ ПРО МЕДІА === -->
             @if (item.media.originalTitle) {
             <p class="detail-row">
-                <strong>Оригінальна назва:</strong> {{ item.media.originalTitle }} ({{ item.media.releaseYear }})
+                <strong>Оригінальна назва:</strong> {{ item.media.originalTitle }}
             </p>
             }
 
-            @if (item.media.type !== null && item.media.type !== undefined) {
+            @if (item.media.releaseYear) {
             <p class="detail-row">
-                <strong>Тип:</strong> {{ item.media.type }}
+                <strong>Рік випуску:</strong> {{ item.media.releaseYear }}
+            </p>
+            }
+
+            @if (item.media.type != null) {
+            <p class="detail-row">
+                <strong>Тип:</strong> {{ typeLabel(item.media.type) }}
             </p>
             }
 
             @if (item.media.author) {
             <p class="detail-row">
                 <strong>Автор / Режисер:</strong> {{ item.media.author }}
+            </p>
+            }
+
+            @if (item.media.duration) {
+            <p class="detail-row">
+                <strong>Тривалість:</strong> {{ formatDuration(item.media.duration) }}
             </p>
             }
 
@@ -196,19 +221,16 @@
             }
 
             <!-- Прогрес (сезони / епізоди) -->
-            @if (item.currentSeasonNumber || item.currentEpisodeNumber) {
+            @if (progressLabel(item); as progress) {
             <p class="detail-row">
-                <strong>Прогрес:</strong>
-                @if (item.currentSeasonNumber) { Сезон {{ item.currentSeasonNumber }} }
-                @if (item.currentEpisodeNumber) { / Серія {{ item.currentEpisodeNumber }} }
+                <strong>Прогрес:</strong> {{ progress }}
             </p>
             }
 
-            <!-- Час зупинки (stoppedAtSeconds) -->
+            <!-- Час зупинки: секунди форматуються в таймкод, а не передаються в date-пайп як мілісекунди -->
             @if (item.stoppedAtSeconds) {
             <p class="detail-row">
-                <strong>Зупинено на:</strong> {{ item.stoppedAtSeconds | date:'mm:ss' }} (сек: {{ item.stoppedAtSeconds
-                }})
+                <strong>Зупинено на:</strong> {{ formatTimecode(item.stoppedAtSeconds) }}
             </p>
             }
 

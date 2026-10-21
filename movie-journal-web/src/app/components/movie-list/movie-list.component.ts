@@ -16,6 +16,7 @@ import { MediaItem } from '../../models/media.model';
 import { MediaTypeLabels, WatchStatus } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
 import { CreateUserWatchingRequest } from '../../models/user-watching.model';
+import { formatDuration, formatSubtitle } from '../../utils/media-format.util';
 
 type DeleteCallback = () => ReturnType<MediaService['deleteMedia']>;
 type MediaId = MediaItem['id'];
@@ -140,6 +141,15 @@ export class MovieListComponent implements OnInit {
         this.reload$.next();
     }
 
+    // ====================== Відображення полів ======================
+    // Форматування спільне зі списком перегляду (utils/media-format.util.ts)
+    readonly subtitle = formatSubtitle;
+    readonly formatDuration = formatDuration;
+
+    typeLabel(type: MediaItem['type'] | null | undefined): string {
+        return type == null ? '—' : (this.mediaTypeLabels[type] ?? String(type));
+    }
+
     // ====================== Оцінка та план перегляду ======================
     ratingOf(movie: MediaItem): number | null {
         return this.watchStates().get(movie.id)?.rating ?? null;
@@ -215,10 +225,6 @@ export class MovieListComponent implements OnInit {
 
     onEditMovie(): void {
         console.log('Редагувати фільм:', this.selectedMovie()?.id);
-    }
-
-    typeLabel(type: MediaItem['type'] | null | undefined): string {
-        return type == null ? '—' : (this.mediaTypeLabels[type] ?? String(type));
     }
 
     // ====================== Видалення ======================
