@@ -93,14 +93,14 @@ namespace MovieJournalBackend.Endpoints
                         Title = metadata.Title ?? parsedItem.Name ?? "",
                         OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
                         Description = metadata.Description,
-                        Author = metadata.Author,
+                        Author = metadata.Author ?? request.Author,
                         Type = metadata.Type ?? request.Type,
                         Visibility = request.Visibility,
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
                         RuntimeMinutes = metadata.DurationSeconds / 60,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
-                        Links = [new() { Url = parsedItem.Url, Type = request.MediaLinkType }],
+                        Links = [new() { Url = parsedItem.Url, Type = MediaLinkType.Other }],
                     }, new(userId!, [UserRole.Admin]), ct);
 
                     var created = await uwService.CreateAsync(new()

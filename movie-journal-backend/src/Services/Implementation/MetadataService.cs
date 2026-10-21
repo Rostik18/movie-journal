@@ -97,9 +97,7 @@ namespace MovieJournalBackend.Services.Implementation
                 image = absoluteImageUri.ToString();
             }
 
-            var durationText = GetMetaContent(
-                "og:video:duration",
-                "video:duration");
+            var durationText = GetMetaContent("og:video:duration", "video:duration", "og:duration");
 
             int? durationSeconds =
                 int.TryParse(
@@ -110,11 +108,7 @@ namespace MovieJournalBackend.Services.Implementation
                         ? seconds
                         : null;
 
-            var publishedAtText = GetMetaContent(
-                "article:published_time",
-                "og:video:release_date",
-                "datePublished",
-                "video:release_date");
+            var publishedAtText = GetMetaContent("article:published_time", "og:video:release_date", "datePublished", "video:release_date");
 
             DateTime? publishedAtUtc =
                 DateTimeOffset.TryParse(
@@ -125,26 +119,15 @@ namespace MovieJournalBackend.Services.Implementation
                         ? publishedAt.UtcDateTime
                         : null;
 
-            var author = GetMetaContent(
-                "author",
-                "article:author",
-                "og:video:actor");
-
-            var tags = GetMetaContents(
-                "og:video:tag",
-                "video:tag");
-
-            var mediaType = GetMediaType();
-
             return new MetadataResponse(
                 Title: GetMetaContent("og:title", "twitter:title"),
                 Description: GetMetaContent("og:description", "twitter:description"),
                 Image: image,
                 DurationSeconds: durationSeconds,
-                Author: author,
+                Author: GetMetaContent("author", "article:author", "og:video:actor"),
                 PublishedAtUtc: publishedAtUtc,
-                Type: mediaType,
-                Tags: tags);
+                Type: GetMediaType(),
+                Tags: GetMetaContents("og:video:tag", "video:tag"));
         }
     }
 
