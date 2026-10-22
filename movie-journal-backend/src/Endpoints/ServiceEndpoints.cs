@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Contracts.Service;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Services;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -14,7 +16,8 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapGet("/api/service/status", GetStatusAsync).Produces<string>().AllowAnonymous();
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
-            app.MapPost("/api/service/seed", SeedAsync).Produces<string>().RequireAdmin();
+            app.MapPost("/api/service/seed-user-media", SeedUserMediaAsync).Produces<object>().RequireAdmin();
+            app.MapPost("/api/service/seed-actors", SeedActorsAsync).Produces<object>().RequireAdmin();
             app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
             app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();
@@ -61,18 +64,23 @@ namespace MovieJournalBackend.Endpoints
             }
         }
 
-        private static async Task<IResult> SeedAsync(
+        private static async Task<IResult> SeedUserMediaAsync(
             SeedRequest request,
             ClaimsPrincipal principal,
             IMetadataService metadataService,
             IMediaService mediaService,
             IUserWatchingService uwService,
+            IActorService actorService,
             CancellationToken ct)
         {
             if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
 
             var userId = request.UserId ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
             var parsedPayload = Parse(request.Payload);
+
+            var actors = parsedPayload.Length > 0
+                ? (await actorService.SearchAsync(new() { Page = new() { Size = 200 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                : [];
 
             foreach (var parsedItem in parsedPayload)
             {
@@ -88,7 +96,7 @@ namespace MovieJournalBackend.Endpoints
 
                     var metadata = await metadataService.GetMetadataAsync(uri, ct);
 
-                    var media = await mediaService.CreateAsync(new()
+                    var media = new CreateMediaRequest()
                     {
                         Title = metadata.Title ?? parsedItem.Name ?? "",
                         OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
@@ -101,14 +109,25 @@ namespace MovieJournalBackend.Endpoints
                         RuntimeMinutes = metadata.DurationSeconds / 60,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [new() { Url = parsedItem.Url, Type = MediaLinkType.Other }],
-                    }, new(userId!, [UserRole.Admin]), ct);
+                    };
+
+                    foreach (var actor in actors)
+                    {
+                        if (media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
+                           (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false))
+                        {
+                            media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
+                        }
+                    }
+
+                    var createdMedia = await mediaService.CreateAsync(media, new(userId!, [UserRole.Admin]), ct);
 
                     var created = await uwService.CreateAsync(new()
                     {
-                        MediaId = media.Id,
+                        MediaId = createdMedia.Id,
                         Rating = parsedItem.Rate,
                         Status = request.Status
-                    }, principal.ToUserContext(), ct);
+                    }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch
                 {
@@ -117,6 +136,50 @@ namespace MovieJournalBackend.Endpoints
             }
 
             return Results.Ok("Done");
+        }
+
+        private static async Task<IResult> SeedActorsAsync(
+            SeedActorsRequest request,
+            ClaimsPrincipal principal,
+            IActorPhotoSearchService metadataService,
+            IActorService actorService,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            var userId = request.UserId ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var actors = ParseActorsPayload(request.Payload);
+
+            var addedCount = 0;
+
+            foreach (var item in actors)
+            {
+                try
+                {
+                    await actorService.CreateAsync(new()
+                    {
+                        FullName = item.FullName,
+                        Visibility = request.Visibility,
+                        BirthDate = item.BirthDate,
+                        PhotoUrl = item.PhotoUrl is null
+                             ? (await metadataService.SearchAsync(item.FullName, ct)).FirstOrDefault()?.ImageUrl
+                             : item.PhotoUrl
+                    }, new(userId!, [UserRole.Admin]), ct);
+
+                    addedCount++;
+                }
+                catch
+                {
+                    continue;
+                }
+
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                AddedActors = addedCount
+            });
         }
 
         private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
@@ -210,6 +273,23 @@ namespace MovieJournalBackend.Endpoints
                 Rate: columns.Length > 2 &&
                         int.TryParse(columns[2], out var rate)
                     ? rate
+                    : null))
+        ];
+
+        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate);
+
+        private static SeedActorItem[] ParseActorsPayload(string payload) =>
+            [..payload
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns => new SeedActorItem(
+                FullName: columns[0],
+                PhotoUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                    ? columns[1]
+                    : null,
+                BirthDate: columns.Length > 2 &&
+                        DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+                    ? parsedDate
                     : null))
         ];
     }

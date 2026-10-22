@@ -157,6 +157,13 @@ namespace MovieJournalBackend.Extensions
 
                 return policy.GetHandler();
             });
+            builder.Services.AddHttpClient<IActorPhotoSearchService, WikimediaActorPhotoSearchService>(client =>
+            {
+                client.BaseAddress = new Uri("https://commons.wikimedia.org/");
+                client.Timeout = TimeSpan.FromSeconds(15);
+
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("MovieJournalBackend/1.0");
+            });
         }
 
         public sealed class UserIdProvider : IUserIdProvider

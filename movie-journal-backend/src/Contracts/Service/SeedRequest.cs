@@ -13,4 +13,11 @@ namespace MovieJournalBackend.Contracts.Service
         public string? Author { get; set; }
         public string Payload { get; set; } = "";
     }
+
+    public class SeedActorsRequest
+    {
+        public string? UserId { get; set; }
+        public Visibility Visibility { get; set; } = Visibility.Private;
+        public string Payload { get; set; } = "";
+    }
 }
