@@ -137,7 +137,8 @@ namespace MovieJournalBackend.Endpoints
                     {
                         MediaId = createdMedia.Id,
                         Rating = parsedItem.Rate,
-                        Status = request.Status
+                        Status = request.Status,
+                        Visibility = request.Visibility
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch (Exception ex)

@@ -85,9 +85,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             var actorIds = media.Cast.Select(x => x.ActorId).ToList();
 
-            var hasPrivateActors = await _actorRepository.HasPrivateActorsAsync(actorIds, ct);
-
-            if (hasPrivateActors)
+            if (request.Visibility == Visibility.Public && await _actorRepository.HasPrivateActorsAsync(actorIds, ct))
             {
                 throw new ValidationException("Public media cannot contain private actors.");
             }
