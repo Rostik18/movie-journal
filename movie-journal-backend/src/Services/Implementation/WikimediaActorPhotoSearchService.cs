@@ -126,5 +126,4 @@ namespace MovieJournalBackend.Services.Implementation
             return WebUtility.HtmlDecode(withoutHtml).Trim();
         }
     }
-
 }

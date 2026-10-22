@@ -83,6 +83,7 @@ namespace MovieJournalBackend.Endpoints
                 : [];
 
             var missedLines = new List<UrlNameRate>();
+            var lastError = "";
 
             foreach (var parsedItem in parsedPayload)
             {
@@ -139,8 +140,10 @@ namespace MovieJournalBackend.Endpoints
                         Status = request.Status
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    missedLines.Add(parsedItem);
+                    lastError = ex.Message;
                     continue;
                 }
             }
@@ -148,7 +151,8 @@ namespace MovieJournalBackend.Endpoints
             return Results.Ok(new
             {
                 Message = "Done",
-                MissedLines = missedLines
+                MissedLines = missedLines,
+                LastError = lastError
             });
         }
 
@@ -166,6 +170,8 @@ namespace MovieJournalBackend.Endpoints
 
             var missedLines = new List<SeedActorItem>();
 
+            var lastError = "";
+
             foreach (var item in actors)
             {
                 try
@@ -180,9 +186,10 @@ namespace MovieJournalBackend.Endpoints
                              : item.PhotoUrl
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
-                catch
+                catch (Exception ex)
                 {
                     missedLines.Add(item);
+                    lastError = ex.Message;
                     continue;
                 }
             }
@@ -190,7 +197,8 @@ namespace MovieJournalBackend.Endpoints
             return Results.Ok(new
             {
                 Message = "Done",
-                MissedActors = missedLines
+                MissedActors = missedLines,
+                LastError = lastError
             });
         }
 
