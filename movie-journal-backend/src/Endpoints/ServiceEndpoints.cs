@@ -148,7 +148,7 @@ namespace MovieJournalBackend.Endpoints
             return Results.Ok(new
             {
                 Message = "Done",
-                MissedLines = missedLines // list of UrlNameRate(string Url, string? Name, int? Rate)
+                MissedLines = missedLines
             });
         }
 
@@ -164,7 +164,7 @@ namespace MovieJournalBackend.Endpoints
             var userId = request.UserId ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
             var actors = ParseActorsPayload(request.Payload);
 
-            var addedCount = 0;
+            var missedLines = new List<SeedActorItem>();
 
             foreach (var item in actors)
             {
@@ -179,20 +179,18 @@ namespace MovieJournalBackend.Endpoints
                              ? (await metadataService.TrySearchAsync(item.FullName, ct)).FirstOrDefault()?.ImageUrl
                              : item.PhotoUrl
                     }, new(userId!, [UserRole.Admin]), ct);
-
-                    addedCount++;
                 }
                 catch
                 {
+                    missedLines.Add(item);
                     continue;
                 }
-
             }
 
             return Results.Ok(new
             {
                 Message = "Done",
-                AddedActors = addedCount
+                AddedActors = missedLines
             });
         }
 
