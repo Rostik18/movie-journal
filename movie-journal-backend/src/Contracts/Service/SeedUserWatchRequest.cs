@@ -3,7 +3,7 @@ using MovieJournalBackend.Entities.Journal;
 
 namespace MovieJournalBackend.Contracts.Service
 {
-    public class SeedRequest
+    public class SeedUserWatchRequest
     {
         public string? UserId { get; set; }
         public Visibility Visibility { get; set; } = Visibility.Private;
@@ -11,6 +11,7 @@ namespace MovieJournalBackend.Contracts.Service
         public MediaType Type { get; init; } = MediaType.Video;
         public List<string> Tags { get; init; } = [];
         public string? Author { get; set; }
+        public string? CollectionId { get; set; }
         public string Payload { get; set; } = "";
     }
 

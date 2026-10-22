@@ -65,7 +65,7 @@ namespace MovieJournalBackend.Endpoints
         }
 
         private static async Task<IResult> SeedUserMediaAsync(
-            SeedRequest request,
+            SeedUserWatchRequest request,
             ClaimsPrincipal principal,
             IMetadataService metadataService,
             IMediaService mediaService,
@@ -79,8 +79,10 @@ namespace MovieJournalBackend.Endpoints
             var parsedPayload = Parse(request.Payload);
 
             var actors = parsedPayload.Length > 0
-                ? (await actorService.SearchAsync(new() { Page = new() { Size = 200 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                ? (await actorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
                 : [];
+
+            var missedLines = new List<UrlNameRate>();
 
             foreach (var parsedItem in parsedPayload)
             {
@@ -91,10 +93,17 @@ namespace MovieJournalBackend.Endpoints
                         !string.IsNullOrEmpty(uri.UserInfo) ||
                         !string.IsNullOrEmpty(uri.Fragment))
                     {
+                        missedLines.Add(parsedItem);
                         continue;
                     }
 
                     var metadata = await metadataService.GetMetadataAsync(uri, ct);
+
+                    if (string.IsNullOrEmpty(metadata.Title) && string.IsNullOrEmpty(metadata.Image))
+                    {
+                        missedLines.Add(parsedItem);
+                        continue;
+                    }
 
                     var media = new CreateMediaRequest()
                     {
@@ -109,6 +118,7 @@ namespace MovieJournalBackend.Endpoints
                         RuntimeMinutes = metadata.DurationSeconds / 60,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [new() { Url = parsedItem.Url, Type = MediaLinkType.Other }],
+                        CollectionId = request.CollectionId
                     };
 
                     foreach (var actor in actors)
@@ -135,7 +145,11 @@ namespace MovieJournalBackend.Endpoints
                 }
             }
 
-            return Results.Ok("Done");
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedLines = missedLines // list of UrlNameRate(string Url, string? Name, int? Rate)
+            });
         }
 
         private static async Task<IResult> SeedActorsAsync(
