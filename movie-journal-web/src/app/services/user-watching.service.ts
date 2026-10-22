@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UserWatchingItem, UserWatchingSearchParams, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
+import { UserWatchingItem, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
+import { UserWatchingSearchParams } from '../models/search.model';
 
 @Injectable({
     providedIn: 'root'
@@ -62,6 +63,9 @@ export class UserWatchingService {
         }
         if (params.size !== undefined && params.size !== null) {
             httpParams = httpParams.set('size', params.size.toString());
+        }
+        if (params.visibility !== undefined && params.visibility !== null) {
+            httpParams = httpParams.set('visibility', params.visibility.toString());
         }
 
         return this.http.get<PageResponse<UserWatchingItem>>(`${this.baseUrl}/search`, { params: httpParams });

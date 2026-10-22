@@ -1,26 +1,41 @@
-<div class="actors-container">
-    <div class="header-section">
-        <div class="title-area">
-            <h2>Актори</h2>
-            <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Актори</h2>
 
-            <app-add-button label="Додати актора" (clicked)="openModal()" />
+        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
+        <app-add-button label="Додати актора" (clicked)="openModal()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
+                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
+    </header>
 
-        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
-    </div>
+    <!-- Універсальна панель пошуку, фільтрів та сортування -->
+    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук акторів за іменем..."
+        [filters]="toolbarFilters()" [sortFields]="actorSortFields" [currentSortBy]="searchParams().sortBy"
+        [currentSort]="searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
+        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
 
     @if (showInitialLoading()) {
-    <div class="loading">Завантаження акторів...</div>
+    <div class="list-state loading">Завантаження акторів...</div>
     } @else if (showError()) {
-    <div class="state-message error">
+    <div class="list-state error">
         <p>Не вдалося завантажити акторів.</p>
-        <button type="button" class="btn-retry" (click)="loadActors()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="loadActors()">Спробувати знову</button>
     </div>
     } @else if (showEmpty()) {
-    <div class="state-message">
+    <div class="list-state">
+        @if (hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        } @else {
         <p><strong>Акторів ще немає.</strong></p>
         <p>Натисніть «Додати актора», щоб створити першого.</p>
+        }
     </div>
     } @else {
     <!-- Під час повторного завантаження список лишається на екрані -->
@@ -29,26 +44,22 @@
     <div class="cards-grid">
         @for (actor of actors(); track actor.id) {
         <app-grid-card [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName" [title]="actor.fullName"
-            (cardClick)="openDetails(actor)" [visibility]="actor.visibility">
+            [titleMeta]="formatAge(actor.birthDate)" (cardClick)="openDetails(actor)" [visibility]="actor.visibility">
 
-            @if (actor.birthDate) {
-            <p class="birth-date">Дата народження: {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }}</p>
-            }
             @if (actor.biography) {
-            <p class="biography">{{ actor.biography }}</p>
+            <p class="card-excerpt">{{ actor.biography }}</p>
             }
         </app-grid-card>
         }
     </div>
     } @else {
     <!-- РЕЖИМ 2: Таблиця -->
-    <div class="actors-list-view">
-        <table class="actors-table">
+    <div class="table-wrap">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>Фото</th>
                     <th>Повне ім'я</th>
-                    <th>Дата народження</th>
                     <th>Біографія</th>
                 </tr>
             </thead>
@@ -63,12 +74,14 @@
                         <div class="table-no-photo">—</div>
                         }
                     </td>
-                    <td><strong>{{ actor.fullName }}</strong></td>
                     <td>
-                        {{ actor.birthDate ? (actor.birthDate | date:'dd.MM.yyyy':'UTC') : '—' }}
+                        <strong>{{ actor.fullName }}</strong>
+                        @if (formatAge(actor.birthDate); as age) {
+                        <span class="title-meta">{{ age }}</span>
+                        }
                     </td>
                     <td>
-                        <span class="biography-preview">{{ actor.biography || 'Біографія відсутня.' }}</span>
+                        <span class="text-clamp-2">{{ actor.biography || 'Біографія відсутня.' }}</span>
                     </td>
                 </tr>
                 }
@@ -92,14 +105,14 @@
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
     <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedActor()?.fullName ?? ''"
         [imageUrl]="selectedActor()?.photoUrl" [imageAlt]="selectedActor()?.fullName ?? ''" (closed)="closeSidebar()"
-        (editClicked)="onEditActor()" [deleteAction]="selectedActor() ? getDeleteCallback(selectedActor()!) : undefined"
-        (deleted)="onSidebarActorDeleted()">
+        (editClicked)="onEditActor()" [deleteAction]="selectedDeleteCallback()" (deleted)="onSidebarActorDeleted()">
 
         @if (selectedActor(); as actor) {
         <div class="sidebar-details-info">
-            @if (actor.birthDate) {
+            @if (formatAge(actor.birthDate); as age) {
             <p class="detail-row">
-                <strong>Дата народження:</strong> {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }}
+                <strong>Вік:</strong> {{ age }}
+                <span class="title-meta">(нар. {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }})</span>
             </p>
             }
             <!-- Visibility може бути 0 (falsy), тому перевіряємо на null/undefined -->
@@ -108,7 +121,7 @@
                 <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}
             </p>
             }
-            <div class="bio-section">
+            <div class="description-section">
                 <h4>Біографія</h4>
                 <p>{{ actor.biography || 'Біографія відсутня.' }}</p>
             </div>

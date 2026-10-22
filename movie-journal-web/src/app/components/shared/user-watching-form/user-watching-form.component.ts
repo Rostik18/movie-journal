@@ -108,7 +108,7 @@ export class UserWatchingFormComponent {
                 if (this.isUrl(query)) {
                     return of<SearchOutcome>({ kind: 'url', url: query });
                 }
-                return this.mediaService.searchMedia({ title: query, size: 5 }).pipe(
+                return this.mediaService.searchMedia({ query, size: 5 }).pipe(
                     map((res): SearchOutcome => ({
                         kind: 'items',
                         query,

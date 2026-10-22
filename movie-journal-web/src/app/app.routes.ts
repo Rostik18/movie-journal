@@ -6,6 +6,7 @@ import { ActorListComponent } from './components/actors/actor-list.component';
 import { CollectionListComponent } from './components/collection-list/collection-list.component';
 import { UserWatchingListComponent } from './components/user-watching/user-watching-list.component';
 import { SeedDataFormComponent } from './components/seed-data-form/seed-data-form.component';
+import { UserListComponent } from './components/user-list/user-list.component';
 
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
@@ -17,6 +18,7 @@ export const routes: Routes = [
             { path: 'movies', component: MovieListComponent },
             { path: 'actors', component: ActorListComponent },
             { path: 'collections', component: CollectionListComponent },
+            { path: 'users', component: UserListComponent },
             { path: 'seed-data', component: SeedDataFormComponent },
             { path: '', redirectTo: 'watchlist', pathMatch: 'full' }
         ]

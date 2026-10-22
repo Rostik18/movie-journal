@@ -110,11 +110,11 @@ export class MediaFormComponent implements OnInit {
         this.actorQuery$.pipe(
             debounceTime(SEARCH_DEBOUNCE_MS),
             distinctUntilChanged(),
-            switchMap(name => {
-                if (!name) {
+            switchMap(query => {
+                if (!query) {
                     return of<ActorSearchItem[]>([]);
                 }
-                return this.actorService.searchActors({ name, size: 10 }).pipe(
+                return this.actorService.searchActors({ query, size: 10 }).pipe(
                     map(res => (res.items ?? []) as ActorSearchItem[]),
                     catchError(err => {
                         console.error('Помилка пошуку акторів:', err);

@@ -19,8 +19,8 @@ export interface SeedRequest {
     visibility: Visibility;
     status: WatchStatus;
     type: MediaType;
-    mediaLinkType: MediaLinkType;
     tags: string[];
+    author?: string | null;
     payload: string;
 }
 

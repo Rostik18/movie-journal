@@ -1,0 +1,57 @@
+.user-form {
+   padding: 20px 24px 24px;
+
+   .form-title {
+      margin: 0 0 20px;
+      color: #2c3e50;
+      font-size: 1.5rem;
+   }
+
+   .inline-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #334155;
+      cursor: pointer;
+
+      input[type='checkbox'] {
+         width: 16px;
+         height: 16px;
+         margin: 0;
+         cursor: pointer;
+      }
+   }
+
+   .show-password {
+      margin: -5px 0 15px;
+      font-size: 0.85rem;
+      color: #64748b;
+   }
+
+   // fieldset без браузерної рамки
+   .roles-group {
+      margin: 0 0 15px;
+      padding: 0;
+      border: none;
+      min-width: 0;
+
+      legend {
+         padding: 0;
+         margin-bottom: 6px;
+         font-size: 0.85rem;
+         font-weight: 500;
+         color: #475569;
+      }
+
+      .roles-check {
+         display: flex;
+         flex-wrap: wrap;
+         gap: 8px 20px;
+      }
+   }
+
+   @media (max-width: 520px) {
+      padding: 16px;
+   }
+}

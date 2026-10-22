@@ -2,7 +2,6 @@
     <h3>Імпорт / Seed даних</h3>
 
     <div class="form-row">
-
         <div class="form-group">
             <label>Видимість:</label>
             <select [ngModel]="selectedVisibility()" (ngModelChange)="selectedVisibility.set($event)" name="visibility">
@@ -22,7 +21,9 @@
         </div>
     </div>
 
+
     <div class="form-row">
+        <!-- Тип медіа -->
         <div class="form-group">
             <label>Тип медіа:</label>
             <select [ngModel]="selectedType()" (ngModelChange)="selectedType.set($event)" name="type">
@@ -31,21 +32,20 @@
                 }
             </select>
         </div>
-
         <div class="form-group">
-            <label>Тип посилання:</label>
-            <select [ngModel]="selectedLinkType()" (ngModelChange)="selectedLinkType.set($event)" name="linkType">
-                @for (opt of linkTypeOptions; track opt.value) {
-                <option [ngValue]="opt.value">{{ opt.label }}</option>
-                }
-            </select>
+            <label>Автор (опціонально):</label>
+            <input type="text" [ngModel]="authorInput()" (ngModelChange)="authorInput.set($event)" name="author"
+                placeholder="Введіть автора...">
         </div>
     </div>
 
-    <div class="form-group">
-        <label>Теги (через кому):</label>
-        <input type="text" [ngModel]="tagsInput()" (ngModelChange)="tagsInput.set($event)" name="tags"
-            placeholder="action, sci-fi, top">
+    <!-- Поля для Тегів та Автора -->
+    <div class="form-row">
+        <div class="form-group">
+            <label>Теги (через кому):</label>
+            <input type="text" [ngModel]="tagsInput()" (ngModelChange)="tagsInput.set($event)" name="tags"
+                placeholder="action, sci-fi, top">
+        </div>
     </div>
 
     <div class="form-group">
@@ -57,9 +57,16 @@
     </div>
 
     <div class="form-actions">
-        <button type="button" class="btn-cancel" (click)="cancelled.emit()">Скасувати</button>
-        <button type="submit" class="btn-submit" [disabled]="loading()">
-            @if (loading()) { Надсилання... } @else { Виконати Seed }
+        <!-- Червона кнопка очищення бази даних -->
+        <button type="button" class="btn-clear-db" [disabled]="loading()" (click)="onClearDatabase()">
+            Очистити БД 🗑️
         </button>
+
+        <div class="right-actions">
+            <button type="button" class="btn-cancel" (click)="cancelled.emit()">Скасувати</button>
+            <button type="submit" class="btn-submit" [disabled]="loading()">
+                @if (loading()) { Надсилання... } @else { Виконати Seed }
+            </button>
+        </div>
     </div>
 </form>

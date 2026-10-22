@@ -2,8 +2,10 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { ChangePasswordRequest, CreateUserRequest, UpdateUserRequest, UserResponse, UserSearchParams } from '../models/user.model';
+import { ChangePasswordRequest, CreateUserRequest, UpdateUserRequest, UserResponse } from '../models/user.model';
 import { UserRole } from '../models/enums';
+import { UserSearchParams } from '../models/search.model';
+import { PageResponse } from '../models/shared.model';
 
 @Injectable({
     providedIn: 'root'
@@ -60,7 +62,7 @@ export class UserService {
     }
 
     // GET /api/users/search
-    searchUsers(params?: UserSearchParams): Observable<any> {
+    searchUsers(params?: UserSearchParams): Observable<PageResponse<UserResponse>> {
         let httpParams = new HttpParams();
 
         if (params) {
@@ -72,7 +74,7 @@ export class UserService {
             if (params.size !== undefined && params.size !== null) httpParams = httpParams.set('size', params.size);
         }
 
-        return this.http.get<any>(`${this.baseUrl}/search`, { params: httpParams });
+        return this.http.get<PageResponse<UserResponse>>(`${this.baseUrl}/search`, { params: httpParams });
     }
 
     // POST /api/users/
@@ -91,7 +93,7 @@ export class UserService {
     }
 
     // DELETE /api/users/{userId}
-    deleteUser(userId: string): Observable<any> {
-        return this.http.delete<any>(`${this.baseUrl}/${userId}`);
+    deleteUser(userId: string): Observable<UserResponse> {
+        return this.http.delete<UserResponse>(`${this.baseUrl}/${userId}`);
     }
 }

@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ActorItem, ActorSearchParams } from '../models/actor.model';
+import { ActorItem } from '../models/actor.model';
 import { PageResponse } from '../models/shared.model';
 import { environment } from '../../environments/environment';
 import { CreateActorRequest } from '../models/actor.model';
+import { ActorSearchParams } from '../models/search.model';
 
 @Injectable({
     providedIn: 'root'
@@ -16,8 +17,8 @@ export class ActorService {
     searchActors(params: ActorSearchParams = {}): Observable<PageResponse<ActorItem>> {
         let httpParams = new HttpParams();
 
-        if (params.name) {
-            httpParams = httpParams.set('name', params.name);
+        if (params.query) {
+            httpParams = httpParams.set('name', params.query);
         }
         if (params.birthYear !== undefined && params.birthYear !== null) {
             httpParams = httpParams.set('birthYear', params.birthYear.toString());

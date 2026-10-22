@@ -1,5 +1,4 @@
 import { UserRole } from "./enums";
-import { SortDirection } from "./shared.model";
 
 export interface UserResponse {
     id: string;
@@ -32,17 +31,4 @@ export interface UpdateUserRequest {
 export interface ChangePasswordRequest {
     userId: string;
     newPassword: string;
-}
-
-export interface UserSearchParams {
-    name?: string;
-    role?: UserRole;
-    sortBy?: UserSortField;
-    sort?: SortDirection;
-    offset?: number;
-    size?: number;
-}
-
-export enum UserSortField {
-    Name = 1
 }

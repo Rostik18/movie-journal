@@ -20,6 +20,8 @@ export class GridCardComponent {
     readonly badgeClass = input<string>('');
     readonly visibility = input<Visibility | string | null | undefined>();
 
+    readonly titleMeta = input<string | null | undefined>();
+
     readonly cardClick = output<void>();
 
     /** Скидається при кожній зміні imageUrl, тому нове зображення отримує нову спробу завантаження. */

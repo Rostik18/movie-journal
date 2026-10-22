@@ -1,0 +1,201 @@
+$border: #cbd5e1;
+$accent: #0ea5e9;
+$text: #1e293b;
+$muted: #64748b;
+
+.search-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    // Одне поле: підпис + кнопки + маленький reset
+    .field {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .field-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: $muted;
+        white-space: nowrap;
+    }
+
+    .search-box {
+        position: relative;
+        flex: 1 1 260px;
+
+        input {
+            width: 100%;
+            padding: 8px 32px 8px 12px;
+            border: 1px solid $border;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: $text;
+            background: #fff;
+
+            // Прибираємо рідний хрестик браузера: є власний reset
+            &::-webkit-search-cancel-button {
+                display: none;
+            }
+
+            &:focus {
+                outline: none;
+                border-color: $accent;
+                box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+            }
+        }
+
+        .btn-reset {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+    }
+
+    // Сегментована група кнопок
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .btn-option,
+    .btn-sort-dir {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        border: 1px solid $border;
+        border-radius: 6px;
+        background: #fff;
+        color: $text;
+        font-size: 0.85rem;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+
+        &:hover {
+            background: #f1f5f9;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
+
+        &.active {
+            background: #e0f2fe;
+            border-color: $accent;
+            color: #0369a1;
+            font-weight: 600;
+        }
+
+        &.icon-only {
+            width: 34px;
+            padding: 6px 0;
+
+            svg {
+                width: 16px;
+                height: 16px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+        }
+    }
+
+    // Тристанний чекбокс для boolean-фільтрів: порожній / ✓ (true) / ✗ (false)
+    .tri-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: $text;
+        font-size: 0.85rem;
+        cursor: pointer;
+
+        &:hover {
+            background: #f1f5f9;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
+
+        .box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 1.5px solid $border;
+            border-radius: 4px;
+            background: #fff;
+            transition: background-color 0.15s, border-color 0.15s;
+
+            svg {
+                width: 12px;
+                height: 12px;
+                fill: none;
+                stroke: #fff;
+                stroke-width: 3;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+        }
+
+        &[aria-checked='true'] .box {
+            background: #16a34a;
+            border-color: #16a34a;
+        }
+
+        &[aria-checked='false'] .box {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+    }
+
+    // Маленька кнопка скидання конкретного поля
+    .btn-reset {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: $muted;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            background: #cbd5e1;
+            color: $text;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 1px;
+        }
+    }
+}

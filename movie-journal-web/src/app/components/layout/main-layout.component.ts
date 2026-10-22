@@ -13,7 +13,7 @@ import { UserService } from '../../services/user.service';
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
 const DEFAULT_USER_NAME = 'Користувач';
-const HEARTBEAT_INTERVAL_MS = 60_000;
+const HEARTBEAT_INTERVAL_MS = 300_000;
 
 const STATUS_LABELS: Record<ServerHealth, string> = {
     green: 'активний',
@@ -39,6 +39,7 @@ export class MainLayoutComponent {
         { path: '/movies', label: 'Список фільмів', render: true },
         { path: '/actors', label: 'Актори', render: true },
         { path: '/collections', label: 'Колекції', render: true },
+        { path: '/users', label: 'Користувачі', render: this.userService.isAdmin() },
         { path: '/seed-data', label: 'Seed Data', render: this.userService.isAdmin() }
     ];
 

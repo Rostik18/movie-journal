@@ -2,7 +2,7 @@ import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
-import { Visibility, WatchStatus, MediaType, MediaLinkType, VisibilityLabels, WatchStatusLabels, MediaTypeLabels, MediaLinkTypeLabels } from '../../models/enums';
+import { Visibility, WatchStatus, MediaType, VisibilityLabels, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
 import { ServerService, SeedRequest } from '../../services/server.service';
 
 @Component({
@@ -21,8 +21,8 @@ export class SeedDataFormComponent {
     selectedVisibility = signal<Visibility>(Visibility.Private);
     selectedStatus = signal<WatchStatus>(WatchStatus.Watched);
     selectedType = signal<MediaType>(MediaType.Video);
-    selectedLinkType = signal<MediaLinkType>(MediaLinkType.Other);
-    tagsInput = signal(''); // теги через кому або пробіл
+    tagsInput = signal('');
+    authorInput = signal(''); // Новий сигнал для автора
 
     loading = signal(false);
 
@@ -38,10 +38,6 @@ export class SeedDataFormComponent {
         value,
         label: MediaTypeLabels[value]
     }));
-    readonly linkTypeOptions = [MediaLinkType.Streaming, MediaLinkType.Trailer, MediaLinkType.OfficialWebsite, MediaLinkType.Purchase, MediaLinkType.Other].map(value => ({
-        value,
-        label: MediaLinkTypeLabels[value]
-    }));
 
     submitted = output<void>();
     cancelled = output<void>();
@@ -53,18 +49,19 @@ export class SeedDataFormComponent {
             return;
         }
 
-        // Парсимо теги з рядка через кому
         const tags = this.tagsInput()
             ? this.tagsInput().split(',').map(t => t.trim()).filter(Boolean)
             : [];
+
+        const authorVal = this.authorInput().trim();
 
         const request: SeedRequest = {
             userId: null,
             visibility: this.selectedVisibility(),
             status: this.selectedStatus(),
             type: this.selectedType(),
-            mediaLinkType: this.selectedLinkType(),
             tags: tags,
+            author: authorVal ? authorVal : null, // Передаємо автора або null
             payload: text
         };
 
@@ -79,6 +76,28 @@ export class SeedDataFormComponent {
                 this.loading.set(false);
                 console.error('Помилка seed запиту:', err);
                 this.toastService.show('Помилка при виконанні seed запиту', 'error', 4000);
+            }
+        });
+    }
+
+    // Метод для очищення всієї бази даних
+    onClearDatabase() {
+        const confirmed = window.confirm('УВАГА! Ви дійсно хочете повністю очистити базу даних? Цю дію неможливо скасувати!');
+        if (!confirmed) {
+            return;
+        }
+
+        this.loading.set(true);
+        this.serverService.clearDatabase().subscribe({
+            next: (response) => {
+                this.loading.set(false);
+                this.toastService.show(response.message || 'Базу даних успішно очищено!', 'success', 4000);
+                this.submitted.emit();
+            },
+            error: (err) => {
+                this.loading.set(false);
+                console.error('Помилка очищення бази даних:', err);
+                this.toastService.show('Не вдалося очистити базу даних.', 'error', 4000);
             }
         });
     }

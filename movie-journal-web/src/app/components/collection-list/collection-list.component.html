@@ -1,35 +1,68 @@
-<div class="collections-container">
-    <div class="header-section">
-        <div class="title-area">
-            <h2>Колекції медіа</h2>
-            <span class="count-badge">Знайдено: {{ totalCount() }}</span>
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Колекції медіа</h2>
 
-            <app-add-button label="Додати колекцію" (clicked)="openModal()"> </app-add-button>
+        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
+        <app-add-button label="Додати колекцію" (clicked)="openModal()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
+                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
+    </header>
 
-        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)">
-        </app-view-switcher>
+    <!-- Універсальна панель пошуку, фільтрів та сортування -->
+    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук колекцій за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="collectionSortFields" [currentSortBy]="searchParams().sortBy"
+        [currentSort]="searchParams().sort ?? SortDirection.Ascending"
+        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
+        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+
+    @if (showInitialLoading()) {
+    <div class="list-state loading">Завантаження колекцій...</div>
+    } @else if (showError()) {
+    <div class="list-state error">
+        <p>Не вдалося завантажити колекції.</p>
+        <button type="button" class="btn-secondary" (click)="loadCollections()">Спробувати знову</button>
     </div>
+    } @else if (showEmpty()) {
+    <div class="list-state">
+        @if (hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        } @else {
+        <p><strong>Колекцій ще немає.</strong></p>
+        <p>Натисніть «Додати колекцію», щоб створити першу.</p>
+        }
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    @if (viewMode() === 'grid') {
+    <!-- РЕЖИМ 1: Плитки -->
+    <div class="cards-grid">
+        @for (col of collections(); track col.id) {
+        <app-grid-card [imageUrl]="col.posterUrl" [imageAlt]="col.name" [title]="col.name" noImageText="Немає постера"
+            [visibility]="col.visibility" (cardClick)="openDetails(col)">
 
-    <div *ngIf="loading()" class="loading">Завантаження колекцій...</div>
-
-    <!-- 1. РЕЖИМ СІТКИ (GRID) -->
-    <div class="cards-grid" *ngIf="!loading() && viewMode() === 'grid'">
-        <app-grid-card *ngFor="let col of collections()" [imageUrl]="col.posterUrl" [imageAlt]="col.name"
-            [title]="col.name" (cardClick)="openDetails(col)" [visibility]="col.visibility">
-
-            <div class="tags" *ngIf="col.tags?.length">
-                <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+            @if (col.tags?.length) {
+            <div class="genres">
+                @for (tag of col.tags; track tag) {
+                <span class="tag-chip">#{{ tag }}</span>
+                }
             </div>
+            }
         </app-grid-card>
+        }
     </div>
-
-    <!-- 2. РЕЖИМ ТАБЛИЦІ / СПИСКУ (LIST) -->
-    <div class="collections-list-view" *ngIf="!loading() && viewMode() === 'list'">
-        <table class="collections-table">
+    } @else {
+    <!-- РЕЖИМ 2: Таблиця -->
+    <div class="table-wrap">
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th class="table-poster-cell">Постер</th>
+                    <th>Постер</th>
                     <th>Назва колекції</th>
                     <th>Теги</th>
                 </tr>
@@ -38,46 +71,66 @@
                 @for (col of collections(); track col.id) {
                 <tr class="clickable-row" tabindex="0" (click)="openDetails(col)" (keydown.enter)="openDetails(col)">
                     <td class="table-poster-cell">
-                        <img [src]="col.posterUrl" alt="" class="table-poster">
+                        @if (col.posterUrl) {
+                        <img [src]="col.posterUrl" [alt]="col.name" class="table-poster">
+                        } @else {
+                        <div class="table-no-poster">—</div>
+                        }
                     </td>
+                    <td><strong>{{ col.name }}</strong></td>
                     <td>
-                        <span class="collection-title-text">{{ col.name }}</span>
-                    </td>
-                    <td>
-                        <div class="tags-inline" *ngIf="col.tags && col.tags.length > 0">
-                            <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+                        @if (col.tags?.length) {
+                        <div class="genres-inline">
+                            @for (tag of col.tags; track tag) {
+                            <span class="tag-chip">#{{ tag }}</span>
+                            }
                         </div>
-                        <span *ngIf="!col.tags || col.tags.length === 0" class="no-tags">—</span>
+                        } @else {
+                        —
+                        }
                     </td>
                 </tr>
                 }
             </tbody>
         </table>
     </div>
+    }
+    }
 
-    <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-            <button class="modal-close-btn" (click)="closeModal()">&times;</button>
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ КОЛЕКЦІЇ -->
+    @if (isModalOpen()) {
+    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати нову колекцію">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
 
-            <app-collection-form (collectionCreated)="onCollectionCreated()"></app-collection-form>
+            <app-collection-form (collectionCreated)="onCollectionCreated()" />
         </div>
     </div>
+    }
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ КОЛЕКЦІЇ -->
     <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedCollection()?.name ?? ''"
         [imageUrl]="selectedCollection()?.posterUrl" [imageAlt]="selectedCollection()?.name ?? ''"
-        noImageText="Немає постера"
-        [deleteAction]="selectedCollection() ? getDeleteCallback(selectedCollection()!) : undefined"
-        (closed)="closeSidebar()" (editClicked)="onEditCollection()" (deleted)="onSidebarCollectionDeleted()">
+        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()"
+        (editClicked)="onEditCollection()" (deleted)="onSidebarCollectionDeleted()">
 
         @if (selectedCollection(); as col) {
         <div class="sidebar-details-info">
-            <div class="tags-section" *ngIf="col.tags?.length">
+            <!-- Visibility може бути 0 (falsy), тому перевіряємо на null/undefined -->
+            @if (col.visibility !== null && col.visibility !== undefined) {
+            <p class="detail-row"><strong>Видимість:</strong> {{ visibilityLabels[col.visibility] }}</p>
+            }
+
+            @if (col.tags?.length) {
+            <div class="tags-section">
                 <h4>Теги</h4>
-                <div class="tags">
-                    <span class="tag" *ngFor="let tag of col.tags">#{{ tag }}</span>
+                <div class="genres">
+                    @for (tag of col.tags; track tag) {
+                    <span class="tag-chip">#{{ tag }}</span>
+                    }
                 </div>
             </div>
+            }
         </div>
         }
     </app-details-sidebar>

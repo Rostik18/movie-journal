@@ -1,0 +1,77 @@
+<form class="user-form" (ngSubmit)="onSubmit()" novalidate>
+    <h2 class="form-title">Додати нового користувача</h2>
+
+    <!-- Логін та відображуване ім'я в одному рядку -->
+    <div class="form-row">
+        <div class="form-group">
+            <label for="login">Логін *</label>
+            <input type="text" id="login" name="login" [(ngModel)]="login" (ngModelChange)="clearError('login')"
+                placeholder="Наприклад: ivan.petrenko" autocomplete="off" required
+                [attr.aria-invalid]="errors().login ? true : null"
+                [attr.aria-describedby]="errors().login ? 'login-error' : null">
+            @if (errors().login; as message) {
+            <p class="field-error" id="login-error" role="alert">{{ message }}</p>
+            }
+        </div>
+
+        <div class="form-group">
+            <label for="displayName">Відображуване ім'я</label>
+            <input type="text" id="displayName" name="displayName" [(ngModel)]="displayName" placeholder="Іван Петренко"
+                autocomplete="off">
+        </div>
+    </div>
+
+    <!-- Пароль та підтвердження -->
+    <div class="form-row">
+        <div class="form-group">
+            <label for="password">Пароль *</label>
+            <input [type]="showPassword() ? 'text' : 'password'" id="password" name="password" [(ngModel)]="password"
+                (ngModelChange)="clearError('password'); clearError('confirmPassword')"
+                [placeholder]="'Мінімум ' + minPasswordLength + ' символів'" autocomplete="new-password" required
+                [attr.aria-invalid]="errors().password ? true : null"
+                [attr.aria-describedby]="errors().password ? 'password-error' : null">
+            @if (errors().password; as message) {
+            <p class="field-error" id="password-error" role="alert">{{ message }}</p>
+            }
+        </div>
+
+        <div class="form-group">
+            <label for="confirmPassword">Повторіть пароль *</label>
+            <input [type]="showPassword() ? 'text' : 'password'" id="confirmPassword" name="confirmPassword"
+                [(ngModel)]="confirmPassword" (ngModelChange)="clearError('confirmPassword')"
+                autocomplete="new-password" required [attr.aria-invalid]="errors().confirmPassword ? true : null"
+                [attr.aria-describedby]="errors().confirmPassword ? 'confirm-error' : null">
+            @if (errors().confirmPassword; as message) {
+            <p class="field-error" id="confirm-error" role="alert">{{ message }}</p>
+            }
+        </div>
+    </div>
+
+    <label class="inline-check show-password">
+        <input type="checkbox" [checked]="showPassword()" (change)="showPassword.set(!showPassword())">
+        Показати пароль
+    </label>
+
+    <!-- Ролі -->
+    <fieldset class="form-group roles-group">
+        <legend>Ролі *</legend>
+        <div class="roles-check">
+            @for (opt of roleOptions; track opt.value) {
+            <label class="inline-check">
+                <input type="checkbox" [checked]="isRoleSelected(opt.value)" (change)="toggleRole(opt.value)">
+                {{ opt.label }}
+            </label>
+            }
+        </div>
+        @if (errors().roles; as message) {
+        <p class="field-error" role="alert">{{ message }}</p>
+        }
+    </fieldset>
+
+    <div class="form-actions">
+        <button type="button" class="btn-cancel" [disabled]="isSubmitting()" (click)="onCancel()">Скасувати</button>
+        <button type="submit" class="btn-submit" [disabled]="isSubmitting()">
+            {{ isSubmitting() ? 'Збереження…' : 'Створити користувача' }}
+        </button>
+    </div>
+</form>

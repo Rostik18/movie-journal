@@ -1,0 +1,111 @@
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Користувачі системи</h2>
+
+        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
+        <app-add-button label="Додати користувача" (clicked)="openModal()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
+                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+        </div>
+    </header>
+
+    <!-- Універсальна панель пошуку, ролей та сортування -->
+    <app-search-toolbar [searchQuery]="searchParams().name" searchPlaceholder="Пошук за логіном або ім'ям..."
+        [filters]="toolbarFilters()" [sortFields]="userSortFields" [currentSortBy]="searchParams().sortBy"
+        [currentSort]="searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
+        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+
+    @if (showInitialLoading()) {
+    <div class="list-state loading">Завантаження користувачів...</div>
+    } @else if (showError()) {
+    <div class="list-state error">
+        <p>Не вдалося завантажити користувачів.</p>
+        <button type="button" class="btn-secondary" (click)="loadUsers()">Спробувати знову</button>
+    </div>
+    } @else if (showEmpty()) {
+    <div class="list-state">
+        @if (hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        } @else {
+        <p><strong>Список користувачів порожній.</strong></p>
+        }
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Логін</th>
+                    <th>Відображуване ім'я</th>
+                    <th>Ролі</th>
+                    <th>Дата створення</th>
+                    <th class="col-actions">Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (user of users(); track user.id) {
+                <tr>
+                    <td><strong>{{ user.login }}</strong></td>
+                    <td>{{ user.displayName || '—' }}</td>
+                    <td>
+                        <div class="genres-inline">
+                            @for (role of user.roles; track role) {
+                            <span class="role-badge">{{ UserRoleLabels[role] ?? role }}</span>
+                            }
+                        </div>
+                    </td>
+                    <td>{{ user.createdAtUtc | date:'dd.MM.yyyy HH:mm' }}</td>
+                    <td class="col-actions">
+                        <button type="button" class="btn-danger-sm" [disabled]="!canDelete(user)"
+                            [title]="canDelete(user) ? 'Видалити користувача' : 'Не можна видалити власний акаунт'"
+                            [attr.aria-label]="'Видалити користувача ' + user.login" (click)="requestDelete(user)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v5M14 11v5" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+
+    <!-- ДІАЛОГ ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ -->
+    @if (userToDelete(); as user) {
+    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+        <div class="modal-content confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title"
+            aria-describedby="delete-text">
+            <h3 id="delete-title">Видалити користувача?</h3>
+            <p id="delete-text">
+                Користувача <strong>{{ user.login }}</strong> буде видалено без можливості відновлення.
+            </p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" [disabled]="isDeleting()"
+                    (click)="cancelDelete()">Скасувати</button>
+                <button type="button" class="btn-danger" [disabled]="isDeleting()" (click)="confirmDelete()">
+                    {{ isDeleting() ? 'Видалення…' : 'Видалити' }}
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- МОДАЛЬНЕ ВІКНО СТВОРЕННЯ КОРИСТУВАЧА -->
+    @if (isModalOpen()) {
+    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати нового користувача">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
+
+            <app-user-form (userCreated)="onUserCreated($event)" (cancelled)="closeModal()" />
+        </div>
+    </div>
+    }
+</div>

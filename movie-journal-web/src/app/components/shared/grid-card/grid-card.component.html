@@ -56,7 +56,7 @@
     </div>
 
     <div class="card-body">
-        <h3>{{ title() }}</h3>
+        <h3>{{ title() }}@if (titleMeta()) { <span class="title-meta">{{ titleMeta() }}</span> }</h3>
         <!-- Усе унікальне для конкретної сутності -->
         <ng-content />
     </div>

@@ -1,26 +1,41 @@
-<div class="watching-container">
-    <div class="header-section">
-        <div class="title-area">
-            <h2>Мій список перегляду</h2>
-            <span class="count-badge">Всього: {{ totalCount() }}</span>
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Мій список перегляду</h2>
 
-            <app-add-button label="Додати у список" (clicked)="openModal()" />
+        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
+        <app-add-button label="Додати у список" (clicked)="openModal()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
+                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
+    </header>
 
-        <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
-    </div>
+    <!-- Універсальна панель пошуку, фільтрів та сортування -->
+    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук у списку за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="watchingSortFields" [currentSortBy]="searchParams().sortBy"
+        [currentSort]="searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
+        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
 
     @if (showInitialLoading()) {
-    <div class="loading">Завантаження вашого списку...</div>
+    <div class="list-state loading">Завантаження вашого списку...</div>
     } @else if (showError()) {
-    <div class="state-message error">
+    <div class="list-state error">
         <p>Не вдалося завантажити список перегляду.</p>
-        <button type="button" class="btn-retry" (click)="loadList()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="loadList()">Спробувати знову</button>
     </div>
     } @else if (showEmpty()) {
-    <div class="state-message">
+    <div class="list-state">
+        @if (hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        } @else {
         <p><strong>Ваш список порожній.</strong></p>
         <p>Натисніть «Додати у список», щоб додати перший фільм чи серіал.</p>
+        }
     </div>
     } @else {
     <!-- Під час повторного завантаження список лишається на екрані -->
@@ -30,16 +45,12 @@
         @for (item of watchingList(); track item.media.id) {
         <!-- Бейдж зліва зверху: оцінка «★ 7» (лише якщо вона є) -->
         <app-grid-card [imageUrl]="item.media.posterUrl" [imageAlt]="item.media.title" [title]="item.media.title"
-            noImageText="Немає постера" [visibility]="item.media.visibility" [badge]="ratingBadge(item.rating)"
-            (cardClick)="openDetails(item)">
+            [titleMeta]="item.media.releaseYear?.toString()" noImageText="Немає постера"
+            [visibility]="item.media.visibility" [badge]="ratingBadge(item.rating)" (cardClick)="openDetails(item)">
 
             <!-- Оверлей постера справа знизу: слот [poster-bottom-right] у grid-card -->
             @if (item.media.duration) {
             <span poster-bottom-right class="duration-badge">{{ formatDuration(item.media.duration) }}</span>
-            }
-
-            @if (subtitle(item.media); as subtitleText) {
-            <p class="original-title">{{ subtitleText }}</p>
             }
 
             <div class="genres">
@@ -48,22 +59,22 @@
                 }
             </div>
 
-            <!-- Зірки з'являються при наведенні на картку -->
-            <div class="card-rating-section" (click)="$event.stopPropagation()"
+            @if (item.notes) {
+            <p class="card-note">«{{ item.notes }}»</p>
+            }
+
+            <!-- Зірки внизу картки, з'являються при наведенні -->
+            <div class="watch-actions hover-reveal-section" (click)="$event.stopPropagation()"
                 (keydown.enter)="$event.stopPropagation()">
                 <app-rating-stars [initialRating]="item.rating" (ratingChange)="updateRating(item, $event)" />
             </div>
-
-            @if (item.notes) {
-            <p class="notes">«{{ item.notes }}»</p>
-            }
         </app-grid-card>
         }
     </div>
     } @else {
     <!-- РЕЖИМ 2: Таблиця -->
-    <div class="watching-list-view">
-        <table class="watching-table">
+    <div class="table-wrap">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>Постер</th>
@@ -81,24 +92,24 @@
                         @if (item.media.posterUrl) {
                         <img [src]="item.media.posterUrl" [alt]="item.media.title" class="table-poster">
                         } @else {
-                        <div class="table-poster-placeholder" aria-hidden="true">🎬</div>
+                        <div class="table-no-poster">—</div>
                         }
                     </td>
                     <td>
                         <strong>{{ item.media.title }}</strong>
-                        @if (subtitle(item.media); as subtitleText) {
-                        <div class="table-sub">{{ subtitleText }}</div>
+                        @if (item.media.releaseYear) {
+                        <span class="title-meta">{{ item.media.releaseYear }}</span>
                         }
                     </td>
                     <td>
-                        <span class="status-badge-inline" [class]="'status-' + item.status">
+                        <span class="status-badge" [class]="'status-' + item.status">
                             {{ watchStatusLabels[item.status] }}
                         </span>
                     </td>
                     <!-- Оцінка не повинна відкривати сайдбар -->
                     <td class="actions-cell" (click)="$event.stopPropagation()"
                         (keydown.enter)="$event.stopPropagation()">
-                        <div class="card-rating-section">
+                        <div class="watch-actions">
                             <app-rating-stars [initialRating]="item.rating"
                                 (ratingChange)="updateRating(item, $event)" />
                         </div>
@@ -176,6 +187,30 @@
             </p>
             }
 
+            <!-- Список прикріплених посилань медіа -->
+            @if (item.media.links?.length) {
+            <div class="links-section">
+                <h4>Посилання</h4>
+                <div class="sidebar-links-list">
+                    @for (link of item.media.links; track link.url) {
+                    <div class="sidebar-link-row">
+                        <button type="button" class="btn-copy-link" (click)="copyToClipboard(link.url)"
+                            title="Копіювати посилання">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url
+                            }}</a>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+
             @if (item.media.description) {
             <div class="description-section">
                 <h4>Опис</h4>
@@ -199,9 +234,9 @@
             @if (item.media.tags?.length) {
             <div class="tags-section">
                 <h4>Теги</h4>
-                <div class="tags">
+                <div class="genres">
                     @for (tag of item.media.tags; track tag) {
-                    <span class="tag">#{{ tag }}</span>
+                    <span class="tag-chip">#{{ tag }}</span>
                     }
                 </div>
             </div>
@@ -254,7 +289,6 @@
                 <p>«{{ item.notes }}»</p>
             </div>
             }
-
         </div>
         }
     </app-details-sidebar>
