@@ -176,7 +176,7 @@ namespace MovieJournalBackend.Endpoints
                         Visibility = request.Visibility,
                         BirthDate = item.BirthDate,
                         PhotoUrl = item.PhotoUrl is null
-                             ? (await metadataService.SearchAsync(item.FullName, ct)).FirstOrDefault()?.ImageUrl
+                             ? (await metadataService.TrySearchAsync(item.FullName, ct)).FirstOrDefault()?.ImageUrl
                              : item.PhotoUrl
                     }, new(userId!, [UserRole.Admin]), ct);
 
