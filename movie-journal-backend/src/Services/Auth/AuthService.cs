@@ -26,7 +26,7 @@ namespace MovieJournalBackend.Services.Auth
                 Login = request.Login,
                 DisplayName = request.DisplayName,
                 PasswordHash = _passwords.HashPassword(request.Password),
-                Roles = [UserRole.User]
+                Roles = request.Roles
             };
 
             await _usersRepo.CreateAsync(user, ct);

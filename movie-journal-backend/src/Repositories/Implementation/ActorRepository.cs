@@ -58,7 +58,7 @@ namespace MovieJournalBackend.Repositories.Implementation
             if (request.Filter.HasPhoto.HasValue)
             {
                 filter = request.Filter.HasPhoto.Value
-                    ? _fBuilder.And(filter, _fBuilder.Ne(x => x.PhotoUrl, null))
+                    ? _fBuilder.And(filter, _fBuilder.Ne(x => x.PhotoUrl, null), _fBuilder.Ne(x => x.PhotoUrl, ""))
                     : _fBuilder.And(filter, _fBuilder.Eq(x => x.PhotoUrl, null));
             }
             if (request.Filter.BirthYear.HasValue)

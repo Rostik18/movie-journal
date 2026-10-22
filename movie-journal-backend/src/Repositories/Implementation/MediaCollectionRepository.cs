@@ -83,7 +83,7 @@ namespace MovieJournalBackend.Repositories.Implementation
             if (request.Filter.HasPoster.HasValue)
             {
                 filter = request.Filter.HasPoster.Value
-                    ? _fBuilder.And(filter, _fBuilder.Ne(x => x.PosterUrl, null))
+                    ? _fBuilder.And(filter, _fBuilder.Ne(x => x.PosterUrl, null), _fBuilder.Ne(x => x.PosterUrl, null))
                     : _fBuilder.And(filter, _fBuilder.Eq(x => x.PosterUrl, null));
             }
 

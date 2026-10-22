@@ -2,7 +2,6 @@
 using MovieJournalBackend.Contracts.User;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.User;
-using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services.Auth;
@@ -24,6 +23,7 @@ namespace MovieJournalBackend.Services.Implementation
                 Login = request.Login,
                 DisplayName = request.DisplayName,
                 Password = request.Password,
+                Roles = request.Roles ?? [UserRole.User]
             }, ct);
         }
 
