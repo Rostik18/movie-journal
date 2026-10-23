@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { CreateMediaCollectionRequest, MediaCollectionResponse } from '../models/collection.model';
+import { CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../models/collection.model';
 import { PageResponse } from '../models/shared.model';
 import { CollectionSearchParams } from '../models/search.model';
 
@@ -53,6 +53,10 @@ export class CollectionService {
 
     createCollection(request: CreateMediaCollectionRequest): Observable<MediaCollectionResponse> {
         return this.http.post<MediaCollectionResponse>(this.apiUrl, request);
+    }
+
+    updateCollection(request: UpdateMediaCollectionRequest): Observable<MediaCollectionResponse> {
+        return this.http.put<MediaCollectionResponse>(this.apiUrl, request);
     }
 
     deleteCollection(id: string): Observable<any> {

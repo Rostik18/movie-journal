@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Visibility, WatchStatus, MediaType, MediaLinkType } from '../models/enums';
+import { Visibility, WatchStatus, MediaType } from '../models/enums';
 
 export interface MetadataResponse {
     title?: string | null;
@@ -14,13 +14,20 @@ export interface MetadataResponse {
     tags?: string[] | null;
 }
 
-export interface SeedRequest {
+export interface SeedUserWatchRequest {
     userId?: string | null;
     visibility: Visibility;
     status: WatchStatus;
     type: MediaType;
     tags: string[];
     author?: string | null;
+    payload: string;
+    collectionId?: string | null;
+}
+
+export interface SeedActorsRequest {
+    userId?: string | null;
+    visibility: Visibility;
     payload: string;
 }
 
@@ -43,6 +50,28 @@ export interface ClearDatabaseResult {
     droppedCollections: string[];
 }
 
+export interface UrlNameRateResult {
+    url: string;
+    name?: string | null;
+    rate?: number | null;
+}
+
+export interface SeedUserWatchResponse {
+    message: string;
+    missedLines: UrlNameRateResult[];
+}
+
+export interface SeedActorItemResult {
+    fullName: string;
+    photoUrl?: string | null;
+    birthDate?: string | null;
+}
+
+export interface SeedActorsResponse {
+    message: string;
+    missedActors: SeedActorItemResult[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -60,8 +89,12 @@ export class ServerService {
         return this.http.get<MetadataResponse>(`${this.apiUrl}/metadata`, { params });
     }
 
-    seedData(request: SeedRequest): Observable<string> {
-        return this.http.post<string>(`${this.apiUrl}/seed`, request, { responseType: 'text' as 'json' });
+    seedUserWatchData(request: SeedUserWatchRequest): Observable<SeedUserWatchResponse> {
+        return this.http.post<SeedUserWatchResponse>(`${this.apiUrl}/seed-user-media`, request);
+    }
+
+    seedActorsData(request: SeedActorsRequest): Observable<SeedActorsResponse> {
+        return this.http.post<SeedActorsResponse>(`${this.apiUrl}/seed-actors`, request);
     }
 
     // ==================== Нові ендпоінти бази даних (Admin) ====================

@@ -16,3 +16,12 @@ export interface CreateActorRequest {
     photoUrl?: string | null;
     visibility: Visibility;
 }
+
+export interface UpdateActorRequest {
+    actorId: string;
+    fullName?: string | null;
+    birthDate?: string | null;
+    biography?: string | null;
+    photoUrl?: string | null;
+    visibility?: Visibility | null;
+}

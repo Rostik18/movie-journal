@@ -1,6 +1,15 @@
 <form class="seed-form" (ngSubmit)="onSubmit()">
     <h3>Імпорт / Seed даних</h3>
 
+    <!-- Вибір режиму Seed -->
+    <div class="form-group">
+        <label>Тип імпорту:</label>
+        <select [ngModel]="seedMode()" (ngModelChange)="seedMode.set($event)" name="seedMode">
+            <option value="userWatch">Дані перегляду (User Watch)</option>
+            <option value="actors">Актори (Actors)</option>
+        </select>
+    </div>
+
     <div class="form-row">
         <div class="form-group">
             <label>Видимість:</label>
@@ -11,6 +20,7 @@
             </select>
         </div>
 
+        @if (seedMode() === 'userWatch') {
         <div class="form-group">
             <label>Статус:</label>
             <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)" name="status">
@@ -19,11 +29,11 @@
                 }
             </select>
         </div>
+        }
     </div>
 
-
+    @if (seedMode() === 'userWatch') {
     <div class="form-row">
-        <!-- Тип медіа -->
         <div class="form-group">
             <label>Тип медіа:</label>
             <select [ngModel]="selectedType()" (ngModelChange)="selectedType.set($event)" name="type">
@@ -39,22 +49,65 @@
         </div>
     </div>
 
-    <!-- Поля для Тегів та Автора -->
     <div class="form-row">
+        <div class="form-group">
+            <label>Колекція (опціонально):</label>
+            <select [ngModel]="selectedCollectionId()" (ngModelChange)="selectedCollectionId.set($event)"
+                name="collectionId">
+                <option [ngValue]="null">— Без колекції —</option>
+                @for (col of collections(); track col.id) {
+                <option [value]="col.id">{{ col.name }}</option>
+                }
+            </select>
+        </div>
+
         <div class="form-group">
             <label>Теги (через кому):</label>
             <input type="text" [ngModel]="tagsInput()" (ngModelChange)="tagsInput.set($event)" name="tags"
                 placeholder="action, sci-fi, top">
         </div>
     </div>
+    }
 
     <div class="form-group">
         <label>Дані (Payload):</label>
         <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
-            placeholder="https://example1.com    name1    6&#10;https://example2.com    name2    7" required>
+            [placeholder]="seedMode() === 'userWatch' ? 'https://example1.com    name1    6' : 'Name [TAB] BirthDate [TAB] Biography [TAB] PhotoUrl'"
+            required>
         </textarea>
-        <small class="hint">Вставте рядки у форматі: URL [TAB] Назва [TAB] Оцінка</small>
+        <small class="hint">
+            @if (seedMode() === 'userWatch') {
+            Вставте рядки у форматі: URL [TAB] Назва [TAB] Оцінка
+            } @else {
+            Вставте дані для акторів у форматі payload.
+            }
+        </small>
     </div>
+
+    <!-- Блок пропущених рядків (для User Watch) -->
+    @if (missedLinesText()) {
+    <div class="form-group missed-section">
+        <div class="missed-header">
+            <label class="error-label">Пропущені / Необроблені рядки:</label>
+            <button type="button" class="btn-copy" (click)="copyText(missedLinesText())">Скопіювати 📋</button>
+        </div>
+        <textarea [ngModel]="missedLinesText()" name="missedLines" rows="5" readonly class="missed-textarea"></textarea>
+        <small class="hint">Ці рядки не вдалося розібрати або імпортувати.</small>
+    </div>
+    }
+
+    <!-- Блок пропущених акторів (для Actors) -->
+    @if (actorResultText()) {
+    <div class="form-group success-section">
+        <div class="missed-header">
+            <label class="error-label">Пропущені актори:</label>
+            <button type="button" class="btn-copy" (click)="copyText(actorResultText())">Скопіювати 📋</button>
+        </div>
+        <textarea [ngModel]="actorResultText()" name="actorResults" rows="5" readonly
+            class="missed-textarea"></textarea>
+        <small class="hint">Список пропущених акторів.</small>
+    </div>
+    }
 
     <div class="form-actions">
         <!-- Червона кнопка очищення бази даних -->

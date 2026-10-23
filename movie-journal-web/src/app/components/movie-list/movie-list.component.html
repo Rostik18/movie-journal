@@ -152,13 +152,21 @@
     </div>
     }
 
-    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedMovie()?.title ?? ''"
-        [imageUrl]="selectedMovie()?.posterUrl" [imageAlt]="selectedMovie()?.title ?? ''" noImageText="Немає постера"
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ: заголовок і постер беремо зі скороченого запису (є одразу),
+         решту — з повного запису, який підвантажується через getMediaById -->
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedSlim()?.title ?? ''"
+        [imageUrl]="selectedSlim()?.posterUrl" [imageAlt]="selectedSlim()?.title ?? ''" noImageText="Немає постера"
         [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()" (editClicked)="onEditMovie()"
         (deleted)="onSidebarMovieDeleted()">
 
-        @if (selectedMovie(); as mov) {
+        @if (detailsLoading()) {
+        <div class="list-state loading">Завантаження деталей...</div>
+        } @else if (detailsError()) {
+        <div class="list-state error">
+            <p>Не вдалося завантажити деталі фільму.</p>
+            <button type="button" class="btn-secondary" (click)="loadDetails()">Спробувати знову</button>
+        </div>
+        } @else if (selectedMovie(); as mov) {
         <div class="sidebar-details-info">
             @if (mov.originalTitle) {
             <p class="detail-row"><strong>Оригінальна назва:</strong> {{ mov.originalTitle }}</p>
@@ -176,16 +184,15 @@
             <p class="detail-row"><strong>Тривалість:</strong> {{ formatDuration(mov.duration) }}</p>
             }
 
-            <!-- Список прикріплених посилань -->
+            <!-- Список прикріплених посилань (links — масив рядків, як у MediaItem) -->
             @if (mov.links?.length) {
             <div class="links-section">
                 <h4>Посилання</h4>
                 <div class="sidebar-links-list">
-                    @for (link of mov.links; track link.url) {
+                    @for (link of mov.links; track link) {
                     <div class="sidebar-link-row">
-                        <button type="button" class="btn-copy-link" (click)="copyToClipboard(link.url)"
+                        <button type="button" class="btn-copy-link" (click)="copyToClipboard(link)"
                             title="Копіювати посилання">
-                            <!-- Іконка копіювання (або можна замінити на статус успіху) -->
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
@@ -193,8 +200,7 @@
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                         </button>
-                        <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url
-                            }}</a>
+                        <a [href]="link" target="_blank" rel="noopener noreferrer" class="link-url">{{ link }}</a>
                     </div>
                     }
                 </div>

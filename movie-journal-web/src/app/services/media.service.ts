@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { MediaItem, CreateMediaRequest } from '../models/media.model';
+import { MediaItem, MediaResponseSlim, CreateMediaRequest, UpdateMediaRequest } from '../models/media.model';
 import { PageResponse } from '../models/shared.model';
 import { MediaSearchParams } from '../models/search.model';
 
@@ -13,8 +13,7 @@ export class MediaService {
     private apiUrl = `${environment.apiUrl}/api/media`;
     private http = inject(HttpClient);
 
-    // Оновлений метод пошуку з підтримкою query-параметрів
-    searchMedia(params: MediaSearchParams = {}): Observable<PageResponse<MediaItem>> {
+    searchMedia(params: MediaSearchParams = {}): Observable<PageResponse<MediaResponseSlim>> {
         let httpParams = new HttpParams();
 
         if (params.query) {
@@ -57,7 +56,7 @@ export class MediaService {
             httpParams = httpParams.set('size', params.size.toString());
         }
 
-        return this.http.get<PageResponse<MediaItem>>(`${this.apiUrl}/search`, { params: httpParams });
+        return this.http.get<PageResponse<MediaResponseSlim>>(`${this.apiUrl}/search`, { params: httpParams });
     }
 
     getMediaById(id: string): Observable<MediaItem> {
@@ -66,6 +65,10 @@ export class MediaService {
 
     createMedia(request: CreateMediaRequest): Observable<MediaItem> {
         return this.http.post<MediaItem>(`${this.apiUrl}`, request);
+    }
+
+    updateMedia(request: UpdateMediaRequest): Observable<MediaItem> {
+        return this.http.put<MediaItem>(this.apiUrl, request);
     }
 
     deleteMedia(id: string): Observable<any> {

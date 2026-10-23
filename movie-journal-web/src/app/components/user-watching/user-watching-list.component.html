@@ -81,7 +81,6 @@
                     <th>Назва</th>
                     <th>Статус</th>
                     <th>Оцінка</th>
-                    <th>Прогрес</th>
                     <th>Нотатки</th>
                 </tr>
             </thead>
@@ -115,13 +114,6 @@
                         </div>
                     </td>
                     <td>
-                        @if (item.currentSeasonNumber || item.currentEpisodeNumber) {
-                        <span>С{{ item.currentSeasonNumber || '?' }} : Е{{ item.currentEpisodeNumber || '?' }}</span>
-                        } @else {
-                        —
-                        }
-                    </td>
-                    <td>
                         @if (item.notes) {
                         <span class="table-notes" [title]="item.notes">«{{ item.notes }}»</span>
                         } @else {
@@ -147,13 +139,21 @@
     </div>
     }
 
-    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedItem()?.media?.title ?? ''"
-        [imageUrl]="selectedItem()?.media?.posterUrl" [imageAlt]="selectedItem()?.media?.title ?? ''"
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ: заголовок і постер беремо зі скороченого запису (є одразу),
+         решту — з повного запису, який підвантажується через getById -->
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedSlim()?.media?.title ?? ''"
+        [imageUrl]="selectedSlim()?.media?.posterUrl" [imageAlt]="selectedSlim()?.media?.title ?? ''"
         noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()"
         (editClicked)="onEditItem()" (deleted)="onSidebarItemDeleted()">
 
-        @if (selectedItem(); as item) {
+        @if (detailsLoading()) {
+        <div class="list-state loading">Завантаження деталей...</div>
+        } @else if (detailsError()) {
+        <div class="list-state error">
+            <p>Не вдалося завантажити деталі.</p>
+            <button type="button" class="btn-secondary" (click)="loadDetails()">Спробувати знову</button>
+        </div>
+        } @else if (selectedItem(); as item) {
         <div class="sidebar-details-info">
 
             <!-- === БЛОК 1: ІНФОРМАЦІЯ ПРО МЕДІА === -->
@@ -192,9 +192,9 @@
             <div class="links-section">
                 <h4>Посилання</h4>
                 <div class="sidebar-links-list">
-                    @for (link of item.media.links; track link.url) {
+                    @for (link of item.media.links; track link) {
                     <div class="sidebar-link-row">
-                        <button type="button" class="btn-copy-link" (click)="copyToClipboard(link.url)"
+                        <button type="button" class="btn-copy-link" (click)="copyToClipboard(link)"
                             title="Копіювати посилання">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -203,8 +203,7 @@
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                         </button>
-                        <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url
-                            }}</a>
+                        <a [href]="link" target="_blank" rel="noopener noreferrer" class="link-url">{{ link }}</a>
                     </div>
                     }
                 </div>

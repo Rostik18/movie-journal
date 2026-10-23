@@ -1,20 +1,3 @@
-export enum MediaLinkType {
-    Streaming = "Streaming",
-    Trailer = "Trailer",
-    OfficialWebsite = "OfficialWebsite",
-    Purchase = "Purchase",
-    Other = "Other"
-}
-
-export const MediaLinkTypeLabels: Record<MediaLinkType, string> = {
-    [MediaLinkType.Streaming]: 'Стрімінг',
-    [MediaLinkType.Trailer]: 'Трейлер',
-    [MediaLinkType.OfficialWebsite]: 'Офіційний сайт',
-    [MediaLinkType.Purchase]: 'Покупка',
-    [MediaLinkType.Other]: 'Інше'
-};
-
-// 2. Типи медіаконтенту
 export enum MediaType {
     Movie = "Movie",
     Series = "Series",

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UserWatchingItem, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
+import { UserWatchingItem, UserWatchingResponseSlim, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
 import { UserWatchingSearchParams } from '../models/search.model';
@@ -13,7 +13,11 @@ export class UserWatchingService {
     private baseUrl = `${environment.apiUrl}/api/user-watching`;
     private http = inject(HttpClient);
 
-    searchUserWatchingList(params: UserWatchingSearchParams = {}): Observable<PageResponse<UserWatchingItem>> {
+    getById(id: string): Observable<UserWatchingItem> {
+        return this.http.get<UserWatchingItem>(`${this.baseUrl}/${id}`);
+    }
+
+    searchUserWatchingList(params: UserWatchingSearchParams = {}): Observable<PageResponse<UserWatchingResponseSlim>> {
         let httpParams = new HttpParams();
 
         if (params.query) {
@@ -68,15 +72,15 @@ export class UserWatchingService {
             httpParams = httpParams.set('visibility', params.visibility.toString());
         }
 
-        return this.http.get<PageResponse<UserWatchingItem>>(`${this.baseUrl}/search`, { params: httpParams });
+        return this.http.get<PageResponse<UserWatchingResponseSlim>>(`${this.baseUrl}/search`, { params: httpParams });
     }
 
     createOrUpdateWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {
-        return this.http.post<UserWatchingItem>(`${this.baseUrl}/`, request);
+        return this.http.post<UserWatchingItem>(this.baseUrl, request);
     }
 
     updateWatchlist(request: UpdateUserWatchingRequest): Observable<UserWatchingItem> {
-        return this.http.put<UserWatchingItem>(`${this.baseUrl}/`, request);
+        return this.http.put<UserWatchingItem>(this.baseUrl, request);
     }
 
     deleteUserWatching(id: string): Observable<any> {

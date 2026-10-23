@@ -5,7 +5,7 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { UserWatchingService } from '../../services/user-watching.service';
 import { ToastService } from '../../services/toast.service';
-import { UserWatchingItem } from '../../models/user-watching.model';
+import { UserWatchingItem, UserWatchingResponseSlim } from '../../models/user-watching.model';
 import { MediaItem } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus, WatchStatusLabels } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
@@ -51,7 +51,7 @@ export class UserWatchingListComponent implements OnInit {
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
 
-    readonly watchingList = signal<UserWatchingItem[]>([]);
+    readonly watchingList = signal<UserWatchingResponseSlim[]>([]);
     readonly totalCount = signal(0);
     readonly loading = signal(true);
     readonly hasError = signal(false);
@@ -59,9 +59,14 @@ export class UserWatchingListComponent implements OnInit {
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
 
-    // Стан сайдбару деталей
+    // ---------- Сайдбар деталей ----------
+    /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
+    readonly selectedSlim = signal<UserWatchingResponseSlim | null>(null);
+    /** Повний запис із getById: усе, що потрібно сайдбару. */
     readonly selectedItem = signal<UserWatchingItem | null>(null);
     readonly isSidebarOpen = signal(false);
+    readonly detailsLoading = signal(false);
+    readonly detailsError = signal(false);
 
     readonly watchStatusLabels = WatchStatusLabels;
     readonly mediaTypeLabels = MediaTypeLabels;
@@ -139,10 +144,12 @@ export class UserWatchingListComponent implements OnInit {
     );
 
     private readonly reload$ = new Subject<void>();
+    /** mediaId для завантаження деталей; null — скасувати поточний запит. */
+    private readonly details$ = new Subject<string | null>();
     private readonly deleteCallbacks = new Map<string, DeleteCallback>();
 
     readonly selectedDeleteCallback = computed(() => {
-        const item = this.selectedItem();
+        const item = this.selectedSlim();
         return item ? this.getDeleteCallback(item) : undefined;
     });
 
@@ -173,6 +180,37 @@ export class UserWatchingListComponent implements OnInit {
             }
             this.loading.set(false);
         });
+
+        // Деталі для сайдбару: switchMap відкидає відповідь, якщо користувач
+        // клікнув іншу плитку або закрив сайдбар до її приходу
+        this.details$.pipe(
+            switchMap(mediaId => {
+                if (mediaId === null) {
+                    return of(null);
+                }
+                this.detailsLoading.set(true);
+                this.detailsError.set(false);
+                return this.userWatchingService.getById(mediaId).pipe(
+                    map(item => ({ ok: true as const, item })),
+                    catchError(err => {
+                        console.error('Помилка завантаження деталей:', err);
+                        return of({ ok: false as const });
+                    })
+                );
+            }),
+            takeUntilDestroyed()
+        ).subscribe(result => {
+            this.detailsLoading.set(false);
+            if (result === null) {
+                return;
+            }
+            if (result.ok) {
+                this.selectedItem.set(result.item);
+            } else {
+                this.detailsError.set(true);
+                this.toastService.show('Не вдалося завантажити деталі.', 'error', 4000);
+            }
+        });
     }
 
     ngOnInit(): void {
@@ -184,8 +222,8 @@ export class UserWatchingListComponent implements OnInit {
     }
 
     /** API може повертати як сторінку { items, totalCount }, так і простий масив. */
-    private normalizeResponse(res: PageResponse<UserWatchingItem> | UserWatchingItem[] | null | undefined): { items: UserWatchingItem[]; total: number } {
-        const items: UserWatchingItem[] = Array.isArray(res) ? res : (res?.items ?? []);
+    private normalizeResponse(res: PageResponse<UserWatchingResponseSlim> | UserWatchingResponseSlim[] | null | undefined): { items: UserWatchingResponseSlim[]; total: number } {
+        const items: UserWatchingResponseSlim[] = Array.isArray(res) ? res : (res?.items ?? []);
         const total: number = (!Array.isArray(res) && res?.totalCount) || items.length;
         return { items, total };
     }
@@ -213,22 +251,34 @@ export class UserWatchingListComponent implements OnInit {
     }
 
     // ====================== Деталі (сайдбар) ======================
-    openDetails(item: UserWatchingItem): void {
-        this.selectedItem.set(item);
+    openDetails(item: UserWatchingResponseSlim): void {
+        this.selectedSlim.set(item);
+        this.selectedItem.set(null); // не показуємо дані попереднього запису
         this.isSidebarOpen.set(true);
+        this.loadDetails();
+    }
+
+    /** Також викликається кнопкою «Спробувати знову» у сайдбарі. */
+    loadDetails(): void {
+        const slim = this.selectedSlim();
+        if (slim?.media?.id) {
+            this.details$.next(slim.media.id);
+        }
     }
 
     closeSidebar(): void {
         this.isSidebarOpen.set(false);
+        this.details$.next(null); // скасовуємо запит, що ще летить
+        this.detailsError.set(false);
     }
 
     onEditItem(): void {
-        console.log('Редагувати елемент списку:', this.selectedItem()?.media?.id);
+        console.log('Редагувати елемент списку:', this.selectedSlim()?.media?.id);
     }
 
     // ====================== Рейтинг ======================
     /** Оптимістичне оновлення: одразу показуємо нову оцінку, при помилці відкочуємо. */
-    updateRating(item: UserWatchingItem, newRating: number): void {
+    updateRating(item: UserWatchingResponseSlim, newRating: number): void {
         const mediaId = item.media?.id;
         if (!mediaId) {
             return;
@@ -250,14 +300,22 @@ export class UserWatchingListComponent implements OnInit {
         });
     }
 
-    private patchItem(mediaId: string, patch: Partial<UserWatchingItem>): void {
+    /** Оновлює запис і у списку, і (якщо відкритий) у повних деталях сайдбару. */
+    private patchItem(mediaId: string, patch: Partial<UserWatchingResponseSlim>): void {
         this.watchingList.update(list =>
             list.map(i => (i.media?.id === mediaId ? { ...i, ...patch } : i))
         );
+
+        if (this.selectedSlim()?.media?.id === mediaId) {
+            this.selectedSlim.update(s => (s ? { ...s, ...patch } : s));
+        }
+        if (this.selectedItem()?.media?.id === mediaId) {
+            this.selectedItem.update(i => (i ? { ...i, ...(patch as Partial<UserWatchingItem>) } : i));
+        }
     }
 
     // ====================== Видалення ======================
-    getDeleteCallback(item: UserWatchingItem): DeleteCallback {
+    getDeleteCallback(item: UserWatchingResponseSlim): DeleteCallback {
         const mediaId = item.media.id;
 
         let callback = this.deleteCallbacks.get(mediaId);
@@ -268,7 +326,7 @@ export class UserWatchingListComponent implements OnInit {
         return callback;
     }
 
-    onItemDeleted(item: UserWatchingItem): void {
+    onItemDeleted(item: UserWatchingResponseSlim): void {
         const mediaId = item.media.id;
 
         this.deleteCallbacks.delete(mediaId);
@@ -284,7 +342,7 @@ export class UserWatchingListComponent implements OnInit {
     }
 
     onSidebarItemDeleted(): void {
-        const item = this.selectedItem();
+        const item = this.selectedSlim();
         if (!item) {
             return;
         }

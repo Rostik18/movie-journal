@@ -15,3 +15,12 @@ export interface CreateMediaCollectionRequest {
     tags: string[];
     visibility: Visibility;
 }
+
+export interface UpdateMediaCollectionRequest {
+    collectionId: string;
+    name?: string | null;
+    description?: string | null;
+    posterUrl?: string | null;
+    tags?: string[] | null;
+    visibility?: Visibility | null;
+}

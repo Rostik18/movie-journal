@@ -4,7 +4,7 @@ import { MediaItem } from '../models/media.model';
  * Одиниця виміру MediaItem.duration, виражена в секундах:
  * 60 = хвилини (як runtimeMinutes у формі створення), 1 = секунди.
  */
-const DURATION_UNIT_IN_SECONDS = 60;
+const DURATION_UNIT_IN_SECONDS = 1;
 
 /** «Оригінальна назва (рік)»: рік необов'язковий, тож зайвих дужок і пробілів не буде. */
 export function formatSubtitle(media: Pick<MediaItem, 'originalTitle' | 'releaseYear'>): string {

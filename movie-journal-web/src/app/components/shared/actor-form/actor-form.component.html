@@ -1,5 +1,5 @@
 <form class="actor-form" (ngSubmit)="onSubmit()" novalidate>
-    <h2 class="form-title">Додати нового актора</h2>
+    <h2 class="form-title">{{ isEditMode() ? 'Редагувати актора' : 'Додати нового актора' }}</h2>
 
     <!-- Ім'я та видимість в одному рядку -->
     <div class="form-row">
@@ -80,8 +80,9 @@
 
     <div class="form-actions">
         <button type="button" class="btn-cancel" [disabled]="isSubmitting()" (click)="onCancel()">Скасувати</button>
-        <button type="submit" class="btn-submit" [disabled]="isSubmitting()">
-            {{ isSubmitting() ? 'Збереження…' : 'Зберегти актора' }}
+        <button type="submit" class="btn-submit" [disabled]="isSubmitting() || (isEditMode() && !hasChanges())"
+            [title]="isEditMode() && !hasChanges() ? 'Немає змін для збереження' : ''">
+            {{ isSubmitting() ? 'Збереження…' : (isEditMode() ? 'Зберегти зміни' : 'Зберегти актора') }}
         </button>
     </div>
 </form>

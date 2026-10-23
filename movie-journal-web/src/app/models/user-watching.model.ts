@@ -1,5 +1,5 @@
-import { WatchStatus } from './enums';
-import { MediaItem } from './media.model';
+import { Visibility, WatchStatus } from './enums';
+import { MediaItem, MediaResponseSlim } from './media.model';
 
 export interface UserWatchingItem {
     media: MediaItem;
@@ -11,6 +11,13 @@ export interface UserWatchingItem {
     finishedAtUtc: string | null;
     currentSeasonNumber: number | null;
     currentEpisodeNumber: number | null;
+}
+
+export interface UserWatchingResponseSlim {
+    media: MediaResponseSlim;
+    status: WatchStatus;
+    rating: number | null;
+    notes: string | null;
 }
 
 export interface CreateUserWatchingRequest {
@@ -26,6 +33,7 @@ export interface CreateUserWatchingRequest {
 export interface UpdateUserWatchingRequest {
     mediaId: string;
     status?: WatchStatus | null;
+    visibility?: Visibility | null;
     rating?: number | null;
     notes?: string | null;
     stoppedAtSeconds?: number | null;

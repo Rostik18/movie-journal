@@ -82,15 +82,18 @@ $border-color: #e2e8f0;
         .sidebar-image-wrapper {
             width: 100%;
             height: 280px;
-            background: #cbd5e1;
+            background: white;
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
             .sidebar-image {
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
+                object-fit: contain;
             }
 
             .sidebar-no-image {

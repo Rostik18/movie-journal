@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ActorItem } from '../models/actor.model';
+import { ActorItem, UpdateActorRequest } from '../models/actor.model';
 import { PageResponse } from '../models/shared.model';
 import { environment } from '../../environments/environment';
 import { CreateActorRequest } from '../models/actor.model';
@@ -38,6 +38,9 @@ export class ActorService {
         if (params.size !== undefined && params.size !== null) {
             httpParams = httpParams.set('size', params.size.toString());
         }
+        if (params.visibility !== undefined && params.visibility !== null) {
+            httpParams = httpParams.set('visibility', params.visibility.toString());
+        }
 
         return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });
     }
@@ -48,6 +51,10 @@ export class ActorService {
 
     createActor(request: CreateActorRequest): Observable<ActorItem> {
         return this.http.post<ActorItem>(`${this.apiUrl}`, request);
+    }
+
+    updateActor(request: UpdateActorRequest): Observable<ActorItem> {
+        return this.http.put<ActorItem>(this.apiUrl, request);
     }
 
     deleteActor(id: string): Observable<any> {

@@ -91,13 +91,15 @@
     }
     }
 
-    <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА -->
+    <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА: створення або редагування -->
     @if (isModalOpen()) {
     <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
-        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати нового актора">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="editingActor() ? 'Редагувати актора' : 'Додати нового актора'">
             <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
 
-            <app-actor-form (actorCreated)="onActorCreated()" (cancelled)="closeModal()" />
+            <app-actor-form [actor]="editingActor()" (actorCreated)="onActorCreated()"
+                (actorUpdated)="onActorUpdated($event)" (cancelled)="closeModal()" />
         </div>
     </div>
     }

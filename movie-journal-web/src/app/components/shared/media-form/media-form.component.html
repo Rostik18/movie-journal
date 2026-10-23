@@ -50,7 +50,6 @@
             </div>
             <div class="form-group">
                 <label for="type">Тип</label>
-                <!-- Ручний вибір типу блокує його автозаповнення з метаданих -->
                 <select id="type" [ngModel]="mediaData.type" (ngModelChange)="onTypeChange($event)" name="type">
                     @for (opt of mediaTypeOptions; track opt.value) {
                     <option [ngValue]="opt.value">{{ opt.label }}</option>
@@ -58,9 +57,9 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="runtimeMinutes">Тривалість (хв)</label>
-                <input id="runtimeMinutes" type="number" [(ngModel)]="mediaData.runtimeMinutes" name="runtimeMinutes"
-                    min="1" placeholder="120">
+                <label for="duration">Тривалість (сек)</label>
+                <input id="duration" type="number" [(ngModel)]="mediaData.duration" name="duration" min="1"
+                    placeholder="120">
             </div>
         </div>
 
@@ -225,9 +224,9 @@
                 <h4>Прикріплені посилання ({{ mediaData.links.length }})</h4>
             </div>
             <div class="selected-links-list">
-                @for (link of mediaData.links; track link.url; let i = $index) {
+                @for (link of mediaData.links; track link; let i = $index) {
                 <div class="link-row">
-                    <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url }}</a>
+                    <a [href]="link" target="_blank" rel="noopener noreferrer" class="link-url">{{ link }}</a>
                     <button type="button" class="btn-danger-sm" (click)="removeLink(i)">&times;</button>
                 </div>
                 }

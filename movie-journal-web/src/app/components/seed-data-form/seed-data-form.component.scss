@@ -114,3 +114,42 @@
         }
     }
 }
+
+.missed-section {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 12px;
+    border-radius: 6px;
+
+    .missed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+
+        .error-label {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .btn-copy {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+
+            &:hover {
+                background: #fecaca;
+            }
+        }
+    }
+
+    .missed-textarea {
+        background: #fff;
+        font-family: monospace;
+        color: #b91c1c;
+    }
+}

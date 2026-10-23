@@ -1,6 +1,6 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, Subject, of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
@@ -11,7 +11,7 @@ import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.compon
 import { ToastService } from '../../services/toast.service';
 import { MediaService } from '../../services/media.service';
 import { UserWatchingService } from '../../services/user-watching.service';
-import { MediaItem } from '../../models/media.model';
+import { MediaItem, MediaResponseSlim } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
 import { CreateUserWatchingRequest } from '../../models/user-watching.model';
@@ -56,7 +56,7 @@ export class MovieListComponent implements OnInit {
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
 
-    readonly movies = signal<MediaItem[]>([]);
+    readonly movies = signal<MediaResponseSlim[]>([]);
     readonly totalCount = signal(0);
     readonly loading = signal(true);
     readonly hasError = signal(false);
@@ -64,8 +64,14 @@ export class MovieListComponent implements OnInit {
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
 
+    // ---------- Сайдбар деталей ----------
+    /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
+    readonly selectedSlim = signal<MediaResponseSlim | null>(null);
+    /** Повний запис із getMediaById: усе, що потрібно сайдбару. */
     readonly selectedMovie = signal<MediaItem | null>(null);
     readonly isSidebarOpen = signal(false);
+    readonly detailsLoading = signal(false);
+    readonly detailsError = signal(false);
 
     readonly mediaTypeLabels = MediaTypeLabels;
 
@@ -119,12 +125,13 @@ export class MovieListComponent implements OnInit {
     private readonly watchStates = signal<ReadonlyMap<MediaId, WatchState>>(new Map());
 
     private readonly reload$ = new Subject<void>();
-    private readonly details$ = new Subject<MediaId>();
+    /** id фільму для завантаження деталей; null — скасувати поточний запит. */
+    private readonly details$ = new Subject<MediaId | null>();
 
     private readonly deleteCallbacks = new Map<MediaId, DeleteCallback>();
 
     readonly selectedDeleteCallback = computed(() => {
-        const movie = this.selectedMovie();
+        const movie = this.selectedSlim();
         return movie ? this.getDeleteCallback(movie) : undefined;
     });
 
@@ -136,7 +143,7 @@ export class MovieListComponent implements OnInit {
             }),
             switchMap(() =>
                 this.mediaService.searchMedia(this.searchParams()).pipe(
-                    map((response: PageResponse<MediaItem>) => ({
+                    map((response: PageResponse<MediaResponseSlim>) => ({
                         ok: true as const,
                         items: response.items ?? [],
                         total: response.totalCount ?? response.items?.length ?? 0
@@ -159,20 +166,35 @@ export class MovieListComponent implements OnInit {
             this.loading.set(false);
         });
 
+        // Деталі для сайдбару: switchMap відкидає відповідь, якщо користувач
+        // клікнув інший фільм або закрив сайдбар до її приходу
         this.details$.pipe(
-            switchMap(id =>
-                this.mediaService.getMediaById(id).pipe(
+            switchMap(id => {
+                if (id === null) {
+                    return of(null);
+                }
+                this.detailsLoading.set(true);
+                this.detailsError.set(false);
+                return this.mediaService.getMediaById(id).pipe(
+                    map(movie => ({ ok: true as const, movie })),
                     catchError(err => {
                         console.error('Помилка завантаження деталей фільму:', err);
-                        this.toastService.show('Не вдалося завантажити деталі фільму', 'error');
-                        return EMPTY;
+                        return of({ ok: false as const });
                     })
-                )
-            ),
+                );
+            }),
             takeUntilDestroyed()
-        ).subscribe(detailedMovie => {
-            this.selectedMovie.set(detailedMovie);
-            this.isSidebarOpen.set(true);
+        ).subscribe(result => {
+            this.detailsLoading.set(false);
+            if (result === null) {
+                return;
+            }
+            if (result.ok) {
+                this.selectedMovie.set(result.movie);
+            } else {
+                this.detailsError.set(true);
+                this.toastService.show('Не вдалося завантажити деталі фільму', 'error');
+            }
         });
     }
 
@@ -188,15 +210,15 @@ export class MovieListComponent implements OnInit {
         return type == null ? '—' : (this.mediaTypeLabels[type] ?? String(type));
     }
 
-    ratingOf(movie: MediaItem): number | null {
+    ratingOf(movie: MediaResponseSlim): number | null {
         return this.watchStates().get(movie.id)?.rating ?? null;
     }
 
-    isWishlisted(movie: MediaItem): boolean {
+    isWishlisted(movie: MediaResponseSlim): boolean {
         return this.watchStates().get(movie.id)?.status === WatchStatus.Wishlist;
     }
 
-    rateMovie(movie: MediaItem, rating: number): void {
+    rateMovie(movie: MediaResponseSlim, rating: number): void {
         this.updateWatchlist(
             movie,
             { mediaId: movie.id, status: WatchStatus.Watched, rating },
@@ -204,7 +226,7 @@ export class MovieListComponent implements OnInit {
         );
     }
 
-    addToWishlist(movie: MediaItem): void {
+    addToWishlist(movie: MediaResponseSlim): void {
         this.updateWatchlist(
             movie,
             { mediaId: movie.id, status: WatchStatus.Wishlist },
@@ -212,7 +234,7 @@ export class MovieListComponent implements OnInit {
         );
     }
 
-    private updateWatchlist(movie: MediaItem, request: CreateUserWatchingRequest, successMessage: string): void {
+    private updateWatchlist(movie: MediaResponseSlim, request: CreateUserWatchingRequest, successMessage: string): void {
         const previous = this.watchStates().get(movie.id);
 
         this.setWatchState(movie.id, {
@@ -244,19 +266,34 @@ export class MovieListComponent implements OnInit {
         });
     }
 
-    openDetails(movie: MediaItem): void {
-        this.details$.next(movie.id);
+    // ====================== Деталі (сайдбар) ======================
+    openDetails(movie: MediaResponseSlim): void {
+        this.selectedSlim.set(movie);
+        this.selectedMovie.set(null); // не показуємо дані попереднього фільму
+        this.isSidebarOpen.set(true);
+        this.loadDetails();
+    }
+
+    /** Також викликається кнопкою «Спробувати знову» у сайдбарі. */
+    loadDetails(): void {
+        const slim = this.selectedSlim();
+        if (slim) {
+            this.details$.next(slim.id);
+        }
     }
 
     closeSidebar(): void {
         this.isSidebarOpen.set(false);
+        this.details$.next(null); // скасовуємо запит, що ще летить
+        this.detailsError.set(false);
     }
 
     onEditMovie(): void {
-        console.log('Редагувати фільм:', this.selectedMovie()?.id);
+        console.log('Редагувати фільм:', this.selectedSlim()?.id);
     }
 
-    getDeleteCallback(movie: MediaItem): DeleteCallback {
+    // ====================== Видалення ======================
+    getDeleteCallback(movie: MediaResponseSlim): DeleteCallback {
         const movieId = movie.id;
 
         let callback = this.deleteCallbacks.get(movieId);
@@ -267,7 +304,7 @@ export class MovieListComponent implements OnInit {
         return callback;
     }
 
-    onDeleted(movie: MediaItem): void {
+    onDeleted(movie: MediaResponseSlim): void {
         const movieId = movie.id;
 
         this.deleteCallbacks.delete(movieId);
@@ -284,7 +321,7 @@ export class MovieListComponent implements OnInit {
     }
 
     onSidebarMovieDeleted(): void {
-        const movie = this.selectedMovie();
+        const movie = this.selectedSlim();
         if (!movie) {
             return;
         }
@@ -293,6 +330,7 @@ export class MovieListComponent implements OnInit {
         this.closeSidebar();
     }
 
+    // ====================== Модальне вікно ======================
     openModal(): void {
         this.isModalOpen.set(true);
     }

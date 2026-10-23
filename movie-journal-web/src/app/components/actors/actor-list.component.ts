@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject, of } from 'rxjs';
@@ -59,6 +59,10 @@ export class ActorListComponent implements OnInit {
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
+
+    /** Актор, якого редагують у модалці. null — модалка працює як створення. */
+    readonly editingActor = signal<ActorItem | null>(null);
+    private readonly actorForm = viewChild(ActorFormComponent);
 
     readonly selectedActor = signal<ActorItem | null>(null);
     readonly isSidebarOpen = signal(false);
@@ -143,8 +147,7 @@ export class ActorListComponent implements OnInit {
                         console.error('Помилка завантаження акторів:', err);
                         return of({ ok: false as const });
                     })
-                )
-            ),
+                )),
             takeUntilDestroyed()
         ).subscribe(result => {
             if (result.ok) {
@@ -196,9 +199,14 @@ export class ActorListComponent implements OnInit {
         this.isSidebarOpen.set(false);
     }
 
+    /** Редагування з сайдбару: форма в модалці поверх, сайдбар лишається відкритим і оновиться після збереження. */
     onEditActor(): void {
-        // Тут у майбутньому ви відкриєте форму редагування
-        console.log('Редагувати актора:', this.selectedActor()?.id);
+        const actor = this.selectedActor();
+        if (!actor) {
+            return;
+        }
+        this.editingActor.set(actor);
+        this.isModalOpen.set(true);
     }
 
     // ====================== Видалення ======================
@@ -240,23 +248,35 @@ export class ActorListComponent implements OnInit {
 
     // ====================== Модальне вікно ======================
     openModal(): void {
+        this.editingActor.set(null);
         this.isModalOpen.set(true);
     }
 
     closeModal(): void {
         this.isModalOpen.set(false);
+        this.editingActor.set(null);
     }
 
-    /** Закриваємо лише коли mousedown стався саме на підложці (а не після виділення тексту). */
+    /**
+     * Закриваємо лише коли mousedown стався саме на підложці (а не після виділення тексту)
+     * і форма не містить незбережених змін — щоб випадковий клік не стер введене.
+     * Кнопки «Скасувати» та «×» закривають форму завжди.
+     */
     onBackdropMouseDown(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
-            this.closeModal();
+            this.closeModalUnlessDirty();
         }
     }
 
     @HostListener('document:keydown.escape')
     onEscape(): void {
         if (this.isModalOpen()) {
+            this.closeModalUnlessDirty();
+        }
+    }
+
+    private closeModalUnlessDirty(): void {
+        if (!this.actorForm()?.hasChanges()) {
             this.closeModal();
         }
     }
@@ -264,6 +284,15 @@ export class ActorListComponent implements OnInit {
     onActorCreated(): void {
         this.closeModal();
         this.loadActors();
+    }
+
+    /** Оновлюємо актора в списку та в сайдбарі без перезавантаження списку. */
+    onActorUpdated(updated: ActorItem): void {
+        this.closeModal();
+        this.actors.update(list => list.map(a => (a.id === updated.id ? updated : a)));
+        if (this.selectedActor()?.id === updated.id) {
+            this.selectedActor.set(updated);
+        }
     }
 
     // ====================== Пагінація, пошук, фільтри, сортування ======================

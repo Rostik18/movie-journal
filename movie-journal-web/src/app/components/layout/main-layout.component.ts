@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { EMPTY, timer } from 'rxjs';
@@ -32,7 +32,7 @@ export class MainLayoutComponent {
     private readonly router = inject(Router);
     private readonly serverService = inject(ServerService);
     private readonly serverHealth = inject(ServerHealthService);
-    private readonly userService = inject(UserService);
+    readonly userService = inject(UserService);
 
     readonly navItems = [
         { path: '/watchlist', label: '⭐ Список перегляду', render: true },
@@ -46,35 +46,41 @@ export class MainLayoutComponent {
     readonly serverStatus = this.serverHealth.status;
     readonly statusLabel = computed(() => STATUS_LABELS[this.serverStatus()]);
 
-    /** Читається один раз, а не на кожен цикл change detection. */
-    readonly userName = this.readUserName();
+    readonly userName = computed(() => {
+        const u = this.userService.currentUser();
+        return u?.displayName || u?.login || DEFAULT_USER_NAME;
+    });
+
+    // Стан відкриття дропдауну користувача
+    readonly isUserDropdownOpen = signal(false);
 
     constructor() {
-        // Heartbeat: перший пінг одразу, далі раз на хвилину. Поки перша відповідь не прийшла,
-        // статус «невідомо». Результат записує інтерцептор, тому помилки тут ігноруємо.
-        // exhaustMap не накладає пінги один на одного, takeUntilDestroyed зупиняє їх після виходу.
         timer(0, HEARTBEAT_INTERVAL_MS).pipe(
             exhaustMap(() => this.serverService.pingStatusEndpoint().pipe(catchError(() => EMPTY))),
             takeUntilDestroyed()
         ).subscribe();
     }
 
+    toggleUserDropdown(event: MouseEvent): void {
+        event.stopPropagation();
+        this.isUserDropdownOpen.update(v => !v);
+    }
+
+    @HostListener('document:click')
+    onDocumentClick(): void {
+        if (this.isUserDropdownOpen()) {
+            this.isUserDropdownOpen.set(false);
+        }
+    }
+
+    goToProfile(): void {
+        this.isUserDropdownOpen.set(false);
+        this.router.navigate(['/profile']);
+    }
+
     logout(): void {
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(AUTH_USER_KEY);
         this.router.navigate(['/login'], { replaceUrl: true });
-    }
-
-    private readUserName(): string {
-        try {
-            const userJson = localStorage.getItem(AUTH_USER_KEY);
-            if (userJson) {
-                const user = JSON.parse(userJson) as Partial<UserResponse>;
-                return user.displayName || user.login || DEFAULT_USER_NAME;
-            }
-        } catch {
-            // Пошкоджений JSON у localStorage не повинен ламати весь layout
-        }
-        return DEFAULT_USER_NAME;
     }
 }

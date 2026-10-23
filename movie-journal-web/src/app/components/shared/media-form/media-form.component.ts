@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
-import { MediaLinkType, MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
+import { MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { MediaService } from '../../../services/media.service';
 import { ActorService } from '../../../services/actor.service';
@@ -35,8 +35,8 @@ const createEmptyMedia = (): CreateMediaRequest => ({
     originalTitle: '',
     author: null,
     type: MediaType.Movie,
-    releaseYear: null, // Тепер опціонально (за замовчуванням null)
-    runtimeMinutes: null,
+    releaseYear: null,
+    duration: null,
     posterUrl: '',
     visibility: Visibility.Public,
     genres: [],
@@ -247,12 +247,11 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Некоректне посилання.', 'error', 3000);
             return false;
         }
-        if (this.mediaData.links.some(l => l.url === url)) {
+        if (this.mediaData.links.some(l => l === url)) {
             this.toastService.show('Це посилання вже додано.', 'info', 3000);
             return false;
         }
-        // name та type приховані, передаємо дефолтні значення відповідно до вимог
-        this.mediaData.links.push({ name: null, url, type: MediaLinkType.Other });
+        this.mediaData.links.push(url);
         return true;
     }
 
@@ -313,9 +312,8 @@ export class MediaFormComponent implements OnInit {
             filled.push('автор');
         }
 
-        const minutes = this.secondsToMinutes(meta.durationSeconds);
-        if (minutes !== null && !data.runtimeMinutes) {
-            data.runtimeMinutes = minutes;
+        if (meta.durationSeconds && meta.durationSeconds > 0) {
+            data.duration = meta.durationSeconds;
             filled.push('тривалість');
         }
 
@@ -334,10 +332,6 @@ export class MediaFormComponent implements OnInit {
         }
 
         return filled;
-    }
-
-    private secondsToMinutes(seconds?: number | null): number | null {
-        return seconds && seconds > 0 ? Math.max(1, Math.round(seconds / 60)) : null;
     }
 
     private mergeTags(incoming?: string[] | null): boolean {
@@ -476,19 +470,18 @@ export class MediaFormComponent implements OnInit {
     }
 
     private validate(): boolean {
-        const { title, releaseYear, runtimeMinutes, posterUrl } = this.mediaData;
+        const { title, releaseYear, duration, posterUrl } = this.mediaData;
 
         if (!title.trim()) {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
             return false;
         }
-        // releaseYear тепер опціональний, але якщо введений — перевіряємо його межі
         if (releaseYear != null && (releaseYear < MIN_RELEASE_YEAR || releaseYear > MAX_RELEASE_YEAR)) {
             this.toastService.show(`Рік випуску має бути між ${MIN_RELEASE_YEAR} та ${MAX_RELEASE_YEAR}.`, 'error');
             return false;
         }
-        if (runtimeMinutes != null && runtimeMinutes < 1) {
-            this.toastService.show('Тривалість має бути більшою за 0 хвилин.', 'error');
+        if (duration != null && duration < 1) {
+            this.toastService.show('Тривалість має бути більшою за 0 секунд.', 'error');
             return false;
         }
         if (posterUrl?.trim() && !this.isValidUrl(posterUrl.trim())) {

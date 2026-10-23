@@ -9,8 +9,21 @@
             </span>
         </div>
         <div class="header-right">
-            <span class="username">Вітаю, {{ userName }}!</span>
-            <button type="button" class="logout-btn" (click)="logout()">Вихід</button>
+            <!-- Дропдаун користувача -->
+            <div class="user-menu-container">
+                <button type="button" class="user-menu-toggle" (click)="toggleUserDropdown($event)"
+                    [attr.aria-expanded]="isUserDropdownOpen()">
+                    <span class="username">Вітаю, {{ userName() }}! ▾</span>
+                </button>
+
+                @if (isUserDropdownOpen()) {
+                <div class="user-dropdown">
+                    <button type="button" class="dropdown-item" (click)="goToProfile()">Профіль</button>
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item danger" (click)="logout()">Вихід</button>
+                </div>
+                }
+            </div>
         </div>
     </header>
 
