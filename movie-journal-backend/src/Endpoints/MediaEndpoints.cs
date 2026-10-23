@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapPost("/api/media", CreateAsync).Produces<MediaResponse>().RequireAnyRole();
             app.MapGet("/api/media/{mediaId}", GetByIdAsync).Produces<MediaResponse>().RequireAnyRole();
-            app.MapGet("/api/media/search", SearchAsync).Produces<Page<MediaResponse>>().RequireAnyRole();
+            app.MapGet("/api/media/search", SearchAsync).Produces<Page<MediaResponseSlim>>().RequireAnyRole();
             app.MapPut("/api/media", UpdateAsync).Produces<MediaResponse>().RequireAnyRole();
             app.MapDelete("/api/media/{mediaId}", DeleteAsync).RequireAnyRole();
 
@@ -120,7 +120,7 @@ namespace MovieJournalBackend.Endpoints
                 }
             }, principal.ToUserContext(), ct);
 
-            return Results.Ok(page.ToResponse(x => x.ToResponse()));
+            return Results.Ok(page.ToResponse(x => x.ToResponseSlim()));
         }
 
         private static async Task<IResult> CreateAsync(

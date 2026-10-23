@@ -17,13 +17,13 @@ namespace MovieJournalBackend.Entities.Media
         [BsonRepresentation(BsonType.String)]
         public MediaType Type { get; set; }
         public int? ReleaseYear { get; set; }
-        public int? RuntimeMinutes { get; set; }
+        public int? DurationSec { get; set; }
         public string? PosterUrl { get; set; }
 
         public List<string> Genres { get; set; } = [];
         public List<string> Tags { get; set; } = [];
+        public List<string> Links { get; set; } = [];
         public List<MediaActor> Cast { get; set; } = [];
-        public List<MediaLink> Links { get; set; } = [];
 
         public List<Season> Seasons { get; set; } = [];
 
@@ -40,12 +40,5 @@ namespace MovieJournalBackend.Entities.Media
     {
         public int Number { get; set; }
         public string? Title { get; set; }
-    }
-
-    public class MediaLink
-    {
-        public string? Name { get; set; }
-        public required string Url { get; set; }
-        public MediaLinkType Type { get; set; }
     }
 }

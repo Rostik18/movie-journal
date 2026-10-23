@@ -116,9 +116,9 @@ namespace MovieJournalBackend.Endpoints
                         Visibility = request.Visibility,
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
-                        RuntimeMinutes = metadata.DurationSeconds / 60,
+                        Duration = metadata.DurationSeconds,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
-                        Links = [new() { Url = parsedItem.Url, Type = MediaLinkType.Other }],
+                        Links = [parsedItem.Url],
                         CollectionId = request.CollectionId
                     };
 

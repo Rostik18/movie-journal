@@ -15,7 +15,7 @@ namespace MovieJournalBackend.Contracts.Media
         string? Author,
         List<string> Genres,
         List<string> Tags,
-        List<MediaLink> Links,
+        List<string> Links,
         List<MediaActor> Cast,
         Visibility Visibility
         );

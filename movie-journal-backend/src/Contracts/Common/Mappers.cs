@@ -30,13 +30,24 @@ namespace MovieJournalBackend.Contracts.Common
             media.OriginalTitle,
             media.Type,
             media.ReleaseYear,
-            media.RuntimeMinutes,
+            media.DurationSec,
             media.PosterUrl,
             media.Author,
             media.Genres,
             media.Tags,
             media.Links,
             media.Cast,
+            media.Visibility);
+
+        public static MediaResponseSlim ToResponseSlim(this Entities.Media.Media media) => new(
+            media.Id!,
+            media.Title,
+            media.Type,
+            media.ReleaseYear,
+            media.DurationSec,
+            media.PosterUrl,
+            media.Genres,
+            media.Links,
             media.Visibility);
 
         public static MediaCollectionResponse ToResponse(this Entities.Media.MediaCollection collection) => new(
@@ -66,5 +77,12 @@ namespace MovieJournalBackend.Contracts.Common
             CurrentEpisodeNumber = entity.CurrentEpisodeNumber
         };
 
+        public static UserWatchingResponseSlim ToResponseSlim(this Entities.Journal.UserWatching entity, MediaResponseSlim media) => new()
+        {
+            Media = media,
+            Status = entity.Status,
+            Rating = entity.Rating,
+            Notes = entity.Notes,
+        };
     }
 }

@@ -67,7 +67,7 @@ namespace MovieJournalBackend.Services.Implementation
                 OriginalTitle = request.OriginalTitle,
                 Type = request.Type,
                 ReleaseYear = request.ReleaseYear,
-                RuntimeMinutes = request.RuntimeMinutes,
+                DurationSec = request.Duration,
                 PosterUrl = request.PosterUrl,
                 Visibility = request.Visibility,
 
@@ -121,9 +121,9 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.ReleaseYear = request.ReleaseYear.Value;
             }
-            if (request.RuntimeMinutes.HasValue)
+            if (request.Duration.HasValue)
             {
-                media.RuntimeMinutes = request.RuntimeMinutes.Value;
+                media.DurationSec = request.Duration.Value;
             }
             if (request.PosterUrl is not null)
             {

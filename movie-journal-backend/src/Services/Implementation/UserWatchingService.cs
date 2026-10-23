@@ -24,7 +24,7 @@ namespace MovieJournalBackend.Services.Implementation
             return watching.ToResponse(media!.ToResponse());
         }
 
-        public async Task<Page<UserWatchingResponse>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
+        public async Task<Page<UserWatchingResponseSlim>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
         {
             var page = await watchingRepository.SearchAsync(request, user, ct);
 
@@ -39,8 +39,8 @@ namespace MovieJournalBackend.Services.Implementation
 
             var items = page.Items
                 .Where(x => mediaById.ContainsKey(x.MediaId))
-                .Select(x => x.ToResponse(
-                    mediaById[x.MediaId].ToResponse()))
+                .Select(x => x.ToResponseSlim(
+                    mediaById[x.MediaId].ToResponseSlim()))
                 .ToList();
 
             return new(

@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapUserWatchingEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/user-watching/media/{mediaId}", GetByMediaAsync).Produces<UserWatchingResponse>().RequireAnyRole();
-            app.MapGet("/api/user-watching/search", SearchAsync).Produces<Page<UserWatchingResponse>>().RequireAnyRole();
+            app.MapGet("/api/user-watching/search", SearchAsync).Produces<Page<UserWatchingResponseSlim>>().RequireAnyRole();
             app.MapGet("/api/user-watching/statistics", GetStatisticsAsync).Produces<Dictionary<WatchStatus, long>>().RequireAnyRole();
             app.MapPost("/api/user-watching/", CreateAsync).Produces<UserWatchingResponse>().RequireAnyRole();
             app.MapPut("/api/user-watching/", UpdateAsync).Produces<UserWatchingResponse>().RequireAnyRole();

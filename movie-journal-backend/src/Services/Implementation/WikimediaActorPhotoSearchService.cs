@@ -104,9 +104,7 @@ namespace MovieJournalBackend.Services.Implementation
             return property.GetString();
         }
 
-        private static string? GetMetadataValue(
-            JsonElement metadata,
-            string propertyName)
+        private static string? GetMetadataValue(JsonElement metadata, string propertyName)
         {
             if (metadata.ValueKind != JsonValueKind.Object ||
                 !metadata.TryGetProperty(propertyName, out var property) ||
