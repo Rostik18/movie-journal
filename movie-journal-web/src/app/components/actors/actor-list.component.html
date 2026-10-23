@@ -2,7 +2,6 @@
     <header class="list-header">
         <h2 class="list-title">Актори</h2>
 
-        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
         <app-add-button label="Додати актора" (clicked)="openModal()" />
 
         <div class="list-actions">
@@ -89,6 +88,13 @@
         </table>
     </div>
     }
+
+    @if (totalCount() > 10) {
+    <div class="pagination-bottom">
+        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
+            (pageChange)="onPaginationChange($event)" />
+    </div>
+    }
     }
 
     <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА: створення або редагування -->
@@ -117,7 +123,6 @@
                 <span class="title-meta">(нар. {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }})</span>
             </p>
             }
-            <!-- Visibility може бути 0 (falsy), тому перевіряємо на null/undefined -->
             @if (actor.visibility !== null && actor.visibility !== undefined) {
             <p class="detail-row">
                 <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}

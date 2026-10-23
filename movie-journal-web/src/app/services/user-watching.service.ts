@@ -14,7 +14,7 @@ export class UserWatchingService {
     private http = inject(HttpClient);
 
     getById(id: string): Observable<UserWatchingItem> {
-        return this.http.get<UserWatchingItem>(`${this.baseUrl}/${id}`);
+        return this.http.get<UserWatchingItem>(`${this.baseUrl}/media/${id}`);
     }
 
     searchUserWatchingList(params: UserWatchingSearchParams = {}): Observable<PageResponse<UserWatchingResponseSlim>> {

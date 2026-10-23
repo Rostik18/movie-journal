@@ -2,6 +2,15 @@
    Глобальні стилі форм та полів вводу (Inputs, Selects, Textareas)
    ========================================================== */
 
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    /* Прибирає дефолтний скрол браузера для всього сайту */
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -928,4 +937,11 @@ textarea[aria-invalid="true"] {
         opacity: 0.6;
         cursor: not-allowed;
     }
+}
+
+.pagination-bottom {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+    margin-bottom: 10px;
 }

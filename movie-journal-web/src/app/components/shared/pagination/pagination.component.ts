@@ -73,6 +73,11 @@ export class PaginationComponent {
             return;
         }
         this.pageChange.emit({ offset: target * this.safeSize(), size: this.size() });
+
+        const contentContainer = document.querySelector('.app-content');
+        if (contentContainer) {
+            contentContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }
 
     onSizeChange(value: string): void {

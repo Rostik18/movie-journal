@@ -368,6 +368,8 @@ export class MovieListComponent implements OnInit {
 
     onPaginationChange(event: { offset: number; size: number }): void {
         this.updateParams({ offset: event.offset, size: event.size });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ====================== Пошук, фільтри, сортування ======================

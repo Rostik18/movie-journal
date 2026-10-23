@@ -258,6 +258,8 @@ export class CollectionListComponent implements OnInit {
     // ====================== Пагінація, пошук, фільтри, сортування ======================
     onPaginationChange(event: { offset: number; size: number }): void {
         this.updateParams({ offset: event.offset, size: event.size });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     onSearchQueryChanged(query: string): void {

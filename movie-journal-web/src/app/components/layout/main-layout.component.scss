@@ -17,6 +17,7 @@ $status-colors: (
     height: 100vh;
     height: 100dvh; // на мобільних враховує динамічну адресну стрічку
     font-family: sans-serif;
+    overflow: hidden;
 }
 
 /* ---------- Header ---------- */

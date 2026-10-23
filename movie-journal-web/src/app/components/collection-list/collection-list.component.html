@@ -2,7 +2,6 @@
     <header class="list-header">
         <h2 class="list-title">Колекції медіа</h2>
 
-        <!-- Кнопка по центру шапки; кількість показує сама пагінація («21–40 з 135») -->
         <app-add-button label="Додати колекцію" (clicked)="openModal()" />
 
         <div class="list-actions">
@@ -93,6 +92,13 @@
                 }
             </tbody>
         </table>
+    </div>
+    }
+
+    @if (totalCount() > 10) {
+    <div class="pagination-bottom">
+        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
+            (pageChange)="onPaginationChange($event)" />
     </div>
     }
     }

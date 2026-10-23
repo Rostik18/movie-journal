@@ -153,3 +153,41 @@
         color: #b91c1c;
     }
 }
+
+/* Стилі для табів перемикання режиму */
+.seed-tabs {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    gap: 4px;
+    margin-bottom: 5px;
+
+    .tab-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #1e293b;
+        }
+
+        &.active {
+            background: #ffffff;
+            color: #0ea5e9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
+    }
+}

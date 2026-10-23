@@ -1,13 +1,15 @@
 <form class="seed-form" (ngSubmit)="onSubmit()">
     <h3>Імпорт / Seed даних</h3>
 
-    <!-- Вибір режиму Seed -->
-    <div class="form-group">
-        <label>Тип імпорту:</label>
-        <select [ngModel]="seedMode()" (ngModelChange)="seedMode.set($event)" name="seedMode">
-            <option value="userWatch">Дані перегляду (User Watch)</option>
-            <option value="actors">Актори (Actors)</option>
-        </select>
+    <!-- Таби перемикання режиму Seed зверху -->
+    <div class="seed-tabs">
+        <button type="button" class="tab-btn" [class.active]="seedMode() === 'userWatch'"
+            (click)="seedMode.set('userWatch')">
+            Дані перегляду (User Watch)
+        </button>
+        <button type="button" class="tab-btn" [class.active]="seedMode() === 'actors'" (click)="seedMode.set('actors')">
+            Актори (Actors)
+        </button>
     </div>
 
     <div class="form-row">
