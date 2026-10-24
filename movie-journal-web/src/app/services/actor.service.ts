@@ -18,7 +18,7 @@ export class ActorService {
         let httpParams = new HttpParams();
 
         if (params.query) {
-            httpParams = httpParams.set('name', params.query);
+            httpParams = httpParams.set('query', params.query);
         }
         if (params.birthYear !== undefined && params.birthYear !== null) {
             httpParams = httpParams.set('birthYear', params.birthYear.toString());
@@ -40,6 +40,9 @@ export class ActorService {
         }
         if (params.visibility !== undefined && params.visibility !== null) {
             httpParams = httpParams.set('visibility', params.visibility.toString());
+        }
+        if (params.Sex !== undefined && params.Sex !== null) {
+            httpParams = httpParams.set('sex', params.Sex.toString());
         }
 
         return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });

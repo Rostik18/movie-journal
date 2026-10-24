@@ -1,8 +1,15 @@
 <div class="watching-form-card">
-    <h3>Додати до списку перегляду</h3>
+    <h3>{{ isEditMode() ? 'Редагувати запис у списку' : 'Додати до списку перегляду' }}</h3>
 
-    <!-- 1. Пошук існуючого фільму -->
-    @if (!isCreatingNewMedia()) {
+    <!-- 1. Пошук існуючого фільму (у редагуванні медіа не змінюється) -->
+    @if (isEditMode()) {
+    <div class="form-group">
+        <label>Фільм / Серіал</label>
+        <div class="selected-success">
+            <span>🎬 <strong>{{ selectedMediaTitle }}</strong></span>
+        </div>
+    </div>
+    } @else if (!isCreatingNewMedia()) {
     <div class="form-group media-search">
         <label for="mediaSearch">Фільм / Серіал *</label>
         <div class="search-input-wrapper">
@@ -99,8 +106,9 @@
 
     <!-- Єдина кнопка збереження для всієї форми -->
     <div class="form-actions">
-        <button type="button" class="btn-submit" [disabled]="isBusy()" (click)="onSubmit()">
-            {{ isBusy() ? 'Збереження…' : 'Зберегти у список' }}
+        <button type="button" class="btn-submit" [disabled]="isBusy() || (isEditMode() && !hasChanges())"
+            (click)="onSubmit()">
+            {{ isBusy() ? 'Збереження…' : (isEditMode() ? 'Зберегти зміни' : 'Зберегти у список') }}
         </button>
     </div>
 </div>

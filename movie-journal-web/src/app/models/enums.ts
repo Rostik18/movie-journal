@@ -53,3 +53,13 @@ export const WatchStatusLabels: Record<WatchStatus, string> = {
     [WatchStatus.Watched]: 'Переглянуто',
     [WatchStatus.Dropped]: 'Покинуто'
 };
+
+export enum Sex {
+    Male = 'Male',
+    Female = 'Female'
+}
+
+export const SexLabels: Record<Sex, string> = {
+    [Sex.Male]: 'Чоловік',
+    [Sex.Female]: 'Жінка'
+};

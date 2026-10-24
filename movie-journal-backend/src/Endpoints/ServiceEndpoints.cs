@@ -126,7 +126,7 @@ namespace MovieJournalBackend.Endpoints
                     foreach (var actor in actors)
                     {
                         if (media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
-                            parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) == false ||
+                           (parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
                            (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false))
                         {
                             media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });

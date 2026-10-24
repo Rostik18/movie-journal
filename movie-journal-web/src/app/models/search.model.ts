@@ -1,4 +1,4 @@
-import { MediaType, UserRole, Visibility, WatchStatus } from './enums';
+import { MediaType, Sex, UserRole, Visibility, WatchStatus } from './enums';
 
 export enum SortDirection {
     Ascending = 'Ascending',
@@ -9,7 +9,8 @@ export enum ActorSortField {
     FullName = 'FullName',
     BirthDate = 'BirthDate',
     CreatedAt = 'CreatedAt',
-    UpdatedAt = 'UpdatedAt'
+    UpdatedAt = 'UpdatedAt',
+    Sex = 'Sex'
 }
 
 export enum MediaCollectionSortField {
@@ -47,6 +48,7 @@ export interface ActorSearchParams {
     offset?: number;
     size?: number;
     visibility?: Visibility;
+    Sex?: Sex | null;
 }
 
 export interface CollectionSearchParams {

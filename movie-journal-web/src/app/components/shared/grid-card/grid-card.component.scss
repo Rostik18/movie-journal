@@ -21,6 +21,12 @@
         outline-offset: 2px;
     }
 
+    &:hover .image-wrapper .overlay,
+    &:focus-within .image-wrapper .overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
     /* Обгортка зображення */
     .image-wrapper {
         position: relative;
@@ -63,6 +69,14 @@
             display: flex;
             align-items: center;
             gap: 6px;
+
+            /* Приховано, поки курсор не над карткою (або фокус усередині — для клавіатури).
+               На пристроях без hover (touch) оверлеї видно завжди, інакше вони недоступні. */
+            @media (hover: hover) {
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease, visibility 0.2s ease;
+            }
 
             &.overlay-top-left {
                 top: 10px;
@@ -132,6 +146,10 @@
 @media (prefers-reduced-motion: reduce) {
     .card {
         transition: none;
+
+        .image-wrapper .overlay {
+            transition: none;
+        }
 
         &:hover {
             transform: none;

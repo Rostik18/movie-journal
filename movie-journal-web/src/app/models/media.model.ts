@@ -13,6 +13,7 @@ export interface MediaItem {
     genres: string[];
     tags: string[];
     links: string[];
+    cast: MediaActor[];
     visibility: Visibility;
 }
 
@@ -65,6 +66,7 @@ export interface CreateMediaRequest {
 export interface UpdateMediaRequest {
     mediaId: string;
     title?: string | null;
+    type?: MediaType | null;
     description?: string | null;
     originalTitle?: string | null;
     releaseYear?: number | null;

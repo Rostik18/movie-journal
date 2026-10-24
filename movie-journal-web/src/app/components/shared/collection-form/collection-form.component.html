@@ -1,5 +1,5 @@
 <div class="collection-form-card">
-    <h3>Створити нову колекцію</h3>
+    <h3>{{ isEditMode() ? 'Редагувати колекцію' : 'Створити нову колекцію' }}</h3>
 
     <form (ngSubmit)="onSubmit()">
         <div class="form-group">
@@ -23,7 +23,7 @@
             <div class="form-group" style="flex: 1;">
                 <label>Видимість</label>
                 <select [(ngModel)]="collectionData.visibility" name="visibility">
-                    <option *ngFor="let opt of visibilityOptions" [value]="opt.value">{{ opt.label }}</option>
+                    <option *ngFor="let opt of visibilityOptions" [ngValue]="opt.value">{{ opt.label }}</option>
                 </select>
             </div>
         </div>
@@ -43,7 +43,9 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn-submit">Зберегти колекцію</button>
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting() || (isEditMode() && !hasChanges())">
+                {{ isEditMode() ? 'Зберегти зміни' : 'Зберегти колекцію' }}
+            </button>
         </div>
     </form>
 </div>

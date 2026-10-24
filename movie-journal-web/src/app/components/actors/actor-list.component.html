@@ -123,6 +123,13 @@
                 <span class="title-meta">(нар. {{ actor.birthDate | date:'dd.MM.yyyy':'UTC' }})</span>
             </p>
             }
+
+            @if (actor.sex !== null && actor.sex !== undefined) {
+            <p class="detail-row">
+                <strong>Стать:</strong> {{ sexLabels[actor.sex] }}
+            </p>
+            }
+
             @if (actor.visibility !== null && actor.visibility !== undefined) {
             <p class="detail-row">
                 <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}

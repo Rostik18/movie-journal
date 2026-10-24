@@ -3,12 +3,12 @@
 
     <!-- Таби перемикання режиму Seed зверху -->
     <div class="seed-tabs">
+        <button type="button" class="tab-btn" [class.active]="seedMode() === 'actors'" (click)="seedMode.set('actors')">
+            Актори (Actors)
+        </button>
         <button type="button" class="tab-btn" [class.active]="seedMode() === 'userWatch'"
             (click)="seedMode.set('userWatch')">
             Дані перегляду (User Watch)
-        </button>
-        <button type="button" class="tab-btn" [class.active]="seedMode() === 'actors'" (click)="seedMode.set('actors')">
-            Актори (Actors)
         </button>
     </div>
 
@@ -45,7 +45,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Автор (опціонально):</label>
+            <label>Автор:</label>
             <input type="text" [ngModel]="authorInput()" (ngModelChange)="authorInput.set($event)" name="author"
                 placeholder="Введіть автора...">
         </div>
@@ -53,7 +53,7 @@
 
     <div class="form-row">
         <div class="form-group">
-            <label>Колекція (опціонально):</label>
+            <label>Колекція:</label>
             <select [ngModel]="selectedCollectionId()" (ngModelChange)="selectedCollectionId.set($event)"
                 name="collectionId">
                 <option [ngValue]="null">— Без колекції —</option>
@@ -74,14 +74,14 @@
     <div class="form-group">
         <label>Дані (Payload):</label>
         <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
-            [placeholder]="seedMode() === 'userWatch' ? 'https://example1.com    name1    6' : 'Name [TAB] BirthDate [TAB] Biography [TAB] PhotoUrl'"
+            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    10' : 'name   https://photo-url.com   20.04.2010    biography   Male'"
             required>
         </textarea>
         <small class="hint">
             @if (seedMode() === 'userWatch') {
             Вставте рядки у форматі: URL [TAB] Назва [TAB] Оцінка
             } @else {
-            Вставте дані для акторів у форматі payload.
+            Вставте рядки у форматі: Назва [TAB] Фото URL [TAB] Дата народження [TAB] Біографія [TAB] Стать
             }
         </small>
     </div>

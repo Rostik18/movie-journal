@@ -1,4 +1,4 @@
-import { Visibility } from "./enums";
+import { Sex, Visibility } from "./enums";
 
 export interface ActorItem {
     id: string;
@@ -7,6 +7,7 @@ export interface ActorItem {
     biography: string | null;
     photoUrl: string | null;
     visibility: Visibility;
+    sex?: Sex | null;
 }
 
 export interface CreateActorRequest {
@@ -15,6 +16,7 @@ export interface CreateActorRequest {
     biography?: string | null;
     photoUrl?: string | null;
     visibility: Visibility;
+    sex?: Sex | null;
 }
 
 export interface UpdateActorRequest {
@@ -24,4 +26,5 @@ export interface UpdateActorRequest {
     biography?: string | null;
     photoUrl?: string | null;
     visibility?: Visibility | null;
+    sex?: Sex | null;
 }

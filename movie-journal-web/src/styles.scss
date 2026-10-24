@@ -655,6 +655,18 @@ $text-body: #334155;
         margin: 0 0 8px 0;
     }
 
+    // Рядок «Мітка: чіпи» (жанри, теги) — в одну лінію з переносом чіпів
+    .detail-row-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+
+        .genres {
+            margin-bottom: 0;
+        }
+    }
+
     .genres-section,
     .tags-section,
     .description-section {
@@ -944,4 +956,83 @@ textarea[aria-invalid="true"] {
     justify-content: flex-end;
     margin-top: 30px;
     margin-bottom: 10px;
+}
+
+/* Стилі списку акторів у бічному меню деталей */
+.actors-section {
+    margin-top: 16px;
+
+    h4 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+        font-size: 1rem;
+    }
+
+    .actors-sidebar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .actor-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+
+            .actor-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                object-fit: cover;
+                flex-shrink: 0;
+                cursor: pointer;
+                transition: transform 0.25s ease, box-shadow 0.25s ease, border-radius 0.25s ease;
+
+                /* Збільшуємо праворуч, щоб не виходити за лівий край сайдбару */
+                transform-origin: left center;
+
+                &:hover {
+                    transform: scale(5);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+                    border-radius: 8px;
+                    z-index: 100;
+                    position: relative;
+                }
+            }
+
+            .actor-no-photo {
+                background: #cbd5e1;
+                color: #475569;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.9rem;
+            }
+
+            .actor-info {
+                display: flex;
+                flex-direction: column;
+                font-size: 0.9rem;
+                overflow: hidden;
+
+                .actor-name {
+                    color: #1e293b;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+
+                .actor-character {
+                    color: #64748b;
+                    font-size: 0.8rem;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+            }
+        }
+    }
 }

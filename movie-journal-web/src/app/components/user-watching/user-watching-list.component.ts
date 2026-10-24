@@ -1,6 +1,6 @@
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, of } from 'rxjs';
+import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { UserWatchingService } from '../../services/user-watching.service';
@@ -20,6 +20,7 @@ import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sideb
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { DatePipe } from '@angular/common';
+import { ActorService } from '../../services/actor.service';
 
 type DeleteCallback = () => ReturnType<UserWatchingService['deleteUserWatching']>;
 
@@ -28,6 +29,12 @@ const FILTER_KEYS = ['status', 'type', 'hasRating', 'hasNotes', 'visibility'] as
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const DEFAULT_PAGE_SIZE = 20;
+
+export interface CastActorView {
+    fullName: string;
+    photoUrl: string | null;
+    characterName?: string | null;
+}
 
 @Component({
     selector: 'app-user-watching-list',
@@ -50,6 +57,7 @@ export class UserWatchingListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly actorService = inject(ActorService);
 
     readonly watchingList = signal<UserWatchingResponseSlim[]>([]);
     readonly totalCount = signal(0);
@@ -58,6 +66,9 @@ export class UserWatchingListComponent implements OnInit {
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
+    /** Запис, що редагується; null — модалка працює в режимі додавання. */
+    readonly editingItem = signal<UserWatchingItem | null>(null);
+    private readonly watchingForm = viewChild(UserWatchingFormComponent);
 
     // ---------- Сайдбар деталей ----------
     /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
@@ -153,6 +164,8 @@ export class UserWatchingListComponent implements OnInit {
         return item ? this.getDeleteCallback(item) : undefined;
     });
 
+    readonly watchingActors = signal<CastActorView[]>([]);
+
     constructor() {
         // switchMap скасовує попередній запит, якщо список перезавантажили повторно
         this.reload$.pipe(
@@ -190,8 +203,27 @@ export class UserWatchingListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
-                return this.userWatchingService.getById(mediaId).pipe(
-                    map(item => ({ ok: true as const, item })),
+                this.watchingActors.set([]);
+                return this.userWatchingService.getByMediaId(mediaId).pipe(
+                    switchMap(item => {
+                        const media = item.media;
+                        if (!media || !media.cast || media.cast.length === 0) {
+                            return of({ ok: true as const, item, actors: [] });
+                        }
+                        const actorObservables = media.cast.map(c =>
+                            this.actorService.getActorById(c.actorId).pipe(
+                                map(actor => ({ fullName: actor.fullName, photoUrl: actor.photoUrl, characterName: c.characterName } as CastActorView)),
+                                catchError(() => of(null))
+                            )
+                        );
+                        return forkJoin(actorObservables).pipe(
+                            map(actors => ({
+                                ok: true as const,
+                                item,
+                                actors: actors.filter(a => a !== null)
+                            }))
+                        );
+                    }),
                     catchError(err => {
                         console.error('Помилка завантаження деталей:', err);
                         return of({ ok: false as const });
@@ -206,6 +238,7 @@ export class UserWatchingListComponent implements OnInit {
             }
             if (result.ok) {
                 this.selectedItem.set(result.item);
+                this.watchingActors.set(result.actors);
             } else {
                 this.detailsError.set(true);
                 this.toastService.show('Не вдалося завантажити деталі.', 'error', 4000);
@@ -273,7 +306,13 @@ export class UserWatchingListComponent implements OnInit {
     }
 
     onEditItem(): void {
-        console.log('Редагувати елемент списку:', this.selectedSlim()?.media?.id);
+        const item = this.selectedItem();
+        if (!item) {
+            this.toastService.show('Деталі ще завантажуються.', 'info', 3000);
+            return;
+        }
+        this.editingItem.set(item);
+        this.isModalOpen.set(true);
     }
 
     // ====================== Рейтинг ======================
@@ -353,23 +392,54 @@ export class UserWatchingListComponent implements OnInit {
 
     // ====================== Модальне вікно ======================
     openModal(): void {
+        this.editingItem.set(null);
         this.isModalOpen.set(true);
     }
 
     closeModal(): void {
         this.isModalOpen.set(false);
+        this.editingItem.set(null);
     }
 
     onBackdropMouseDown(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
-            this.closeModal();
+            this.closeModalUnlessDirty();
         }
     }
 
     @HostListener('document:keydown.escape')
     onEscape(): void {
         if (this.isModalOpen()) {
+            this.closeModalUnlessDirty();
+        }
+    }
+
+    /** Backdrop/Escape не закривають форму з незбереженими змінами (хрестик — закриває завжди). */
+    private closeModalUnlessDirty(): void {
+        if (!this.watchingForm()?.hasChanges()) {
             this.closeModal();
+        }
+    }
+
+    onWatchingUpdated(updated: UserWatchingItem): void {
+        this.closeModal();
+
+        const mediaId = updated.media?.id ?? this.selectedSlim()?.media?.id;
+        if (!mediaId) {
+            this.loadList();
+            return;
+        }
+
+        this.watchingList.update(list => list.map(i => i.media?.id === mediaId
+            ? { ...i, status: updated.status, rating: updated.rating, notes: updated.notes }
+            : i));
+
+        const slim = this.selectedSlim();
+        if (slim?.media?.id === mediaId) {
+            this.selectedSlim.set({ ...slim, status: updated.status, rating: updated.rating, notes: updated.notes });
+        }
+        if (this.selectedItem()?.media?.id === mediaId) {
+            this.selectedItem.update(current => (current ? { ...current, ...updated, media: updated.media ?? current.media } : current));
         }
     }
 

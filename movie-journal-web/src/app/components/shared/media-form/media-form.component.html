@@ -1,5 +1,5 @@
 <div class="media-form-card">
-    <h3>Додати новий фільм / серіал</h3>
+    <h3>{{ isEditMode() ? 'Редагувати фільм / серіал' : 'Додати новий фільм / серіал' }}</h3>
 
     <!-- Enter у текстових полях не сабмітить форму (кнопки працюють як звичайно) -->
     <form (ngSubmit)="submit()" (keydown.enter)="onFormEnter($event)">
@@ -77,7 +77,8 @@
                     <input id="author" type="text" [(ngModel)]="mediaData.author" name="author">
                 </div>
 
-                <!-- Колекція -->
+                <!-- Колекція (недоступна в редагуванні: у MediaItem її немає) -->
+                @if (!isEditMode()) {
                 <div class="form-group collection-section">
                     <label for="collection">Колекція (опціонально)</label>
                     <div class="collection-input-wrapper">
@@ -115,6 +116,7 @@
                     </div>
                     }
                 </div>
+                }
             </div>
 
             <div class="poster-preview-section" title="Прев'ю постера">
@@ -143,7 +145,15 @@
             </div>
         </div>
 
-        <!-- Акторський склад -->
+        <!-- Опис -->
+        <div class="form-group">
+            <label for="description">Опис</label>
+            <textarea id="description" name="description" [(ngModel)]="mediaData.description" rows="3"
+                placeholder="Короткий опис..."></textarea>
+        </div>
+
+        <!-- Акторський склад (лише при створенні) -->
+        @if (!isEditMode()) {
         <div class="cast-section">
             <div class="section-header">
                 <h4>Акторський склад (Cast)</h4>
@@ -185,8 +195,10 @@
             }
         </div>
 
-        <!-- Сезони (тільки для серіалу) -->
-        @if (isSeries) {
+        }
+
+        <!-- Сезони (тільки для серіалу, лише при створенні) -->
+        @if (isSeries && !isEditMode()) {
         <div class="seasons-section">
             <div class="section-header">
                 <h4>Сезони та епізоди</h4>
@@ -236,8 +248,12 @@
 
         @if (!embedded()) {
         <div class="form-actions">
-            <button type="submit" class="btn-submit" [disabled]="isSubmitting()">
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting() || (isEditMode() && !hasChanges())">
+                @if (isEditMode()) {
+                {{ isSubmitting() ? 'Збереження…' : 'Зберегти зміни' }}
+                } @else {
                 {{ isSubmitting() ? 'Створення…' : 'Створити медіа' }}
+                }
             </button>
         </div>
         }

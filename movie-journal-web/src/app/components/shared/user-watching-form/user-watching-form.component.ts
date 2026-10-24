@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, output, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subject, of } from 'rxjs';
@@ -11,7 +11,7 @@ import { UserWatchingService } from '../../../services/user-watching.service';
 import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
 import { MediaItem } from '../../../models/media.model';
-import { CreateUserWatchingRequest } from '../../../models/user-watching.model';
+import { CreateUserWatchingRequest, UpdateUserWatchingRequest, UserWatchingItem } from '../../../models/user-watching.model';
 
 type SearchOutcome =
     | { kind: 'empty' }
@@ -19,6 +19,25 @@ type SearchOutcome =
     | { kind: 'items'; query: string; items: MediaItem[] };
 
 const SEARCH_DEBOUNCE_MS = 300;
+
+/** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
+interface WatchingSnapshot {
+    status: WatchStatus;
+    rating: number | null;
+    notes: string;
+    stoppedAtSeconds: number | null;
+    currentSeasonNumber: number | null;
+    currentEpisodeNumber: number | null;
+}
+
+const emptySnapshot = (): WatchingSnapshot => ({
+    status: WatchStatus.Watching,
+    rating: null,
+    notes: '',
+    stoppedAtSeconds: null,
+    currentSeasonNumber: null,
+    currentEpisodeNumber: null
+});
 
 const createEmptyWatching = (): CreateUserWatchingRequest => ({
     mediaId: '',
@@ -37,13 +56,21 @@ const createEmptyWatching = (): CreateUserWatchingRequest => ({
     templateUrl: './user-watching-form.component.html',
     styleUrls: ['./user-watching-form.component.scss']
 })
-export class UserWatchingFormComponent {
+export class UserWatchingFormComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly mediaService = inject(MediaService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
 
     readonly watchingCreated = output<void>();
+
+    /** Якщо передано запис — форма працює в режимі редагування (медіа не змінюється). */
+    readonly watching = input<UserWatchingItem | null>(null);
+    readonly isEditMode = computed(() => this.watching() !== null);
+    /** Повертає збережену на сервері версію після успішного оновлення. */
+    readonly watchingUpdated = output<UserWatchingItem>();
+
+    private baseline: WatchingSnapshot = emptySnapshot();
 
     private readonly mediaForm = viewChild(MediaFormComponent);
 
@@ -123,6 +150,48 @@ export class UserWatchingFormComponent {
             }),
             takeUntilDestroyed()
         ).subscribe(outcome => this.applySearchOutcome(outcome));
+    }
+
+    ngOnInit(): void {
+        const item = this.watching();
+        if (!item) {
+            return;
+        }
+
+        this.formData = {
+            mediaId: item.media.id,
+            status: item.status,
+            rating: item.rating ?? null,
+            notes: item.notes ?? '',
+            stoppedAtSeconds: item.stoppedAtSeconds ?? null,
+            currentSeasonNumber: item.currentSeasonNumber ?? null,
+            currentEpisodeNumber: item.currentEpisodeNumber ?? null
+        };
+        this.selectedMediaTitle = item.media.title;
+        this.selectedMediaType = item.media.type;
+        this.baseline = this.snapshot();
+    }
+
+    private snapshot(): WatchingSnapshot {
+        const d = this.formData;
+        return {
+            status: d.status,
+            rating: d.rating ?? null,
+            notes: (d.notes ?? '').trim(),
+            stoppedAtSeconds: d.stoppedAtSeconds ?? null,
+            currentSeasonNumber: d.currentSeasonNumber ?? null,
+            currentEpisodeNumber: d.currentEpisodeNumber ?? null
+        };
+    }
+
+    /** Чи відрізняється форма від початкового стану (у створенні — чи щось введено). */
+    hasChanges(): boolean {
+        if (!this.isEditMode() && (this.formData.mediaId || this.mediaSearchQuery.trim() || this.isCreatingNewMedia())) {
+            return true;
+        }
+
+        const current = this.snapshot();
+        return (Object.keys(current) as (keyof WatchingSnapshot)[]).some(key => current[key] !== this.baseline[key]);
     }
 
     // ====================== Пошук медіа ======================
@@ -236,6 +305,11 @@ export class UserWatchingFormComponent {
             return;
         }
 
+        if (this.isEditMode()) {
+            this.update();
+            return;
+        }
+
         if (this.isCreatingNewMedia()) {
             this.mediaForm()?.submit();
             return;
@@ -274,6 +348,71 @@ export class UserWatchingFormComponent {
                 this.toastService.show('Не вдалося додати до списку перегляду.', 'error', 6000);
             }
         });
+    }
+
+    private update(): void {
+        const item = this.watching();
+        if (!item || !this.hasChanges()) {
+            return;
+        }
+
+        const request = this.buildUpdatePayload(item.media.id);
+        if (!request) {
+            return;
+        }
+
+        this.isSavingWatching.set(true);
+
+        this.userWatchingService.updateWatchlist(request).pipe(
+            finalize(() => this.isSavingWatching.set(false)),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: updated => {
+                this.toastService.show('Запис у списку оновлено ✅', 'success', 4000);
+                this.baseline = this.snapshot();
+                this.watchingUpdated.emit(updated);
+            },
+            error: err => {
+                console.error('Помилка оновлення запису списку перегляду:', err);
+                this.toastService.show('Не вдалося оновити запис списку перегляду.', 'error', 6000);
+            }
+        });
+    }
+
+    /**
+     * Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює),
+     * тому збережені числові значення очистити неможливо — повертаємо помилку валідації.
+     */
+    private buildUpdatePayload(mediaId: string): UpdateUserWatchingRequest | null {
+        const cur = this.snapshot();
+        const base = this.baseline;
+        const isWatching = cur.status === WatchStatus.Watching;
+        const showProgress = this.showProgressFields;
+
+        if (isWatching && cur.stoppedAtSeconds == null && base.stoppedAtSeconds != null) {
+            this.toastService.show('Час зупинки не можна очистити після збереження — вкажіть інше значення.', 'error');
+            return null;
+        }
+        if (showProgress && (
+            (cur.currentSeasonNumber == null && base.currentSeasonNumber != null) ||
+            (cur.currentEpisodeNumber == null && base.currentEpisodeNumber != null))) {
+            this.toastService.show('Сезон / епізод не можна очистити після збереження — вкажіть інше значення.', 'error');
+            return null;
+        }
+
+        const stoppedChanged = isWatching && cur.stoppedAtSeconds !== base.stoppedAtSeconds;
+        const seasonChanged = showProgress && cur.currentSeasonNumber !== base.currentSeasonNumber;
+        const episodeChanged = showProgress && cur.currentEpisodeNumber !== base.currentEpisodeNumber;
+
+        return {
+            mediaId,
+            status: cur.status !== base.status ? cur.status : null,
+            rating: cur.rating !== base.rating ? cur.rating : null,
+            notes: cur.notes !== base.notes ? cur.notes : null,
+            stoppedAtSeconds: stoppedChanged ? cur.stoppedAtSeconds : null,
+            currentSeasonNumber: seasonChanged ? cur.currentSeasonNumber : null,
+            currentEpisodeNumber: episodeChanged ? cur.currentEpisodeNumber : null
+        };
     }
 
     private resetForm(): void {

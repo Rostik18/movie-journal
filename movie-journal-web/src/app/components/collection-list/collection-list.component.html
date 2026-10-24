@@ -103,13 +103,15 @@
     }
     }
 
-    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ КОЛЕКЦІЇ -->
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ КОЛЕКЦІЇ -->
     @if (isModalOpen()) {
     <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
-        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати нову колекцію">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="editingCollection() ? 'Редагувати колекцію' : 'Додати нову колекцію'">
             <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
 
-            <app-collection-form (collectionCreated)="onCollectionCreated()" />
+            <app-collection-form [collection]="editingCollection()" (collectionCreated)="onCollectionCreated()"
+                (collectionUpdated)="onCollectionUpdated($event)" />
         </div>
     </div>
     }
@@ -127,9 +129,16 @@
             <p class="detail-row"><strong>Видимість:</strong> {{ visibilityLabels[col.visibility] }}</p>
             }
 
+            @if (col.description) {
+            <div class="description-section">
+                <h4>Опис</h4>
+                <p>{{ col.description }}</p>
+            </div>
+            }
+
             @if (col.tags?.length) {
-            <div class="tags-section">
-                <h4>Теги</h4>
+            <div class="detail-row detail-row-chips">
+                <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of col.tags; track tag) {
                     <span class="tag-chip">#{{ tag }}</span>

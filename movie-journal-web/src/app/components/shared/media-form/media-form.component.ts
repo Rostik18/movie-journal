@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, OnInit, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
@@ -11,7 +11,7 @@ import { ActorService } from '../../../services/actor.service';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
-import { CreateMediaRequest } from '../../../models/media.model';
+import { CreateMediaRequest, MediaItem, UpdateMediaRequest } from '../../../models/media.model';
 
 type ActorId = CreateMediaRequest['cast'][number]['actorId'];
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
@@ -29,6 +29,22 @@ const SEARCH_DEBOUNCE_MS = 300;
 const MIN_RELEASE_YEAR = 1888;
 const MAX_RELEASE_YEAR = 2100;
 const MAX_AUTO_TAGS = 10;
+
+/** Поля, які можна редагувати; порівнюються з baseline для dirty-check і payload. */
+interface Snapshot {
+    title: string;
+    type: MediaType;
+    description: string;
+    originalTitle: string;
+    releaseYear: number | null;
+    duration: number | null;
+    posterUrl: string;
+    author: string;
+    visibility: Visibility;
+    genres: string;
+    tags: string;
+    links: string;
+}
 
 const createEmptyMedia = (): CreateMediaRequest => ({
     title: '',
@@ -72,6 +88,14 @@ export class MediaFormComponent implements OnInit {
     readonly initialTitle = input('');
     readonly mediaCreated = output<void>();
     readonly mediaCreatedWithData = output<any>();
+
+    /** Якщо передано фільм — форма працює в режимі редагування. */
+    readonly media = input<MediaItem | null>(null);
+    readonly isEditMode = computed(() => this.media() !== null);
+    /** Повертає збережену на сервері версію після успішного оновлення. */
+    readonly mediaUpdated = output<MediaItem>();
+
+    private baseline: Snapshot | null = null;
 
     mediaData: CreateMediaRequest = createEmptyMedia();
     genresInput = '';
@@ -156,6 +180,15 @@ export class MediaFormComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        const media = this.media();
+        if (media) {
+            this.populateFrom(media);
+            return;
+        }
+
+        // Порожня форма — точка відліку для hasChanges() у режимі створення
+        this.baseline = this.snapshot();
+
         const title = this.initialTitle().trim();
         if (title) {
             this.mediaData.title = title;
@@ -165,6 +198,56 @@ export class MediaFormComponent implements OnInit {
         if (url) {
             this.initFromUrl(url);
         }
+    }
+
+    private populateFrom(media: MediaItem): void {
+        this.mediaData = {
+            ...createEmptyMedia(),
+            title: media.title ?? '',
+            description: media.description ?? '',
+            originalTitle: media.originalTitle ?? '',
+            author: media.author ?? null,
+            type: media.type,
+            releaseYear: media.releaseYear ?? null,
+            duration: media.duration ?? null,
+            posterUrl: media.posterUrl ?? '',
+            visibility: media.visibility,
+            links: [...(media.links ?? [])]
+        };
+        this.genresInput = (media.genres ?? []).join(', ');
+        this.tagsInput = (media.tags ?? []).join(', ');
+        this.imageError = false;
+        // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
+        this.typeTouched = true;
+        this.baseline = this.snapshot();
+    }
+
+    private snapshot(): Snapshot {
+        const d = this.mediaData;
+        return {
+            title: d.title.trim(),
+            type: d.type,
+            description: (d.description ?? '').trim(),
+            originalTitle: (d.originalTitle ?? '').trim(),
+            releaseYear: d.releaseYear ?? null,
+            duration: d.duration ?? null,
+            posterUrl: (d.posterUrl ?? '').trim(),
+            author: (d.author ?? '').trim(),
+            visibility: d.visibility,
+            genres: parseCommaList(this.genresInput).join('\u0000'),
+            tags: parseCommaList(this.tagsInput).join('\u0000'),
+            links: d.links.join('\u0000')
+        };
+    }
+
+    /** У редагуванні — чи змінилось щось відносно збереженого запису; у створенні завжди true. */
+    hasChanges(): boolean {
+        if (!this.baseline) {
+            return true;
+        }
+        const current = this.snapshot();
+        const base = this.baseline;
+        return (Object.keys(current) as (keyof Snapshot)[]).some(key => current[key] !== base[key]);
     }
 
     get isSeries(): boolean {
@@ -446,6 +529,11 @@ export class MediaFormComponent implements OnInit {
     }
 
     submit(): void {
+        if (this.isEditMode()) {
+            this.update();
+            return;
+        }
+
         if (this.isSubmitting() || !this.validate()) {
             return;
         }
@@ -465,6 +553,58 @@ export class MediaFormComponent implements OnInit {
         });
     }
 
+    private update(): void {
+        const media = this.media();
+        if (!media || this.isSubmitting() || !this.hasChanges() || !this.validate()) {
+            return;
+        }
+
+        const request = this.buildUpdatePayload(media.id);
+        this.isSubmitting.set(true);
+
+        this.mediaService.updateMedia(request).pipe(
+            finalize(() => this.isSubmitting.set(false)),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: updated => {
+                this.toastService.show(`Фільм "${updated?.title ?? this.mediaData.title}" оновлено ✅`, 'success', 4000);
+                // Нова точка відліку: форма знову "чиста"
+                this.baseline = this.snapshot();
+                this.mediaUpdated.emit(updated);
+            },
+            error: err => {
+                console.error('Помилка оновлення медіа:', err);
+                this.toastService.show(`Не вдалося оновити "${this.mediaData.title}".`, 'error', 6000);
+            }
+        });
+    }
+
+    /** Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює). */
+    private buildUpdatePayload(mediaId: string): UpdateMediaRequest {
+        const cur = this.snapshot();
+        const base = this.baseline!;
+        const changed = <K extends keyof Snapshot>(key: K): boolean => cur[key] !== base[key];
+
+        return {
+            mediaId,
+            title: changed('title') ? cur.title : null,
+            type: changed('type') ? cur.type : null,
+            description: changed('description') ? cur.description : null,
+            originalTitle: changed('originalTitle') ? cur.originalTitle : null,
+            releaseYear: changed('releaseYear') ? cur.releaseYear : null,
+            duration: changed('duration') ? cur.duration : null,
+            posterUrl: changed('posterUrl') ? cur.posterUrl : null,
+            author: changed('author') ? cur.author : null,
+            visibility: changed('visibility') ? cur.visibility : null,
+            genres: changed('genres') ? parseCommaList(this.genresInput) : null,
+            tags: changed('tags') ? parseCommaList(this.tagsInput) : null,
+            links: changed('links') ? [...this.mediaData.links] : null,
+            cast: null,
+            seasons: null,
+            collectionId: null
+        };
+    }
+
     onSubmitStandalone(): void {
         this.submit();
     }
@@ -475,6 +615,16 @@ export class MediaFormComponent implements OnInit {
         if (!title.trim()) {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
             return false;
+        }
+        if (this.baseline) {
+            if (releaseYear == null && this.baseline.releaseYear != null) {
+                this.toastService.show('Рік випуску не можна очистити після збереження — вкажіть інше значення.', 'error');
+                return false;
+            }
+            if (duration == null && this.baseline.duration != null) {
+                this.toastService.show('Тривалість не можна очистити після збереження — вкажіть інше значення.', 'error');
+                return false;
+            }
         }
         if (releaseYear != null && (releaseYear < MIN_RELEASE_YEAR || releaseYear > MAX_RELEASE_YEAR)) {
             this.toastService.show(`Рік випуску має бути між ${MIN_RELEASE_YEAR} та ${MAX_RELEASE_YEAR}.`, 'error');

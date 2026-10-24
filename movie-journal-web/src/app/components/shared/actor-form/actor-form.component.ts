@@ -5,7 +5,7 @@ import { finalize } from 'rxjs/operators';
 
 import { ActorService } from '../../../services/actor.service';
 import { ToastService } from '../../../services/toast.service';
-import { Visibility, VisibilityLabels } from '../../../models/enums';
+import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 
 const MIN_BIRTH_YEAR = 1800;
@@ -19,6 +19,7 @@ interface Snapshot {
     photoUrl: string;
     biography: string;
     visibility: Visibility;
+    sex: Sex | null | undefined;
     /** «рік-місяць-день» як ввів користувач (порожні частини — порожні рядки). */
     birth: string;
 }
@@ -28,6 +29,7 @@ const emptySnapshot = (): Snapshot => ({
     photoUrl: '',
     biography: '',
     visibility: Visibility.Public,
+    sex: null,
     birth: '--'
 });
 
@@ -36,14 +38,10 @@ const createEmptyActor = (): CreateActorRequest => ({
     birthDate: null,
     biography: '',
     photoUrl: '',
-    visibility: Visibility.Public
+    visibility: Visibility.Public,
+    sex: null
 });
 
-/**
- * Форма актора: створення (за замовчуванням) або редагування (якщо передано `actor`).
- * У режимі редагування на сервер відправляються лише змінені поля, решта — null
- * (BE не оновлює поля, надіслані як null).
- */
 @Component({
     selector: 'app-actor-form',
     standalone: true,
@@ -78,7 +76,7 @@ export class ActorFormComponent implements OnInit {
     readonly imageError = signal(false);
     readonly isSubmitting = signal(false);
 
-    /** Помилки валідації показуються під відповідними полями (а не тостами). */
+    /** Помилки валідації показуються під відповідними полями. */
     readonly errors = signal<FormErrors>({});
 
     readonly maxBirthYear = new Date().getFullYear();
@@ -89,7 +87,15 @@ export class ActorFormComponent implements OnInit {
         label: VisibilityLabels[value]
     }));
 
-    /** Початковий стан форми: порожній для створення, дані актора для редагування. */
+    readonly sexOptions = [
+        { value: null, label: '— Не вказано —' },
+        ...(Object.values(Sex).filter(v => typeof v === 'number') as Sex[]).map(value => ({
+            value,
+            label: SexLabels[value] ?? String(value)
+        }))
+    ];
+
+    /** Початковий стан форми. */
     private baseline: Snapshot = emptySnapshot();
 
     ngOnInit(): void {
@@ -99,12 +105,10 @@ export class ActorFormComponent implements OnInit {
         }
     }
 
-    /** Адреса для прев'ю: без пробілів по краях, порожній рядок — прев'ю немає. */
     get photoPreviewUrl(): string {
         return (this.actorData.photoUrl ?? '').trim();
     }
 
-    /** Чи відрізняється форма від початкового стану (у створенні — чи щось введено). */
     hasChanges(): boolean {
         const current = this.snapshot();
         return (Object.keys(current) as (keyof Snapshot)[]).some(key => current[key] !== this.baseline[key]);
@@ -152,14 +156,14 @@ export class ActorFormComponent implements OnInit {
         }
     }
 
-    // ====================== Збереження ======================
     private create(values: ValidatedValues): void {
         const payload: CreateActorRequest = {
             ...this.actorData,
             fullName: values.fullName,
             photoUrl: values.photoUrl,
             biography: values.biography,
-            birthDate: values.birthDate
+            birthDate: values.birthDate,
+            sex: this.actorData.sex ?? null
         };
 
         this.actorService.createActor(payload).pipe(
@@ -181,14 +185,13 @@ export class ActorFormComponent implements OnInit {
     private update(actor: ActorItem, values: ValidatedValues): void {
         const base = this.baseline;
 
-        // Поле, яке не змінилось, іде як null — BE його не чіпає.
-        // Очищення тексту (фото / біографія) відправляється порожнім рядком.
         const payload: UpdateActorRequest = {
             actorId: actor.id,
             fullName: values.fullName !== base.fullName ? values.fullName : null,
             photoUrl: values.photoUrl !== base.photoUrl ? values.photoUrl : null,
             biography: values.biography !== base.biography ? values.biography : null,
             visibility: this.actorData.visibility !== base.visibility ? this.actorData.visibility : null,
+            sex: this.actorData.sex !== base.sex ? (this.actorData.sex ?? null) : null,
             birthDate: this.snapshot().birth !== base.birth ? values.birthDate : null
         };
 
@@ -207,8 +210,6 @@ export class ActorFormComponent implements OnInit {
         });
     }
 
-    // ====================== Валідація ======================
-    /** Перевіряє форму, показує всі помилки одразу й повертає нормалізовані значення. */
     private validate(): ValidatedValues | null {
         const errors: FormErrors = {};
 
@@ -226,7 +227,6 @@ export class ActorFormComponent implements OnInit {
         if (birth.error) {
             errors.birthDate = birth.error;
         } else if (this.actor() && birth.value === null && this.baseline.birth !== emptySnapshot().birth) {
-            // BE не оновлює null, тому видалити вже збережену дату не вийде
             errors.birthDate = 'Збережену дату народження не можна видалити — введіть іншу дату.';
         }
 
@@ -243,10 +243,6 @@ export class ActorFormComponent implements OnInit {
         };
     }
 
-    /**
-     * Збирає дату народження з трьох полів. Порожні поля -> null;
-     * часткова, неіснуюча (31 лютого) чи майбутня дата -> помилка.
-     */
     private resolveBirthDate(): { value: string | null; error?: string } {
         const { birthYear: y, birthMonth: m, birthDay: d } = this;
 
@@ -286,13 +282,13 @@ export class ActorFormComponent implements OnInit {
         }
     }
 
-    // ====================== Стан форми ======================
     private snapshot(): Snapshot {
         return {
             fullName: this.actorData.fullName.trim(),
             photoUrl: this.photoPreviewUrl,
             biography: (this.actorData.biography ?? '').trim(),
             visibility: this.actorData.visibility ?? Visibility.Public,
+            sex: this.actorData.sex ?? null,
             birth: `${this.birthYear ?? ''}-${this.birthMonth ?? ''}-${this.birthDay ?? ''}`
         };
     }
@@ -303,7 +299,8 @@ export class ActorFormComponent implements OnInit {
             birthDate: actor.birthDate ?? null,
             biography: actor.biography ?? '',
             photoUrl: actor.photoUrl ?? '',
-            visibility: actor.visibility ?? Visibility.Public
+            visibility: actor.visibility ?? Visibility.Public,
+            sex: actor.sex ?? null
         };
 
         const birth = actor.birthDate ? new Date(actor.birthDate) : null;

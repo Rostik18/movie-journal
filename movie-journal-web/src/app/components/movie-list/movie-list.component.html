@@ -148,12 +148,14 @@
     }
     }
 
-    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ ФІЛЬМУ -->
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ ФІЛЬМУ -->
     @if (isModalOpen()) {
     <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
-        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати новий фільм">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="editingMovie() ? 'Редагувати фільм' : 'Додати новий фільм'">
             <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
-            <app-media-form (mediaCreated)="onMediaCreated()" />
+            <app-media-form [media]="editingMovie()" (mediaCreated)="onMediaCreated()"
+                (mediaUpdated)="onMediaUpdated($event)" />
         </div>
     </div>
     }
@@ -213,9 +215,33 @@
             </div>
             }
 
+            <!-- Блок акторів -->
+            @if (movieActors().length > 0) {
+            <div class="actors-section">
+                <h4>Акторський склад</h4>
+                <div class="actors-sidebar-list">
+                    @for (item of movieActors(); track item.fullName) {
+                    <div class="actor-row">
+                        @if (item.photoUrl) {
+                        <img [src]="item.photoUrl" [alt]="item.fullName" class="actor-avatar">
+                        } @else {
+                        <div class="actor-avatar actor-no-photo">🎬</div>
+                        }
+                        <div class="actor-info">
+                            <span class="actor-name"><strong>{{ item.fullName }}</strong></span>
+                            @if (item.characterName) {
+                            <span class="actor-character">as {{ item.characterName }}</span>
+                            }
+                        </div>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+
             @if (mov.genres?.length) {
-            <div class="genres-section">
-                <h4>Жанри</h4>
+            <div class="detail-row detail-row-chips">
+                <strong>Жанри:</strong>
                 <div class="genres">
                     @for (genre of mov.genres; track genre) {
                     <span class="genre-tag">{{ genre }}</span>
@@ -232,11 +258,11 @@
             }
 
             @if (mov.tags?.length) {
-            <div class="tags-section">
-                <h4>Теги</h4>
+            <div class="detail-row detail-row-chips">
+                <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of mov.tags; track tag) {
-                    <span class="tag-chip">{{ tag }}</span>
+                    <span class="tag-chip">#{{ tag }}</span>
                     }
                 </div>
             </div>

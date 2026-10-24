@@ -134,13 +134,15 @@
     }
     }
 
-    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ -->
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ -->
     @if (isModalOpen()) {
     <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
-        <div class="modal-content" role="dialog" aria-modal="true" aria-label="Додати до списку перегляду">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="editingItem() ? 'Редагувати запис у списку' : 'Додати до списку перегляду'">
             <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
 
-            <app-user-watching-form (watchingCreated)="onWatchingCreated()" />
+            <app-user-watching-form [watching]="editingItem()" (watchingCreated)="onWatchingCreated()"
+                (watchingUpdated)="onWatchingUpdated($event)" />
         </div>
     </div>
     }
@@ -216,6 +218,30 @@
             </div>
             }
 
+            <!-- Блок акторів -->
+            @if (watchingActors().length > 0) {
+            <div class="actors-section">
+                <h4>Акторський склад</h4>
+                <div class="actors-sidebar-list">
+                    @for (item of watchingActors(); track item.fullName) {
+                    <div class="actor-row">
+                        @if (item.photoUrl) {
+                        <img [src]="item.photoUrl" [alt]="item.fullName" class="actor-avatar">
+                        } @else {
+                        <div class="actor-avatar actor-no-photo">🎬</div>
+                        }
+                        <div class="actor-info">
+                            <span class="actor-name"><strong>{{ item.fullName }}</strong></span>
+                            @if (item.characterName) {
+                            <span class="actor-character">as {{ item.characterName }}</span>
+                            }
+                        </div>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+
             @if (item.media.description) {
             <div class="description-section">
                 <h4>Опис</h4>
@@ -225,8 +251,8 @@
 
             <!-- Жанри медіа -->
             @if (item.media.genres?.length) {
-            <div class="genres-section">
-                <h4>Жанри</h4>
+            <div class="detail-row detail-row-chips">
+                <strong>Жанри:</strong>
                 <div class="genres">
                     @for (genre of item.media.genres; track genre) {
                     <span class="genre-tag">{{ genre }}</span>
@@ -237,8 +263,8 @@
 
             <!-- Теги медіа -->
             @if (item.media.tags?.length) {
-            <div class="tags-section">
-                <h4>Теги</h4>
+            <div class="detail-row detail-row-chips">
+                <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of item.media.tags; track tag) {
                     <span class="tag-chip">#{{ tag }}</span>

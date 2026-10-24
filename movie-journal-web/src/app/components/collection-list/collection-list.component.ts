@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
@@ -56,6 +56,9 @@ export class CollectionListComponent implements OnInit {
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
+    /** Колекція, що редагується; null — модалка працює в режимі створення. */
+    readonly editingCollection = signal<MediaCollectionResponse | null>(null);
+    private readonly collectionForm = viewChild(CollectionFormComponent);
 
     readonly selectedCollection = signal<MediaCollectionResponse | null>(null);
     readonly isSidebarOpen = signal(false);
@@ -188,7 +191,12 @@ export class CollectionListComponent implements OnInit {
     }
 
     onEditCollection(): void {
-        console.log('Редагувати колекцію:', this.selectedCollection()?.id);
+        const collection = this.selectedCollection();
+        if (!collection) {
+            return;
+        }
+        this.editingCollection.set(collection);
+        this.isModalOpen.set(true);
     }
 
     // ====================== Видалення ======================
@@ -230,23 +238,40 @@ export class CollectionListComponent implements OnInit {
 
     // ====================== Модальне вікно ======================
     openModal(): void {
+        this.editingCollection.set(null);
         this.isModalOpen.set(true);
     }
 
     closeModal(): void {
         this.isModalOpen.set(false);
+        this.editingCollection.set(null);
     }
 
     onBackdropMouseDown(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
-            this.closeModal();
+            this.closeModalUnlessDirty();
         }
     }
 
     @HostListener('document:keydown.escape')
     onEscape(): void {
         if (this.isModalOpen()) {
+            this.closeModalUnlessDirty();
+        }
+    }
+
+    /** Backdrop/Escape не закривають форму з незбереженими змінами (хрестик — закриває завжди). */
+    private closeModalUnlessDirty(): void {
+        if (!this.collectionForm()?.hasChanges()) {
             this.closeModal();
+        }
+    }
+
+    onCollectionUpdated(updated: MediaCollectionResponse): void {
+        this.closeModal();
+        this.collections.update(list => list.map(c => (c.id === updated.id ? updated : c)));
+        if (this.selectedCollection()?.id === updated.id) {
+            this.selectedCollection.set(updated);
         }
     }
 

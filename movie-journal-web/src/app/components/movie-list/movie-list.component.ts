@@ -1,6 +1,6 @@
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, of } from 'rxjs';
+import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
@@ -19,6 +19,8 @@ import { formatDuration } from '../../utils/media-format.util';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { MediaSearchParams, MediaSortField, SortDirection } from '../../models/search.model';
+import { ActorService } from '../../services/actor.service';
+import { ActorItem } from '../../models/actor.model';
 
 type DeleteCallback = () => ReturnType<MediaService['deleteMedia']>;
 type MediaId = MediaItem['id'];
@@ -32,6 +34,12 @@ const DEFAULT_PAGE_SIZE = 20;
 interface WatchState {
     status: WatchStatus;
     rating: number | null;
+}
+
+export interface CastActorView {
+    fullName: string;
+    photoUrl: string | null;
+    characterName?: string | null;
 }
 
 @Component({
@@ -55,6 +63,7 @@ export class MovieListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly actorService = inject(ActorService);
 
     readonly movies = signal<MediaResponseSlim[]>([]);
     readonly totalCount = signal(0);
@@ -63,6 +72,9 @@ export class MovieListComponent implements OnInit {
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
+    /** Фільм, що редагується; null — модалка працює в режимі створення. */
+    readonly editingMovie = signal<MediaItem | null>(null);
+    private readonly mediaForm = viewChild(MediaFormComponent);
 
     // ---------- Сайдбар деталей ----------
     /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
@@ -135,6 +147,8 @@ export class MovieListComponent implements OnInit {
         return movie ? this.getDeleteCallback(movie) : undefined;
     });
 
+    readonly movieActors = signal<CastActorView[]>([]);
+
     constructor() {
         this.reload$.pipe(
             tap(() => {
@@ -175,8 +189,27 @@ export class MovieListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
+                this.movieActors.set([]);
                 return this.mediaService.getMediaById(id).pipe(
-                    map(movie => ({ ok: true as const, movie })),
+                    switchMap(movie => {
+                        if (!movie.cast || movie.cast.length === 0) {
+                            return of({ ok: true as const, movie, actors: [] });
+                        }
+                        // Паралельно запитуємо кожного актора за його ID
+                        const actorObservables = movie.cast.map(c =>
+                            this.actorService.getActorById(c.actorId).pipe(
+                                map(actor => ({ fullName: actor.fullName, photoUrl: actor.photoUrl, characterName: c.characterName || null } as CastActorView)),
+                                catchError(() => of(null)) // якщо одного актора не знайдено, не ламаємо весь список
+                            )
+                        );
+                        return forkJoin(actorObservables).pipe(
+                            map(actors => ({
+                                ok: true as const,
+                                movie,
+                                actors: actors.filter(a => a !== null)
+                            }))
+                        );
+                    }),
                     catchError(err => {
                         console.error('Помилка завантаження деталей фільму:', err);
                         return of({ ok: false as const });
@@ -191,6 +224,7 @@ export class MovieListComponent implements OnInit {
             }
             if (result.ok) {
                 this.selectedMovie.set(result.movie);
+                this.movieActors.set(result.actors);
             } else {
                 this.detailsError.set(true);
                 this.toastService.show('Не вдалося завантажити деталі фільму', 'error');
@@ -289,7 +323,13 @@ export class MovieListComponent implements OnInit {
     }
 
     onEditMovie(): void {
-        console.log('Редагувати фільм:', this.selectedSlim()?.id);
+        const movie = this.selectedMovie();
+        if (!movie) {
+            this.toastService.show('Деталі фільму ще завантажуються.', 'info', 3000);
+            return;
+        }
+        this.editingMovie.set(movie);
+        this.isModalOpen.set(true);
     }
 
     // ====================== Видалення ======================
@@ -332,23 +372,57 @@ export class MovieListComponent implements OnInit {
 
     // ====================== Модальне вікно ======================
     openModal(): void {
+        this.editingMovie.set(null);
         this.isModalOpen.set(true);
     }
 
     closeModal(): void {
         this.isModalOpen.set(false);
+        this.editingMovie.set(null);
     }
 
     onBackdropMouseDown(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
-            this.closeModal();
+            this.closeModalUnlessDirty();
         }
     }
 
     @HostListener('document:keydown.escape')
     onEscape(): void {
         if (this.isModalOpen()) {
+            this.closeModalUnlessDirty();
+        }
+    }
+
+    /** Backdrop/Escape не закривають форму з незбереженими змінами (хрестик — закриває завжди). */
+    private closeModalUnlessDirty(): void {
+        if (!this.mediaForm()?.hasChanges()) {
             this.closeModal();
+        }
+    }
+
+    onMediaUpdated(updated: MediaItem): void {
+        this.closeModal();
+
+        this.movies.update(list => list.map(m => m.id === updated.id
+            ? {
+                ...m,
+                title: updated.title,
+                releaseYear: updated.releaseYear,
+                duration: updated.duration,
+                posterUrl: updated.posterUrl,
+                genres: updated.genres,
+                links: updated.links,
+                visibility: updated.visibility
+            }
+            : m));
+
+        if (this.selectedMovie()?.id === updated.id) {
+            this.selectedMovie.set(updated);
+        }
+        const slim = this.selectedSlim();
+        if (slim?.id === updated.id) {
+            this.selectedSlim.set(this.movies().find(m => m.id === updated.id) ?? slim);
         }
     }
 

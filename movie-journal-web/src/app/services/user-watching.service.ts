@@ -13,7 +13,7 @@ export class UserWatchingService {
     private baseUrl = `${environment.apiUrl}/api/user-watching`;
     private http = inject(HttpClient);
 
-    getById(id: string): Observable<UserWatchingItem> {
+    getByMediaId(id: string): Observable<UserWatchingItem> {
         return this.http.get<UserWatchingItem>(`${this.baseUrl}/media/${id}`);
     }
 

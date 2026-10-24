@@ -7,7 +7,7 @@ import { ActorService } from '../../services/actor.service';
 import { ToastService } from '../../services/toast.service';
 import { ActorItem } from '../../models/actor.model';
 import { PageResponse } from '../../models/shared.model';
-import { Visibility, VisibilityLabels } from '../../models/enums';
+import { Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
 import { ActorSearchParams, ActorSortField, SortDirection } from '../../models/search.model';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
@@ -15,19 +15,14 @@ import { ActorFormComponent } from '../shared/actor-form/actor-form.component';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
-import {
-    SearchToolbarComponent,
-    SortFieldOption,
-    ToolbarFilter,
-    enumOptions
-} from '../shared/search-toolbar/search-toolbar.component';
+import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { formatAge } from '../../utils/actor-format.util';
 
 type DeleteCallback = () => ReturnType<ActorService['deleteActor']>;
 type ActorId = ActorItem['id'];
 
 /** Ключі ActorSearchParams, якими керують кнопки-фільтри тулбара. */
-const FILTER_KEYS = ['visibility', 'hasPhoto'] as const;
+const FILTER_KEYS = ['visibility', 'hasPhoto', 'Sex'] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -67,6 +62,7 @@ export class ActorListComponent implements OnInit {
     readonly selectedActor = signal<ActorItem | null>(null);
     readonly isSidebarOpen = signal(false);
 
+    readonly sexLabels = SexLabels;
     readonly visibilityLabels = VisibilityLabels;
 
     readonly formatAge = formatAge;
@@ -92,11 +88,17 @@ export class ActorListComponent implements OnInit {
         { value: false, label: 'Без фото' }
     ];
 
+    private readonly sexOptions = [
+        { value: Sex.Male, label: '♂️' },
+        { value: Sex.Female, label: '♀️' }
+    ];
+
     readonly actorSortFields: SortFieldOption[] = enumOptions(ActorSortField, {
         [ActorSortField.FullName]: 'Іменем',
         [ActorSortField.BirthDate]: 'Датою народження',
         [ActorSortField.CreatedAt]: 'Датою створення',
-        [ActorSortField.UpdatedAt]: 'Датою оновлення'
+        [ActorSortField.UpdatedAt]: 'Датою оновлення',
+        [ActorSortField.Sex]: 'Статтю'
     });
 
     // computed, а не масив у шаблоні: інакше новий масив на кожен цикл change detection
@@ -104,13 +106,14 @@ export class ActorListComponent implements OnInit {
         const params = this.searchParams();
         return [
             { key: 'hasPhoto', label: 'Фото', value: params.hasPhoto, options: this.hasPhotoOptions },
-            { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions }
+            { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions },
+            { key: 'Sex', label: 'Стать', value: params.Sex, options: this.sexOptions }
         ];
     });
 
     readonly hasActiveFilters = computed(() => {
-        const { query, visibility, hasPhoto, birthYear } = this.searchParams();
-        return !!query || visibility !== undefined || hasPhoto !== undefined || birthYear !== undefined;
+        const { query, visibility, hasPhoto, birthYear, Sex } = this.searchParams();
+        return !!query || visibility !== undefined || hasPhoto !== undefined || birthYear !== undefined || Sex !== undefined && Sex !== null;
     });
 
     // Стани для шаблону: початкове завантаження / помилка / порожній список
