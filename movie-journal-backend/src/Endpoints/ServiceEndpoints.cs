@@ -186,7 +186,9 @@ namespace MovieJournalBackend.Endpoints
                         BirthDate = item.BirthDate,
                         PhotoUrl = item.PhotoUrl is null
                              ? (await metadataService.TrySearchAsync(item.FullName, ct)).LastOrDefault()?.ImageUrl
-                             : item.PhotoUrl
+                             : item.PhotoUrl,
+                        Biography = item.Biography,
+                        Sex = item.Sex
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch (Exception ex)
@@ -299,7 +301,7 @@ namespace MovieJournalBackend.Endpoints
                     : null))
         ];
 
-        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, Sex? Sex);
+        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex);
 
         private static SeedActorItem[] ParseActorsPayload(string payload) =>
             [..payload
@@ -314,7 +316,10 @@ namespace MovieJournalBackend.Endpoints
                         DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
                     ? parsedDate
                     : null,
-                Sex: columns.Length > 3 && Enum.TryParse<Sex>(columns[3], out var sex)
+                Biography: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                    ? columns[3]
+                    : null,
+                Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
                     ? sex
                     : null))
         ];
