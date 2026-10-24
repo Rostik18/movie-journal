@@ -9,6 +9,7 @@ namespace MovieJournalBackend.Contracts.Media
         public string? Title { get; init; }
         public string? Description { get; init; }
         public string? OriginalTitle { get; init; }
+        public MediaType? Type { get; init; }
         public int? ReleaseYear { get; init; }
         public int? Duration { get; init; }
         public string? PosterUrl { get; init; }

@@ -95,6 +95,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.AnyEq(x => x.Tags, request.Filter.Tag));
             }
+            if (!string.IsNullOrWhiteSpace(request.Filter.ActorId))
+            {
+                filter = _fBuilder.And(filter, _fBuilder.ElemMatch(x => x.Cast, actor => actor.ActorId == request.Filter.ActorId));
+            }
             if (!string.IsNullOrWhiteSpace(request.Filter.Author))
             {
                 var query = request.Filter.Author.Trim();

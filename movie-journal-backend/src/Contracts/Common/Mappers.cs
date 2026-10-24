@@ -53,6 +53,7 @@ namespace MovieJournalBackend.Contracts.Common
         public static MediaCollectionResponse ToResponse(this Entities.Media.MediaCollection collection) => new(
             collection.Id,
             collection.Name,
+            collection.Description,
             collection.PosterUrl,
             collection.Tags,
             collection.Visibility);

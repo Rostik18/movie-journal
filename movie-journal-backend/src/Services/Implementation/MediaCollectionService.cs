@@ -33,6 +33,7 @@ namespace MovieJournalBackend.Services.Implementation
             var collection = new MediaCollection
             {
                 Name = request.Name,
+                Description = request.Description,
                 PosterUrl = request.PosterUrl,
                 Tags = request.Tags ?? [],
                 Visibility = request.Visibility,
@@ -57,6 +58,10 @@ namespace MovieJournalBackend.Services.Implementation
             if (request.Name is not null)
             {
                 collection.Name = request.Name;
+            }
+            if (!string.IsNullOrEmpty(request.Description))
+            {
+                collection.Description = request.Description;
             }
             if (request.PosterUrl is not null)
             {

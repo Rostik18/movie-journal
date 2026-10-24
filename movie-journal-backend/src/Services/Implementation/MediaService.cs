@@ -117,6 +117,10 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.OriginalTitle = request.OriginalTitle;
             }
+            if (request.Type.HasValue)
+            {
+                media.Type = request.Type.Value;
+            }
             if (request.ReleaseYear.HasValue)
             {
                 media.ReleaseYear = request.ReleaseYear.Value;
