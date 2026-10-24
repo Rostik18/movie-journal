@@ -1,4 +1,5 @@
-﻿using MovieJournalBackend.Entities.Base;
+﻿using MovieJournalBackend.Entities.Actor;
+using MovieJournalBackend.Entities.Base;
 
 namespace MovieJournalBackend.Contracts.Actor
 {
@@ -8,5 +9,6 @@ namespace MovieJournalBackend.Contracts.Actor
         DateTime? BirthDate,
         string? Biography,
         string? PhotoUrl,
-        Visibility Visibility);
+        Visibility Visibility,
+        Sex? Sex);
 }

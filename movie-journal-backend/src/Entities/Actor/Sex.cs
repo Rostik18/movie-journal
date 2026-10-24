@@ -1,0 +1,8 @@
+﻿namespace MovieJournalBackend.Entities.Actor
+{
+    public enum Sex
+    {
+        Male = 1,
+        Female = 2
+    }
+}

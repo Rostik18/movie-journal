@@ -1,4 +1,5 @@
-﻿using MovieJournalBackend.Entities.Base;
+﻿using MovieJournalBackend.Entities.Actor;
+using MovieJournalBackend.Entities.Base;
 
 namespace MovieJournalBackend.Contracts.Actor
 {
@@ -8,5 +9,6 @@ namespace MovieJournalBackend.Contracts.Actor
         public bool? HasPhoto { get; init; }
         public int? BirthYear { get; init; }
         public Visibility? Visibility { get; init; }
+        public Sex? Sex { get; init; }
     }
 }

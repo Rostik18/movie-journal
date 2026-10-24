@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Contracts.Service;
+using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Services;
@@ -125,6 +126,7 @@ namespace MovieJournalBackend.Endpoints
                     foreach (var actor in actors)
                     {
                         if (media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
+                            parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) == false ||
                            (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false))
                         {
                             media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
@@ -297,7 +299,7 @@ namespace MovieJournalBackend.Endpoints
                     : null))
         ];
 
-        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate);
+        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, Sex? Sex);
 
         private static SeedActorItem[] ParseActorsPayload(string payload) =>
             [..payload
@@ -311,6 +313,9 @@ namespace MovieJournalBackend.Endpoints
                 BirthDate: columns.Length > 2 &&
                         DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
                     ? parsedDate
+                    : null,
+                Sex: columns.Length > 3 && Enum.TryParse<Sex>(columns[3], out var sex)
+                    ? sex
                     : null))
         ];
     }

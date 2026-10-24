@@ -69,6 +69,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Visibility, request.Filter.Visibility.Value));
             }
+            if (request.Filter.Sex.HasValue)
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Sex, request.Filter.Sex.Value));
+            }
 
             return filter;
         }
@@ -87,6 +91,9 @@ namespace MovieJournalBackend.Repositories.Implementation
             ActorSortField.UpdatedAt => request.Sort.Direction == SortDirection.Ascending
                 ? _sBuilder.Ascending(x => x.UpdatedAtUtc)
                 : _sBuilder.Descending(x => x.UpdatedAtUtc),
+            ActorSortField.Sex => request.Sort.Direction == SortDirection.Ascending
+                ? _sBuilder.Ascending(x => x.Sex)
+                : _sBuilder.Descending(x => x.Sex),
             _ => null
         };
     }

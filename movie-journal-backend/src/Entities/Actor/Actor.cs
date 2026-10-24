@@ -9,5 +9,6 @@ namespace MovieJournalBackend.Entities.Actor
         public DateTime? BirthDate { get; set; }
         public string? Biography { get; set; }
         public string? PhotoUrl { get; set; }
+        public Sex? Sex { get; set; }
     }
 }

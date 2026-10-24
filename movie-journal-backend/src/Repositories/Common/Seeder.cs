@@ -28,7 +28,8 @@ namespace MovieJournalBackend.Repositories.Common
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcSGm1HLLA32H2mtH_lpTrRs9PlK0aWCjFixoZmiGrnR66c2kZdTxo07tKlPU_WbZ6M6_WxadD818BXLIi8",
-                Visibility = Visibility.Public
+                Visibility = Visibility.Public,
+                Sex = Sex.Male
             },
             new()
             {
@@ -39,7 +40,8 @@ namespace MovieJournalBackend.Repositories.Common
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://assets.vogue.com/photos/68f8bc236a14a6c83b5d66d9/master/w_2560%2Cc_limit/GettyImages-2242466644.jpg",
-                Visibility = Visibility.Public
+                Visibility = Visibility.Public,
+                Sex = Sex.Female
             },
             new()
             {
@@ -50,12 +52,15 @@ namespace MovieJournalBackend.Repositories.Common
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfTx05VA0WTNjVDivEHJAbrH3X5-71Dk6UW65yK1TV-3yyCSPAFllspoNvT_tjEzI0ju5GoTLRzG-UY27L4tbaYh30S0wXfKGIgFbVg&s=10",
-                Visibility = Visibility.Public
+                Visibility = Visibility.Public,
+                Sex = Sex.Female
             }
         ];
         private static MediaCollection[] _mediaCollection = [
             new(){
                 Name = "Той, хто біжить по лезу",
+                Description = "Фільми про майбутнє, де люди і андроїди живуть поруч.",
+                PosterUrl = "https://occ-0-8407-2218.1.nflxso.net/dnm/api/v6/6AYY37jfdO6hpXcMjf9Yu5cnmO0/AAAABYSMlpt5w6j57Fr_vtbvbpAHkkkbm3tWxse17BtG96hl9whFbNJIYhcZ2fIF5oHj1Zch8AYhsCj1Z-Bc-EGqsASgYIzaxRFzNS0O.jpg?r=ad3",
                 OwnerUserId = _adminId,
                 CreatedByUserId = _adminId,
                 Tags = ["Гослінг"],
