@@ -37,7 +37,8 @@ namespace MovieJournalBackend.Services.Implementation
                 PhotoUrl = request.PhotoUrl,
                 Visibility = request.Visibility,
                 OwnerUserId = user.UserId,
-                CreatedByUserId = user.UserId
+                CreatedByUserId = user.UserId,
+                Sex = request.Sex
             };
 
             await _actorRepository.CreateAsync(actor, ct);
@@ -81,6 +82,10 @@ namespace MovieJournalBackend.Services.Implementation
                 }
 
                 actor.Visibility = request.Visibility.Value;
+            }
+            if (request.Sex is not null)
+            {
+                actor.Sex = request.Sex;
             }
 
             actor.LastModifiedByUserId = user.UserId;
