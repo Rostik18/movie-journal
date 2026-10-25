@@ -19,7 +19,7 @@ export class SeedDataFormComponent implements OnInit {
     private collectionService = inject(CollectionService);
     private toastService = inject(ToastService);
 
-    seedMode = signal<'userWatch' | 'actors'>('userWatch');
+    seedMode = signal<'userWatch' | 'actors'>('actors');
 
     // Моделі для форми
     payloadText = signal('');

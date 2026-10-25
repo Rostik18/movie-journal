@@ -139,6 +139,42 @@
                 <h4>Біографія</h4>
                 <p>{{ actor.biography || 'Біографія відсутня.' }}</p>
             </div>
+
+            <!-- Фільми, у яких знімався актор -->
+            <div class="actors-section actor-movies-section">
+                <h4>Фільми @if (actorMoviesTotal() > 0) { <span class="title-meta">({{ actorMoviesTotal() }})</span> }
+                </h4>
+
+                @if (actorMoviesLoading()) {
+                <p class="detail-row">Завантаження...</p>
+                } @else if (actorMoviesError()) {
+                <p class="detail-row">Не вдалося завантажити фільми.</p>
+                } @else if (actorMovies().length === 0) {
+                <p class="detail-row">Фільмів не знайдено.</p>
+                } @else {
+                <div class="actors-sidebar-list">
+                    @for (movie of actorMovies(); track movie.id) {
+                    <a class="actor-row" [routerLink]="['/movies', movie.id]"
+                        [title]="'Відкрити фільм: ' + movie.title">
+                        @if (movie.posterUrl) {
+                        <img [src]="movie.posterUrl" [alt]="movie.title" class="movie-thumb">
+                        } @else {
+                        <div class="movie-thumb movie-no-poster">🎬</div>
+                        }
+                        <div class="actor-info">
+                            <span class="actor-name"><strong>{{ movie.title }}</strong>
+                                @if (movie.releaseYear) { <span class="title-meta">{{ movie.releaseYear }}</span> }
+                            </span>
+                            <span class="actor-character">{{ mediaTypeLabels[movie.type] }}</span>
+                        </div>
+                    </a>
+                    }
+                </div>
+                @if (actorMoviesTotal() > actorMovies().length) {
+                <p class="detail-row title-meta">Показано {{ actorMovies().length }} з {{ actorMoviesTotal() }}</p>
+                }
+                }
+            </div>
         </div>
         }
     </app-details-sidebar>

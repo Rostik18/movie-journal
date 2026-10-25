@@ -1,7 +1,7 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, of } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
@@ -39,6 +39,7 @@ interface WatchState {
     selector: 'app-movie-list',
     standalone: true,
     imports: [
+        RouterLink,
         ViewSwitcherComponent,
         MediaFormComponent,
         AddButtonComponent,

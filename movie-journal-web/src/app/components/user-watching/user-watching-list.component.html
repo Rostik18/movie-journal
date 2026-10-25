@@ -224,7 +224,8 @@
                 <h4>Акторський склад</h4>
                 <div class="actors-sidebar-list">
                     @for (actor of item.media.cast; track actor.id) {
-                    <div class="actor-row">
+                    <a class="actor-row" [routerLink]="['/actors', actor.id]"
+                        [title]="'Відкрити актора: ' + actor.fullName">
                         @if (actor.photoUrl) {
                         <img [src]="actor.photoUrl" [alt]="actor.fullName" class="actor-avatar">
                         } @else {
@@ -236,7 +237,7 @@
                             <span class="actor-character">as {{ actor.characterName }}</span>
                             }
                         </div>
-                    </div>
+                    </a>
                     }
                 </div>
             </div>

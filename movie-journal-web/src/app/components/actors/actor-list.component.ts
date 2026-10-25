@@ -2,13 +2,15 @@ import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, 
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject, of } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { ActorService } from '../../services/actor.service';
+import { MediaService } from '../../services/media.service';
+import { MediaResponseSlim } from '../../models/media.model';
 import { ToastService } from '../../services/toast.service';
 import { ActorItem } from '../../models/actor.model';
 import { PageResponse } from '../../models/shared.model';
-import { Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
+import { MediaTypeLabels, Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
 import { ActorSearchParams, ActorSortField, SortDirection } from '../../models/search.model';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
@@ -26,12 +28,16 @@ type ActorId = ActorItem['id'];
 const FILTER_KEYS = ['visibility', 'hasPhoto', 'Sex'] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
+/** Скільки фільмів актора показуємо в сайдбарі. */
+const ACTOR_MOVIES_PAGE_SIZE = 50;
+
 const DEFAULT_PAGE_SIZE = 20;
 
 @Component({
     selector: 'app-actor-list',
     standalone: true,
     imports: [
+        RouterLink,
         DatePipe,
         ViewSwitcherComponent,
         AddButtonComponent,
@@ -46,6 +52,7 @@ const DEFAULT_PAGE_SIZE = 20;
 })
 export class ActorListComponent implements OnInit {
     private readonly actorService = inject(ActorService);
+    private readonly mediaService = inject(MediaService);
     private readonly toastService = inject(ToastService);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
@@ -64,8 +71,15 @@ export class ActorListComponent implements OnInit {
     private readonly actorForm = viewChild(ActorFormComponent);
 
     readonly selectedActor = signal<ActorItem | null>(null);
+
+    // ---------- Фільми актора (сайдбар) ----------
+    readonly actorMovies = signal<MediaResponseSlim[]>([]);
+    readonly actorMoviesTotal = signal(0);
+    readonly actorMoviesLoading = signal(false);
+    readonly actorMoviesError = signal(false);
     readonly isSidebarOpen = signal(false);
 
+    readonly mediaTypeLabels = MediaTypeLabels;
     readonly sexLabels = SexLabels;
     readonly visibilityLabels = VisibilityLabels;
 
@@ -137,6 +151,38 @@ export class ActorListComponent implements OnInit {
     });
 
     constructor() {
+        // Фільми актора: окремий запит searchMedia({ actorId }); switchMap відкидає застарілу відповідь
+        this.details$.pipe(
+            tap(() => {
+                this.actorMovies.set([]);
+                this.actorMoviesTotal.set(0);
+                this.actorMoviesError.set(false);
+                this.actorMoviesLoading.set(true);
+            }),
+            switchMap(id =>
+                this.mediaService.searchMedia({ actorId: id, size: ACTOR_MOVIES_PAGE_SIZE }).pipe(
+                    map(res => ({
+                        ok: true as const,
+                        items: res.items ?? [],
+                        total: res.totalCount ?? res.items?.length ?? 0
+                    })),
+                    catchError(err => {
+                        console.error('Помилка завантаження фільмів актора:', err);
+                        return of({ ok: false as const });
+                    })
+                )
+            ),
+            takeUntilDestroyed()
+        ).subscribe(result => {
+            this.actorMoviesLoading.set(false);
+            if (result.ok) {
+                this.actorMovies.set(result.items);
+                this.actorMoviesTotal.set(result.total);
+            } else {
+                this.actorMoviesError.set(true);
+            }
+        });
+
         // switchMap скасовує попередній запит, якщо список перезавантажили повторно
         this.reload$.pipe(
             tap(() => {

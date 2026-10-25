@@ -1,7 +1,7 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, of } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 
 import { UserWatchingService } from '../../services/user-watching.service';
@@ -34,6 +34,7 @@ const DEFAULT_PAGE_SIZE = 20;
     selector: 'app-user-watching-list',
     standalone: true,
     imports: [
+        RouterLink,
         ViewSwitcherComponent,
         AddButtonComponent,
         UserWatchingFormComponent,
