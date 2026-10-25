@@ -35,7 +35,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media.ToResponse());
+                : Results.Ok(media);
         }
 
         private static async Task<IResult> AddToCollectionAsync(
@@ -45,7 +45,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media.ToResponse());
+                : Results.Ok(media);
         }
 
         private static async Task<IResult> RemoveActorAsync(
@@ -55,7 +55,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media.ToResponse());
+                : Results.Ok(media);
         }
 
         private static async Task<IResult> AddActorAsync(
@@ -65,7 +65,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media.ToResponse());
+                : Results.Ok(media);
         }
 
         private static async Task<IResult> GetByIdAsync(
@@ -78,7 +78,7 @@ namespace MovieJournalBackend.Endpoints
 
             return media is null
                 ? Results.NotFound()
-                : Results.Ok(media.ToResponse());
+                : Results.Ok(media);
         }
 
         private static async Task<IResult> SearchAsync(
@@ -131,7 +131,7 @@ namespace MovieJournalBackend.Endpoints
         {
             var media = await mediaService.CreateAsync(request, principal.ToUserContext(), ct);
 
-            return Results.Created($"/api/media/{media.Id}", media.ToResponse());
+            return Results.Created($"/api/media/{media.Id}", media);
         }
 
         private static async Task<IResult> UpdateAsync(

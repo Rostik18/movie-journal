@@ -1,5 +1,5 @@
-﻿using MovieJournalBackend.Entities.Base;
-using MovieJournalBackend.Entities.Media;
+﻿using MovieJournalBackend.Contracts.Actor;
+using MovieJournalBackend.Entities.Base;
 
 namespace MovieJournalBackend.Contracts.Media
 {
@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Contracts.Media
         List<string> Genres,
         List<string> Tags,
         List<string> Links,
-        List<MediaActor> Cast,
+        List<ActorResponseSlim> Cast,
         Visibility Visibility
         );
 }

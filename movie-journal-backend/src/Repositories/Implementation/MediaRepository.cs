@@ -33,16 +33,16 @@ namespace MovieJournalBackend.Repositories.Implementation
             return new(items, request.Page.Offset, request.Page.Size, total);
         }
 
-        public async Task<List<Media>> GetByIdsAsync(string[] mediaIds, CancellationToken ct = default)
+        public Task<List<Media>> GetByIdsAsync(string[] mediaIds, CancellationToken ct = default)
         {
             var ids = mediaIds.Distinct().ToArray();
 
             if (ids.Length == 0)
-                return [];
+                return Task.FromResult(new List<Media>());
 
             var filter = _fBuilder.In(x => x.Id, ids);
 
-            return await Collection.Find(filter).ToListAsync(ct);
+            return Collection.Find(filter).ToListAsync(ct);
         }
 
         public Task<bool> ExistsAsync(string title, UserContext user, CancellationToken ct = default)

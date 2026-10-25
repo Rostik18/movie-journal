@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Services.Implementation
         IRealtimeService _realtimeService
     ) : IMediaService
     {
-        public async Task<Media?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default)
+        public async Task<MediaResponse?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default)
         {
             var media = await _mediaRepository.GetByIdAsync(mediaId, user, ct);
 
@@ -25,7 +25,9 @@ namespace MovieJournalBackend.Services.Implementation
                 return null;
             }
 
-            return media;
+            var actors = await _actorRepository.GetByIdsAsync([.. media.Cast.Select(x => x.ActorId)], ct);
+
+            return media.ToResponse(actors);
         }
 
         public Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)
@@ -33,7 +35,7 @@ namespace MovieJournalBackend.Services.Implementation
             return _mediaRepository.SearchAsync(request, user, ct);
         }
 
-        public async Task<Media> CreateAsync(CreateMediaRequest request, UserContext user, CancellationToken ct = default)
+        public async Task<MediaResponse> CreateAsync(CreateMediaRequest request, UserContext user, CancellationToken ct = default)
         {
             if (await _mediaRepository.ExistsAsync(request.Title, user, ct))
             {
@@ -83,9 +85,9 @@ namespace MovieJournalBackend.Services.Implementation
                 CreatedByUserId = user.UserId
             };
 
-            var actorIds = media.Cast.Select(x => x.ActorId).ToList();
+            var actors = await _actorRepository.GetByIdsAsync([.. media.Cast.Select(x => x.ActorId)], ct);
 
-            if (request.Visibility == Visibility.Public && await _actorRepository.HasPrivateActorsAsync(actorIds, ct))
+            if (request.Visibility == Visibility.Public && actors.Any(x => x.Visibility == Visibility.Private))
             {
                 throw new ValidationException("Public media cannot contain private actors.");
             }
@@ -94,10 +96,10 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Created, media.Id);
 
-            return media;
+            return media.ToResponse(actors);
         }
 
-        public async Task<Media> UpdateAsync(UpdateMediaRequest request, UserContext user, CancellationToken ct = default)
+        public async Task<MediaResponse> UpdateAsync(UpdateMediaRequest request, UserContext user, CancellationToken ct = default)
         {
             var media = await _mediaRepository.GetByIdAsync(request.MediaId, user, ct)
                 ?? throw new InvalidOperationException($"Media '{request.MediaId}' not found.");
@@ -192,11 +194,18 @@ namespace MovieJournalBackend.Services.Implementation
 
             media.LastModifiedByUserId = user.UserId;
 
+            var actors = await _actorRepository.GetByIdsAsync([.. media.Cast.Select(x => x.ActorId)], ct);
+
+            if (media.Visibility == Visibility.Public && actors.Any(x => x.Visibility == Visibility.Private))
+            {
+                throw new ValidationException("Public media cannot contain private actors.");
+            }
+
             await _mediaRepository.UpdateAsync(media, ct);
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
 
-            return media;
+            return media.ToResponse(actors);
         }
 
         public async Task DeleteAsync(string mediaId, UserContext user, CancellationToken ct = default)

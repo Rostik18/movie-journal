@@ -2,6 +2,7 @@
 using MovieJournalBackend.Contracts.UserWatching;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Journal;
+using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 
@@ -9,6 +10,7 @@ namespace MovieJournalBackend.Services.Implementation
 {
     public sealed class UserWatchingService(
         IUserWatchingRepository watchingRepository,
+        IMediaService mediaService,
         IMediaRepository mediaRepository,
         IRealtimeService _realtimeService)
         : IUserWatchingService
@@ -19,9 +21,9 @@ namespace MovieJournalBackend.Services.Implementation
 
             if (watching is null) return null;
 
-            var media = await mediaRepository.GetByIdAsync(mediaId, ct);
+            var media = await mediaService.GetByIdAsync(mediaId, user, ct);
 
-            return watching.ToResponse(media!.ToResponse());
+            return watching.ToResponse(media!);
         }
 
         public async Task<Page<UserWatchingResponseSlim>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
@@ -52,10 +54,8 @@ namespace MovieJournalBackend.Services.Implementation
 
         public async Task<UserWatchingResponse> CreateAsync(CreateUserWatchingRequest request, UserContext user, CancellationToken ct = default)
         {
-            var media = await mediaRepository.GetByIdAsync(request.MediaId, ct)
+            var media = await mediaService.GetByIdAsync(request.MediaId, user, ct)
                 ?? throw new NotFoundException("Media not found.");
-
-            user.EnsureCanRead(media);
 
             var existing = await watchingRepository.GetByUserAndMediaAsync(user.UserId, request.MediaId, ct);
 
@@ -80,7 +80,7 @@ namespace MovieJournalBackend.Services.Implementation
                 UserId = user.UserId,
                 MediaId = media.Id,
                 Title = media.Title,
-                NormalizedTitle = media.NormalizedTitle,
+                NormalizedTitle = Helpers.Normalize(media.Title),
                 Type = media.Type,
                 Status = request.Status,
                 Rating = request.Rating,
@@ -98,7 +98,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(entity.UserId, Visibility.Private, ResourceType.UserWatching, EventType.Created, media.Id);
 
-            return entity.ToResponse(media.ToResponse());
+            return entity.ToResponse(media);
         }
 
         public async Task<UserWatchingResponse> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, UserWatching? existingEntity = null, CancellationToken ct = default)
@@ -149,9 +149,9 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(entity.UserId, Visibility.Private, ResourceType.UserWatching, EventType.Updated, entity.MediaId);
 
-            var media = await mediaRepository.GetByIdAsync(request.MediaId, ct);
+            var media = await mediaService.GetByIdAsync(request.MediaId, user, ct);
 
-            return entity.ToResponse(media!.ToResponse());
+            return entity.ToResponse(media!);
         }
 
         public Task<long> CountByStatusAsync(WatchStatus status, UserContext user, CancellationToken ct = default)

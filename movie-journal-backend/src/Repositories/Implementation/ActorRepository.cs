@@ -18,6 +18,18 @@ namespace MovieJournalBackend.Repositories.Implementation
             return Collection.Find(filter).FirstOrDefaultAsync(ct)!;
         }
 
+        public Task<List<Actor>> GetByIdsAsync(string[] actorIds, CancellationToken ct = default)
+        {
+            var ids = actorIds.Distinct().ToArray();
+
+            if (ids.Length == 0)
+                return Task.FromResult(new List<Actor>());
+
+            var filter = _fBuilder.In(x => x.Id, ids);
+
+            return Collection.Find(filter).ToListAsync(ct);
+        }
+
         public Task<bool> ExistsAsync(string fullName, UserContext user, CancellationToken ct = default)
         {
             var filter = user.BuildVisibilityFilter<Actor>();
