@@ -31,7 +31,8 @@ namespace MovieJournalBackend.Services.Implementation
             var actor = new Actor
             {
                 FullName = request.FullName,
-                NormalizedFullName = Helpers.Normalize(request.FullName),
+                Alias = request.Alias,
+                NormalizedFullName = Helpers.Normalize(request.FullName, request.Alias),
                 BirthDate = request.BirthDate,
                 Biography = request.Biography,
                 PhotoUrl = request.PhotoUrl,
@@ -59,7 +60,7 @@ namespace MovieJournalBackend.Services.Implementation
             if (request.FullName is not null)
             {
                 actor.FullName = request.FullName;
-                actor.NormalizedFullName = Helpers.Normalize(request.FullName);
+                actor.NormalizedFullName = Helpers.Normalize(request.FullName, request.Alias is null ? actor.Alias : request.Alias);
             }
             if (request.BirthDate.HasValue)
             {

@@ -8,6 +8,7 @@ using MovieJournalBackend.Services;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace MovieJournalBackend.Endpoints
 {
@@ -125,9 +126,15 @@ namespace MovieJournalBackend.Endpoints
 
                     foreach (var actor in actors)
                     {
-                        if (media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
-                           (parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                           (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false))
+                        if (
+                            media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
+                            (parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            actor.Alias is not null &&
+                            (media.Title.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ||
+                            (parsedItem.Name?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            (media.Description?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false))
+                           )
                         {
                             media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
                         }
@@ -182,6 +189,7 @@ namespace MovieJournalBackend.Endpoints
                     await actorService.CreateAsync(new()
                     {
                         FullName = item.FullName,
+                        Alias = item.Alias,
                         Visibility = request.Visibility,
                         BirthDate = item.BirthDate,
                         PhotoUrl = item.PhotoUrl is null
@@ -302,31 +310,41 @@ namespace MovieJournalBackend.Endpoints
                     : null))
         ];
 
-        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, string? Nationality);
+        public sealed record SeedActorItem(string FullName, string? Alias, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, string? Nationality);
 
         private static SeedActorItem[] ParseActorsPayload(string payload) =>
-            [..payload
+        [..payload
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
-            .Select(columns => new SeedActorItem(
-                FullName: columns[0],
-                PhotoUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
-                    ? columns[1]
-                    : null,
-                BirthDate: columns.Length > 2 &&
-                        DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
-                    ? parsedDate
-                    : null,
-                Biography: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
-                    ? columns[3]
-                    : null,
-                Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
-                    ? sex
-                    : null,
-                Nationality: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
-                    ? columns[5]
-                    : null
-                ))
+            .Select(columns =>
+            {
+                var match = Regex.Match(columns[0], @"\(([^()]*)\)");
+                var fullName = Regex.Replace(columns[0], @"\s*\([^()]*\)", "").Trim();
+                var alias = match.Success
+                    ? match.Groups[1].Value.Trim()
+                    : null;
+
+                return new SeedActorItem(
+                    FullName: fullName,
+                    Alias: string.IsNullOrWhiteSpace(alias) ? null : alias,
+                    PhotoUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                        ? columns[1]
+                        : null,
+                    BirthDate: columns.Length > 2 &&
+                    DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+                        ? parsedDate
+                        : null,
+                    Biography: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? columns[3]
+                        : null,
+                    Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
+                        ? sex
+                        : null,
+                    Nationality: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
+                        ? columns[5]
+                        : null
+                );
+            })
         ];
     }
 }

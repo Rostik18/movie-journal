@@ -6,6 +6,7 @@ namespace MovieJournalBackend.Contracts.Actor
     public sealed record ActorResponse(
         string Id,
         string FullName,
+        string? Alias,
         DateTime? BirthDate,
         string? Biography,
         string? PhotoUrl,

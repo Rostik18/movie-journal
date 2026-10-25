@@ -18,6 +18,7 @@ namespace MovieJournalBackend.Contracts.Common
         public static ActorResponse ToResponse(this Entities.Actor.Actor actor) => new(
             actor.Id,
             actor.FullName,
+            actor.Alias,
             actor.BirthDate,
             actor.Biography,
             actor.PhotoUrl,
@@ -38,8 +39,10 @@ namespace MovieJournalBackend.Contracts.Common
             media.Genres,
             media.Tags,
             media.Links,
-            [.. media.Cast.Select(cast => new CastResponse(cast.ActorId, cast.FullName, actors.First(x => x.Id == cast.ActorId).PhotoUrl, cast.CharacterName))],
-            media.Visibility);
+            [.. media.Cast.Select(cast => new CastResponse(cast.ActorId, cast.FullName, actors.First(x => x.Id == cast.ActorId).Alias, actors.First(x => x.Id == cast.ActorId).PhotoUrl, cast.CharacterName))],
+            media.Visibility,
+            media.Collection
+            );
 
         public static MediaResponseSlim ToResponseSlim(this Entities.Media.Media media) => new(
             media.Id!,
