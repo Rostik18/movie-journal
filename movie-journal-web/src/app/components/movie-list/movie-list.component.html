@@ -216,11 +216,11 @@
             }
 
             <!-- Блок акторів -->
-            @if (movieActors().length > 0) {
+            @if (mov.cast?.length) {
             <div class="actors-section">
                 <h4>Акторський склад</h4>
                 <div class="actors-sidebar-list">
-                    @for (item of movieActors(); track item.fullName) {
+                    @for (item of mov.cast; track item.id) {
                     <div class="actor-row">
                         @if (item.photoUrl) {
                         <img [src]="item.photoUrl" [alt]="item.fullName" class="actor-avatar">

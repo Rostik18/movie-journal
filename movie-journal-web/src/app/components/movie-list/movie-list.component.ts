@@ -1,7 +1,8 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -19,8 +20,6 @@ import { formatDuration } from '../../utils/media-format.util';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { MediaSearchParams, MediaSortField, SortDirection } from '../../models/search.model';
-import { ActorService } from '../../services/actor.service';
-import { ActorItem } from '../../models/actor.model';
 
 type DeleteCallback = () => ReturnType<MediaService['deleteMedia']>;
 type MediaId = MediaItem['id'];
@@ -34,12 +33,6 @@ const DEFAULT_PAGE_SIZE = 20;
 interface WatchState {
     status: WatchStatus;
     rating: number | null;
-}
-
-export interface CastActorView {
-    fullName: string;
-    photoUrl: string | null;
-    characterName?: string | null;
 }
 
 @Component({
@@ -63,7 +56,8 @@ export class MovieListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
-    private readonly actorService = inject(ActorService);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
 
     readonly movies = signal<MediaResponseSlim[]>([]);
     readonly totalCount = signal(0);
@@ -147,8 +141,6 @@ export class MovieListComponent implements OnInit {
         return movie ? this.getDeleteCallback(movie) : undefined;
     });
 
-    readonly movieActors = signal<CastActorView[]>([]);
-
     constructor() {
         this.reload$.pipe(
             tap(() => {
@@ -189,27 +181,8 @@ export class MovieListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
-                this.movieActors.set([]);
                 return this.mediaService.getMediaById(id).pipe(
-                    switchMap(movie => {
-                        if (!movie.cast || movie.cast.length === 0) {
-                            return of({ ok: true as const, movie, actors: [] });
-                        }
-                        // Паралельно запитуємо кожного актора за його ID
-                        const actorObservables = movie.cast.map(c =>
-                            this.actorService.getActorById(c.actorId).pipe(
-                                map(actor => ({ fullName: actor.fullName, photoUrl: actor.photoUrl, characterName: c.characterName || null } as CastActorView)),
-                                catchError(() => of(null)) // якщо одного актора не знайдено, не ламаємо весь список
-                            )
-                        );
-                        return forkJoin(actorObservables).pipe(
-                            map(actors => ({
-                                ok: true as const,
-                                movie,
-                                actors: actors.filter(a => a !== null)
-                            }))
-                        );
-                    }),
+                    map(movie => ({ ok: true as const, movie })),
                     catchError(err => {
                         console.error('Помилка завантаження деталей фільму:', err);
                         return of({ ok: false as const });
@@ -223,8 +196,11 @@ export class MovieListComponent implements OnInit {
                 return;
             }
             if (result.ok) {
+                // Пряме посилання: скороченого запису зі списку немає — будуємо його з повного
+                if (this.selectedSlim()?.id !== result.movie.id) {
+                    this.selectedSlim.set(result.movie);
+                }
                 this.selectedMovie.set(result.movie);
-                this.movieActors.set(result.actors);
             } else {
                 this.detailsError.set(true);
                 this.toastService.show('Не вдалося завантажити деталі фільму', 'error');
@@ -232,7 +208,18 @@ export class MovieListComponent implements OnInit {
         });
     }
 
+    /** URL — джерело правди для сайдбару: /movies/:id відкриває деталі (також при прямому переході й Back/Forward).
+     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
+    private watchRoute(): void {
+        this.route.paramMap.pipe(
+            map(params => params.get('id')),
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(id => this.syncSidebarWithRoute(id));
+    }
+
     ngOnInit(): void {
+        this.watchRoute();
         this.loadMovies();
     }
 
@@ -302,24 +289,50 @@ export class MovieListComponent implements OnInit {
 
     // ====================== Деталі (сайдбар) ======================
     openDetails(movie: MediaResponseSlim): void {
-        this.selectedSlim.set(movie);
-        this.selectedMovie.set(null); // не показуємо дані попереднього фільму
-        this.isSidebarOpen.set(true);
-        this.loadDetails();
+        this.showSidebarFor(movie.id, movie);
+        this.router.navigate(['/movies', movie.id]);
     }
 
     /** Також викликається кнопкою «Спробувати знову» у сайдбарі. */
     loadDetails(): void {
-        const slim = this.selectedSlim();
-        if (slim) {
-            this.details$.next(slim.id);
+        const id = this.selectedSlim()?.id ?? this.route.snapshot.paramMap.get('id');
+        if (id) {
+            this.details$.next(id);
         }
     }
 
     closeSidebar(): void {
+        this.hideSidebar();
+        if (this.route.snapshot.paramMap.has('id')) {
+            this.router.navigate(['/movies']);
+        }
+    }
+
+    private showSidebarFor(id: MediaId, slim: MediaResponseSlim | null): void {
+        this.selectedSlim.set(slim);
+        this.selectedMovie.set(null); // не показуємо дані попереднього фільму
+        this.isSidebarOpen.set(true);
+        this.details$.next(id);
+    }
+
+    private hideSidebar(): void {
         this.isSidebarOpen.set(false);
         this.details$.next(null); // скасовуємо запит, що ще летить
         this.detailsError.set(false);
+    }
+
+    private syncSidebarWithRoute(id: string | null): void {
+        if (!id) {
+            if (this.isSidebarOpen()) {
+                this.hideSidebar();
+            }
+            return;
+        }
+        // Уже відкрито через клік у списку — нічого не робимо
+        if (this.isSidebarOpen() && this.selectedSlim()?.id === id) {
+            return;
+        }
+        this.showSidebarFor(id, this.movies().find(m => m.id === id) ?? null);
     }
 
     onEditMovie(): void {

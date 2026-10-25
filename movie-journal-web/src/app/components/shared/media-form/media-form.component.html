@@ -152,8 +152,7 @@
                 placeholder="Короткий опис..."></textarea>
         </div>
 
-        <!-- Акторський склад (лише при створенні) -->
-        @if (!isEditMode()) {
+        <!-- Акторський склад -->
         <div class="cast-section">
             <div class="section-header">
                 <h4>Акторський склад (Cast)</h4>
@@ -194,8 +193,6 @@
             </div>
             }
         </div>
-
-        }
 
         <!-- Сезони (тільки для серіалу, лише при створенні) -->
         @if (isSeries && !isEditMode()) {

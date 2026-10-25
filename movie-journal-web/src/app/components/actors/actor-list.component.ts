@@ -1,8 +1,9 @@
-import { Component, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { ActorService } from '../../services/actor.service';
 import { ToastService } from '../../services/toast.service';
 import { ActorItem } from '../../models/actor.model';
@@ -46,6 +47,9 @@ const DEFAULT_PAGE_SIZE = 20;
 export class ActorListComponent implements OnInit {
     private readonly actorService = inject(ActorService);
     private readonly toastService = inject(ToastService);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
+    private readonly destroyRef = inject(DestroyRef);
 
     readonly actors = signal<ActorItem[]>([]);
     readonly totalCount = signal(0);
@@ -170,6 +174,8 @@ export class ActorListComponent implements OnInit {
                     catchError(err => {
                         console.error('Помилка завантаження деталей актора:', err);
                         this.toastService.show('Не вдалося завантажити деталі актора', 'error');
+                        // Некоректне посилання: прибираємо id з адреси
+                        this.router.navigate(['/actors'], { replaceUrl: true });
                         return EMPTY;
                     })
                 )
@@ -181,7 +187,24 @@ export class ActorListComponent implements OnInit {
         });
     }
 
+    /** URL — джерело правди для сайдбару: /actors/:id відкриває деталі (також при прямому переході й Back/Forward).
+     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
+    private watchRoute(): void {
+        this.route.paramMap.pipe(
+            map(params => params.get('id')),
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(id => {
+            if (id) {
+                this.details$.next(id);
+            } else {
+                this.isSidebarOpen.set(false);
+            }
+        });
+    }
+
     ngOnInit(): void {
+        this.watchRoute();
         this.loadActors();
     }
 
@@ -191,7 +214,8 @@ export class ActorListComponent implements OnInit {
 
     // ====================== Деталі (сайдбар) ======================
     openDetails(actor: ActorItem): void {
-        this.details$.next(actor.id);
+        // Деталі завантажуються за зміною маршруту
+        this.router.navigate(['/actors', actor.id]);
     }
 
     /**
@@ -200,6 +224,9 @@ export class ActorListComponent implements OnInit {
      */
     closeSidebar(): void {
         this.isSidebarOpen.set(false);
+        if (this.route.snapshot.paramMap.has('id')) {
+            this.router.navigate(['/actors']);
+        }
     }
 
     /** Редагування з сайдбару: форма в модалці поверх, сайдбар лишається відкритим і оновиться після збереження. */

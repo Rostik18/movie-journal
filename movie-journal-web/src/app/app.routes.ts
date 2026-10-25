@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { Route, Routes, UrlMatchResult, UrlSegment } from '@angular/router';
+import { Type } from '@angular/core';
 import { LoginComponent } from './components/login/login.component';
 import { MainLayoutComponent } from './components/layout/main-layout.component';
 import { MovieListComponent } from './components/movie-list/movie-list.component';
@@ -9,16 +10,32 @@ import { SeedDataFormComponent } from './components/seed-data-form/seed-data-for
 import { UserListComponent } from './components/user-list/user-list.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
 
+/**
+ * Маршрут `path` та `path/:id` з ОДНИМ записом конфігурації: Angular перевикористовує компонент
+ * при переході між ними (список не перезавантажується, сайдбар просто відкривається/закривається).
+ */
+const withOptionalId = (path: string, component: Type<unknown>): Route => ({
+    matcher: (segments: UrlSegment[]): UrlMatchResult | null => {
+        if (segments.length === 0 || segments.length > 2 || segments[0].path !== path) {
+            return null;
+        }
+        return segments.length === 2
+            ? { consumed: segments, posParams: { id: segments[1] } }
+            : { consumed: segments };
+    },
+    component
+});
+
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
     {
         path: '',
         component: MainLayoutComponent,
         children: [
-            { path: 'watchlist', component: UserWatchingListComponent },
-            { path: 'movies', component: MovieListComponent },
-            { path: 'actors', component: ActorListComponent },
-            { path: 'collections', component: CollectionListComponent },
+            withOptionalId('watchlist', UserWatchingListComponent),
+            withOptionalId('movies', MovieListComponent),
+            withOptionalId('actors', ActorListComponent),
+            withOptionalId('collections', CollectionListComponent),
             { path: 'users', component: UserListComponent },
             { path: 'profile', component: UserProfileComponent },
             { path: 'seed-data', component: SeedDataFormComponent },

@@ -1,7 +1,8 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 
 import { UserWatchingService } from '../../services/user-watching.service';
 import { ToastService } from '../../services/toast.service';
@@ -20,7 +21,6 @@ import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sideb
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { DatePipe } from '@angular/common';
-import { ActorService } from '../../services/actor.service';
 
 type DeleteCallback = () => ReturnType<UserWatchingService['deleteUserWatching']>;
 
@@ -29,12 +29,6 @@ const FILTER_KEYS = ['status', 'type', 'hasRating', 'hasNotes', 'visibility'] as
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const DEFAULT_PAGE_SIZE = 20;
-
-export interface CastActorView {
-    fullName: string;
-    photoUrl: string | null;
-    characterName?: string | null;
-}
 
 @Component({
     selector: 'app-user-watching-list',
@@ -57,7 +51,8 @@ export class UserWatchingListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
-    private readonly actorService = inject(ActorService);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
 
     readonly watchingList = signal<UserWatchingResponseSlim[]>([]);
     readonly totalCount = signal(0);
@@ -164,8 +159,6 @@ export class UserWatchingListComponent implements OnInit {
         return item ? this.getDeleteCallback(item) : undefined;
     });
 
-    readonly watchingActors = signal<CastActorView[]>([]);
-
     constructor() {
         // switchMap скасовує попередній запит, якщо список перезавантажили повторно
         this.reload$.pipe(
@@ -203,27 +196,8 @@ export class UserWatchingListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
-                this.watchingActors.set([]);
                 return this.userWatchingService.getByMediaId(mediaId).pipe(
-                    switchMap(item => {
-                        const media = item.media;
-                        if (!media || !media.cast || media.cast.length === 0) {
-                            return of({ ok: true as const, item, actors: [] });
-                        }
-                        const actorObservables = media.cast.map(c =>
-                            this.actorService.getActorById(c.actorId).pipe(
-                                map(actor => ({ fullName: actor.fullName, photoUrl: actor.photoUrl, characterName: c.characterName } as CastActorView)),
-                                catchError(() => of(null))
-                            )
-                        );
-                        return forkJoin(actorObservables).pipe(
-                            map(actors => ({
-                                ok: true as const,
-                                item,
-                                actors: actors.filter(a => a !== null)
-                            }))
-                        );
-                    }),
+                    map(item => ({ ok: true as const, item })),
                     catchError(err => {
                         console.error('Помилка завантаження деталей:', err);
                         return of({ ok: false as const });
@@ -237,8 +211,16 @@ export class UserWatchingListComponent implements OnInit {
                 return;
             }
             if (result.ok) {
+                // Пряме посилання: скороченого запису зі списку немає — будуємо його з повного
+                if (this.selectedSlim()?.media?.id !== result.item.media.id) {
+                    this.selectedSlim.set({
+                        media: result.item.media,
+                        status: result.item.status,
+                        rating: result.item.rating,
+                        notes: result.item.notes
+                    });
+                }
                 this.selectedItem.set(result.item);
-                this.watchingActors.set(result.actors);
             } else {
                 this.detailsError.set(true);
                 this.toastService.show('Не вдалося завантажити деталі.', 'error', 4000);
@@ -246,7 +228,18 @@ export class UserWatchingListComponent implements OnInit {
         });
     }
 
+    /** URL — джерело правди для сайдбару: /watchlist/:id відкриває деталі (також при прямому переході й Back/Forward).
+     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
+    private watchRoute(): void {
+        this.route.paramMap.pipe(
+            map(params => params.get('id')),
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(id => this.syncSidebarWithRoute(id));
+    }
+
     ngOnInit(): void {
+        this.watchRoute();
         this.loadList();
     }
 
@@ -285,24 +278,50 @@ export class UserWatchingListComponent implements OnInit {
 
     // ====================== Деталі (сайдбар) ======================
     openDetails(item: UserWatchingResponseSlim): void {
-        this.selectedSlim.set(item);
-        this.selectedItem.set(null); // не показуємо дані попереднього запису
-        this.isSidebarOpen.set(true);
-        this.loadDetails();
+        this.showSidebarFor(item.media.id, item);
+        this.router.navigate(['/watchlist', item.media.id]);
     }
 
     /** Також викликається кнопкою «Спробувати знову» у сайдбарі. */
     loadDetails(): void {
-        const slim = this.selectedSlim();
-        if (slim?.media?.id) {
-            this.details$.next(slim.media.id);
+        const id = this.selectedSlim()?.media?.id ?? this.route.snapshot.paramMap.get('id');
+        if (id) {
+            this.details$.next(id);
         }
     }
 
     closeSidebar(): void {
+        this.hideSidebar();
+        if (this.route.snapshot.paramMap.has('id')) {
+            this.router.navigate(['/watchlist']);
+        }
+    }
+
+    private showSidebarFor(mediaId: string, slim: UserWatchingResponseSlim | null): void {
+        this.selectedSlim.set(slim);
+        this.selectedItem.set(null); // не показуємо дані попереднього запису
+        this.isSidebarOpen.set(true);
+        this.details$.next(mediaId);
+    }
+
+    private hideSidebar(): void {
         this.isSidebarOpen.set(false);
         this.details$.next(null); // скасовуємо запит, що ще летить
         this.detailsError.set(false);
+    }
+
+    private syncSidebarWithRoute(id: string | null): void {
+        if (!id) {
+            if (this.isSidebarOpen()) {
+                this.hideSidebar();
+            }
+            return;
+        }
+        // Уже відкрито через клік у списку — нічого не робимо
+        if (this.isSidebarOpen() && this.selectedSlim()?.media?.id === id) {
+            return;
+        }
+        this.showSidebarFor(id, this.watchingList().find(i => i.media?.id === id) ?? null);
     }
 
     onEditItem(): void {

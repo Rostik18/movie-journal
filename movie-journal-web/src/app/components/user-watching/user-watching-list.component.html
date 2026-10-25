@@ -219,21 +219,21 @@
             }
 
             <!-- Блок акторів -->
-            @if (watchingActors().length > 0) {
+            @if (item.media.cast?.length) {
             <div class="actors-section">
                 <h4>Акторський склад</h4>
                 <div class="actors-sidebar-list">
-                    @for (item of watchingActors(); track item.fullName) {
+                    @for (actor of item.media.cast; track actor.id) {
                     <div class="actor-row">
-                        @if (item.photoUrl) {
-                        <img [src]="item.photoUrl" [alt]="item.fullName" class="actor-avatar">
+                        @if (actor.photoUrl) {
+                        <img [src]="actor.photoUrl" [alt]="actor.fullName" class="actor-avatar">
                         } @else {
                         <div class="actor-avatar actor-no-photo">🎬</div>
                         }
                         <div class="actor-info">
-                            <span class="actor-name"><strong>{{ item.fullName }}</strong></span>
-                            @if (item.characterName) {
-                            <span class="actor-character">as {{ item.characterName }}</span>
+                            <span class="actor-name"><strong>{{ actor.fullName }}</strong></span>
+                            @if (actor.characterName) {
+                            <span class="actor-character">as {{ actor.characterName }}</span>
                             }
                         </div>
                     </div>

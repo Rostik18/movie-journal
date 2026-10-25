@@ -1,7 +1,8 @@
-import { Component, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject, of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { CollectionService } from '../../services/collection.service';
 import { ToastService } from '../../services/toast.service';
 import { MediaCollectionResponse } from '../../models/collection.model';
@@ -48,6 +49,9 @@ const DEFAULT_PAGE_SIZE = 20;
 export class CollectionListComponent implements OnInit {
     private readonly collectionService = inject(CollectionService);
     private readonly toastService = inject(ToastService);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
+    private readonly destroyRef = inject(DestroyRef);
 
     readonly collections = signal<MediaCollectionResponse[]>([]);
     readonly totalCount = signal(0);
@@ -159,6 +163,8 @@ export class CollectionListComponent implements OnInit {
                     catchError(err => {
                         console.error('Помилка завантаження деталей колекції:', err);
                         this.toastService.show('Не вдалося завантажити деталі колекції', 'error');
+                        // Некоректне посилання: прибираємо id з адреси
+                        this.router.navigate(['/collections'], { replaceUrl: true });
                         return EMPTY;
                     })
                 )
@@ -170,7 +176,24 @@ export class CollectionListComponent implements OnInit {
         });
     }
 
+    /** URL — джерело правди для сайдбару: /collections/:id відкриває деталі (також при прямому переході й Back/Forward).
+     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
+    private watchRoute(): void {
+        this.route.paramMap.pipe(
+            map(params => params.get('id')),
+            distinctUntilChanged(),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(id => {
+            if (id) {
+                this.details$.next(id);
+            } else {
+                this.isSidebarOpen.set(false);
+            }
+        });
+    }
+
     ngOnInit(): void {
+        this.watchRoute();
         this.loadCollections();
     }
 
@@ -180,7 +203,8 @@ export class CollectionListComponent implements OnInit {
 
     // ====================== Деталі (сайдбар) ======================
     openDetails(collection: MediaCollectionResponse): void {
-        this.details$.next(collection.id);
+        // Деталі завантажуються за зміною маршруту
+        this.router.navigate(['/collections', collection.id]);
     }
 
     /**
@@ -188,6 +212,9 @@ export class CollectionListComponent implements OnInit {
      */
     closeSidebar(): void {
         this.isSidebarOpen.set(false);
+        if (this.route.snapshot.paramMap.has('id')) {
+            this.router.navigate(['/collections']);
+        }
     }
 
     onEditCollection(): void {

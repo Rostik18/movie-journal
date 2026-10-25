@@ -44,6 +44,7 @@ interface Snapshot {
     genres: string;
     tags: string;
     links: string;
+    cast: string;
 }
 
 const createEmptyMedia = (): CreateMediaRequest => ({
@@ -212,7 +213,12 @@ export class MediaFormComponent implements OnInit {
             duration: media.duration ?? null,
             posterUrl: media.posterUrl ?? '',
             visibility: media.visibility,
-            links: [...(media.links ?? [])]
+            links: [...(media.links ?? [])],
+            cast: (media.cast ?? []).map(c => ({
+                actorId: c.id,
+                fullName: c.fullName,
+                characterName: c.characterName ?? ''
+            }))
         };
         this.genresInput = (media.genres ?? []).join(', ');
         this.tagsInput = (media.tags ?? []).join(', ');
@@ -236,7 +242,8 @@ export class MediaFormComponent implements OnInit {
             visibility: d.visibility,
             genres: parseCommaList(this.genresInput).join('\u0000'),
             tags: parseCommaList(this.tagsInput).join('\u0000'),
-            links: d.links.join('\u0000')
+            links: d.links.join('\u0000'),
+            cast: d.cast.map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000')
         };
     }
 
@@ -599,7 +606,7 @@ export class MediaFormComponent implements OnInit {
             genres: changed('genres') ? parseCommaList(this.genresInput) : null,
             tags: changed('tags') ? parseCommaList(this.tagsInput) : null,
             links: changed('links') ? [...this.mediaData.links] : null,
-            cast: null,
+            cast: changed('cast') ? this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })) : null,
             seasons: null,
             collectionId: null
         };

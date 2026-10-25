@@ -13,7 +13,7 @@ export interface MediaItem {
     genres: string[];
     tags: string[];
     links: string[];
-    cast: MediaActor[];
+    cast: CastResponse[];
     visibility: Visibility;
 }
 
@@ -29,6 +29,15 @@ export interface MediaResponseSlim {
     visibility: Visibility;
 }
 
+/** Актор у складі медіа (відповідь BE): дані актора вже вбудовані, додаткові запити не потрібні. */
+export interface CastResponse {
+    id: string;
+    fullName: string;
+    photoUrl?: string | null;
+    characterName?: string | null;
+}
+
+/** Елемент складу в запитах створення / оновлення медіа. */
 export interface MediaActor {
     actorId: string;
     fullName: string;
