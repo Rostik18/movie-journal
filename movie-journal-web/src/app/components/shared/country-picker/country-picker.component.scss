@@ -1,0 +1,97 @@
+.country-picker {
+    position: relative;
+
+    .selected-countries {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .country-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 4px 3px 10px;
+        border-radius: 999px;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .chip-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            background: rgba(3, 105, 161, 0.15);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+        }
+    }
+
+    .country-dropdown {
+        position: absolute;
+        z-index: 20;
+        left: 0;
+        right: 0;
+        top: 100%;
+        margin-top: 4px;
+        max-height: 240px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .country-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 8px 12px;
+        border: none;
+        background: transparent;
+        color: #1e293b;
+        font-size: 0.9rem;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            background: #f1f5f9;
+            outline: none;
+        }
+    }
+
+    .country-code {
+        color: #94a3b8;
+        font-size: 0.75rem;
+    }
+
+    .country-empty,
+    .country-limit {
+        padding: 8px 12px;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .country-limit {
+        margin: 0;
+        padding: 0;
+    }
+}

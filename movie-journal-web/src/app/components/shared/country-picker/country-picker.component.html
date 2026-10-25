@@ -1,0 +1,34 @@
+<div class="country-picker">
+    @if (selected().length > 0) {
+    <div class="selected-countries">
+        @for (country of selected(); track country.code) {
+        <span class="country-chip">
+            {{ country.name }}
+            <button type="button" class="chip-remove" [attr.aria-label]="'Прибрати: ' + country.name"
+                (click)="remove(country.code)">&times;</button>
+        </span>
+        }
+    </div>
+    }
+
+    @if (canAdd()) {
+    <input type="text" [id]="inputId()" [name]="inputId()" autocomplete="off" [ngModel]="query()"
+        (ngModelChange)="onQueryChange($event)" (focus)="isOpen.set(true)" (keydown.enter)="onEnter($event)"
+        (keydown.escape)="onEscape($event)" role="combobox" [attr.aria-expanded]="isOpen()"
+        [placeholder]="selected().length ? 'Додати ще одну країну (подвійне громадянство)...' : 'Почніть вводити назву країни...'">
+
+    @if (isOpen()) {
+    <div class="country-dropdown" role="listbox">
+        @for (country of matches(); track country.code) {
+        <button type="button" class="country-option" role="option" (click)="add(country.code)">
+            {{ country.name }} <span class="country-code">{{ country.code }}</span>
+        </button>
+        } @empty {
+        <div class="country-empty">Нічого не знайдено</div>
+        }
+    </div>
+    }
+    } @else {
+    <p class="country-limit">Максимум {{ max() }} країни. Приберіть одну, щоб додати іншу.</p>
+    }
+</div>

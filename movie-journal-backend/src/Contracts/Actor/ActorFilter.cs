@@ -10,5 +10,6 @@ namespace MovieJournalBackend.Contracts.Actor
         public int? BirthYear { get; init; }
         public Visibility? Visibility { get; init; }
         public Sex? Sex { get; init; }
+        public string? Nationality { get; init; }
     }
 }

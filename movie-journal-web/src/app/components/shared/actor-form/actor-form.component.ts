@@ -7,6 +7,8 @@ import { ActorService } from '../../../services/actor.service';
 import { ToastService } from '../../../services/toast.service';
 import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
+import { CountryPickerComponent } from '../country-picker/country-picker.component';
+import { joinNationality, parseNationality } from '../../../utils/country.util';
 
 const MIN_BIRTH_YEAR = 1800;
 
@@ -22,6 +24,8 @@ interface Snapshot {
     sex: Sex | null | undefined;
     /** «рік-місяць-день» як ввів користувач (порожні частини — порожні рядки). */
     birth: string;
+    /** ISO alpha-3 через кому («NLD,FRA»). */
+    nationality: string;
 }
 
 const emptySnapshot = (): Snapshot => ({
@@ -30,7 +34,8 @@ const emptySnapshot = (): Snapshot => ({
     biography: '',
     visibility: Visibility.Public,
     sex: null,
-    birth: '--'
+    birth: '--',
+    nationality: ''
 });
 
 const createEmptyActor = (): CreateActorRequest => ({
@@ -39,13 +44,14 @@ const createEmptyActor = (): CreateActorRequest => ({
     biography: '',
     photoUrl: '',
     visibility: Visibility.Public,
-    sex: null
+    sex: null,
+    nationality: ''
 });
 
 @Component({
     selector: 'app-actor-form',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, CountryPickerComponent],
     templateUrl: './actor-form.component.html',
     styleUrls: ['./actor-form.component.scss']
 })
@@ -89,7 +95,7 @@ export class ActorFormComponent implements OnInit {
 
     readonly sexOptions = [
         { value: null, label: '— Не вказано —' },
-        ...(Object.values(Sex).filter(v => typeof v === 'number') as Sex[]).map(value => ({
+        ...Object.values(Sex).map(value => ({
             value,
             label: SexLabels[value] ?? String(value)
         }))
@@ -163,7 +169,8 @@ export class ActorFormComponent implements OnInit {
             photoUrl: values.photoUrl,
             biography: values.biography,
             birthDate: values.birthDate,
-            sex: this.actorData.sex ?? null
+            sex: this.actorData.sex ?? null,
+            nationality: this.snapshot().nationality || null
         };
 
         this.actorService.createActor(payload).pipe(
@@ -192,7 +199,9 @@ export class ActorFormComponent implements OnInit {
             biography: values.biography !== base.biography ? values.biography : null,
             visibility: this.actorData.visibility !== base.visibility ? this.actorData.visibility : null,
             sex: this.actorData.sex !== base.sex ? (this.actorData.sex ?? null) : null,
-            birthDate: this.snapshot().birth !== base.birth ? values.birthDate : null
+            birthDate: this.snapshot().birth !== base.birth ? values.birthDate : null,
+            // Порожній рядок очищає громадянство; null — «не змінювати»
+            nationality: this.snapshot().nationality !== base.nationality ? this.snapshot().nationality : null
         };
 
         this.actorService.updateActor(payload).pipe(
@@ -289,7 +298,8 @@ export class ActorFormComponent implements OnInit {
             biography: (this.actorData.biography ?? '').trim(),
             visibility: this.actorData.visibility ?? Visibility.Public,
             sex: this.actorData.sex ?? null,
-            birth: `${this.birthYear ?? ''}-${this.birthMonth ?? ''}-${this.birthDay ?? ''}`
+            birth: `${this.birthYear ?? ''}-${this.birthMonth ?? ''}-${this.birthDay ?? ''}`,
+            nationality: joinNationality(parseNationality(this.actorData.nationality))
         };
     }
 
@@ -300,7 +310,8 @@ export class ActorFormComponent implements OnInit {
             biography: actor.biography ?? '',
             photoUrl: actor.photoUrl ?? '',
             visibility: actor.visibility ?? Visibility.Public,
-            sex: actor.sex ?? null
+            sex: actor.sex ?? null,
+            nationality: joinNationality(parseNationality(actor.nationality))
         };
 
         const birth = actor.birthDate ? new Date(actor.birthDate) : null;

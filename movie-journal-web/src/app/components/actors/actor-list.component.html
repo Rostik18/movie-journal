@@ -130,6 +130,12 @@
             </p>
             }
 
+            @if (actor.nationality) {
+            <p class="detail-row">
+                <strong>Громадянство:</strong> {{ formatNationality(actor.nationality) }}
+            </p>
+            }
+
             @if (actor.visibility !== null && actor.visibility !== undefined) {
             <p class="detail-row">
                 <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}

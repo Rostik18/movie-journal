@@ -29,7 +29,8 @@ namespace MovieJournalBackend.Repositories.Common
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://encrypted-tbn1.gstatic.com/licensed-image?q=tbn:ANd9GcSGm1HLLA32H2mtH_lpTrRs9PlK0aWCjFixoZmiGrnR66c2kZdTxo07tKlPU_WbZ6M6_WxadD818BXLIi8",
                 Visibility = Visibility.Public,
-                Sex = Sex.Male
+                Sex = Sex.Male,
+                Nationality = "CAN"
             },
             new()
             {
@@ -41,7 +42,8 @@ namespace MovieJournalBackend.Repositories.Common
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://assets.vogue.com/photos/68f8bc236a14a6c83b5d66d9/master/w_2560%2Cc_limit/GettyImages-2242466644.jpg",
                 Visibility = Visibility.Public,
-                Sex = Sex.Female
+                Sex = Sex.Female,
+                Nationality = "USA"
             },
             new()
             {
@@ -53,7 +55,8 @@ namespace MovieJournalBackend.Repositories.Common
                 OwnerUserId = _adminId,
                 PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfTx05VA0WTNjVDivEHJAbrH3X5-71Dk6UW65yK1TV-3yyCSPAFllspoNvT_tjEzI0ju5GoTLRzG-UY27L4tbaYh30S0wXfKGIgFbVg&s=10",
                 Visibility = Visibility.Public,
-                Sex = Sex.Female
+                Sex = Sex.Female,
+                Nationality = "CUB,ESP"
             }
         ];
         private static MediaCollection[] _mediaCollection = [

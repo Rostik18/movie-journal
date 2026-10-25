@@ -10,5 +10,6 @@ namespace MovieJournalBackend.Entities.Actor
         public string? Biography { get; set; }
         public string? PhotoUrl { get; set; }
         public Sex? Sex { get; set; }
+        public string? Nationality { get; set; } // ISO 3166-1 alpha-3 country code, e.g., "USA", "GBR", "CUB,ESP"
     }
 }

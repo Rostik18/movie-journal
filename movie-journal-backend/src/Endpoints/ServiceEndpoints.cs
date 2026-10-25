@@ -188,7 +188,8 @@ namespace MovieJournalBackend.Endpoints
                              ? (await metadataService.TrySearchAsync(item.FullName, ct)).LastOrDefault()?.ImageUrl
                              : item.PhotoUrl,
                         Biography = item.Biography,
-                        Sex = item.Sex
+                        Sex = item.Sex,
+                        Nationality = item.Nationality
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch (Exception ex)
@@ -301,7 +302,7 @@ namespace MovieJournalBackend.Endpoints
                     : null))
         ];
 
-        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex);
+        public sealed record SeedActorItem(string FullName, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, string? Nationality);
 
         private static SeedActorItem[] ParseActorsPayload(string payload) =>
             [..payload
@@ -321,7 +322,11 @@ namespace MovieJournalBackend.Endpoints
                     : null,
                 Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
                     ? sex
-                    : null))
+                    : null,
+                Nationality: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
+                    ? columns[5]
+                    : null
+                ))
         ];
     }
 }

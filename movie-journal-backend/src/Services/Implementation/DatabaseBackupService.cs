@@ -83,7 +83,7 @@ namespace MovieJournalBackend.Services.Implementation
                 cancellationToken: ct);
         }
 
-        public async Task<string> ClearDbAsync(CancellationToken ct = default)
+        public async Task<DropDbResult> ClearDbAsync(CancellationToken ct = default)
         {
             var collectionNames = await database
                 .ListCollectionNames(cancellationToken: ct)
@@ -105,12 +105,11 @@ namespace MovieJournalBackend.Services.Implementation
 
             await initializer.InitializeAsync(ct);
 
-            return JsonSerializer.Serialize(new
-            {
-                Message = "Database collections dropped successfully.",
-                PreservedCollections = preservedCollections,
-                DroppedCollections = droppedCollections
-            });
+            return new(
+            "Database collections dropped successfully.",
+            preservedCollections,
+            droppedCollections
+            );
         }
 
         public async Task<RestoreResult> RestoreAsync(Stream input, CancellationToken ct = default)

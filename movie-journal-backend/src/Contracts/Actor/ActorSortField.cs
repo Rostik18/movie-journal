@@ -6,6 +6,7 @@
         BirthDate = 2,
         CreatedAt = 3,
         UpdatedAt = 4,
-        Sex = 5
+        Sex = 5,
+        Nationality = 6
     }
 }

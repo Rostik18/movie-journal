@@ -10,7 +10,8 @@ export enum ActorSortField {
     BirthDate = 'BirthDate',
     CreatedAt = 'CreatedAt',
     UpdatedAt = 'UpdatedAt',
-    Sex = 'Sex'
+    Sex = 'Sex',
+    Nationality = 'Nationality'
 }
 
 export enum MediaCollectionSortField {
@@ -49,6 +50,8 @@ export interface ActorSearchParams {
     size?: number;
     visibility?: Visibility;
     Sex?: Sex | null;
+    /** ISO alpha-3 код країни. */
+    nationality?: string;
 }
 
 export interface CollectionSearchParams {

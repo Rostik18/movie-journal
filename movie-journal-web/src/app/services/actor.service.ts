@@ -44,6 +44,9 @@ export class ActorService {
         if (params.Sex !== undefined && params.Sex !== null) {
             httpParams = httpParams.set('sex', params.Sex.toString());
         }
+        if (params.nationality) {
+            httpParams = httpParams.set('nationality', params.nationality);
+        }
 
         return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });
     }

@@ -26,6 +26,7 @@ export interface FilterOption {
  * Фільтр у тулбарі. `value === undefined` (або null) означає «фільтр не задано».
  *
  * - enum: по кнопці на кожне значення з `options`;
+ * - select: випадаючий список для довгих списків значень (наприклад, країни); порожній пункт — «не задано»;
  * - boolean: один тристанний чекбокс — порожній (не задано) → ✓ (true) → ✗ (false) → порожній.
  *   Визначається автоматично, коли всі `options` мають значення true/false, або явно через `type: 'boolean'`.
  *   Підписи з options (true/false) використовуються в підказках.
@@ -35,13 +36,14 @@ export interface ToolbarFilter {
     label: string;
     value: unknown;
     options?: FilterOption[];
-    type?: 'enum' | 'boolean';
+    type?: 'enum' | 'boolean' | 'select';
 }
 
 /** Фільтр, підготовлений для шаблону. */
 interface ViewFilter extends ToolbarFilter {
     options: FilterOption[];
     isBoolean: boolean;
+    isSelect: boolean;
 }
 
 export interface SortFieldOption {
@@ -113,6 +115,16 @@ export function enumOptions(
                             </span>
                             <span class="tri-label">{{ filter.label }}</span>
                         </button>
+                    } @else if (filter.isSelect) {
+                    <label class="field-label" [attr.for]="'filter-' + filter.key">{{ filter.label }}</label>
+
+                    <select class="filter-select" [id]="'filter-' + filter.key"
+                        (change)="onSelectChange(filter, $any($event.target).value)">
+                        <option value="" [selected]="filter.value == null">Усі</option>
+                        @for (opt of filter.options; track opt.value) {
+                            <option [value]="opt.value" [selected]="filter.value === opt.value">{{ opt.label }}</option>
+                        }
+                    </select>
                     } @else {
                     <span class="field-label">{{ filter.label }}</span>
 
@@ -209,7 +221,7 @@ export class SearchToolbarComponent {
             const isBoolean = filter.type
                 ? filter.type === 'boolean'
                 : options.length > 0 && options.every(o => typeof o.value === 'boolean');
-            return { ...filter, options, isBoolean };
+            return { ...filter, options, isBoolean, isSelect: filter.type === 'select' };
         })
     );
 
@@ -267,6 +279,12 @@ export class SearchToolbarComponent {
             key: filter.key,
             value: filter.value === option.value ? undefined : option.value
         });
+    }
+
+    /** Порожнє значення — «Усі» (фільтр скинуто). */
+    onSelectChange(filter: ToolbarFilter, raw: string): void {
+        const option = (filter.options ?? []).find(o => String(o.value) === raw);
+        this.filterChange.emit({ key: filter.key, value: raw === '' ? undefined : (option?.value ?? raw) });
     }
 
     /** Порожній (undefined/null) → true → false → порожній. */

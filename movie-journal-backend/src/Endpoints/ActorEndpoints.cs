@@ -39,6 +39,7 @@ namespace MovieJournalBackend.Endpoints
             [FromQuery] bool? hasPhoto,
             [FromQuery] Visibility? visibility,
             [FromQuery] Sex? sex,
+            [FromQuery] string? nationality,
 
             [FromQuery] ActorSortField? sortBy,
             [FromQuery] SortDirection? sort,
@@ -60,7 +61,8 @@ namespace MovieJournalBackend.Endpoints
                     BirthYear = birthYear,
                     HasPhoto = hasPhoto,
                     Visibility = visibility,
-                    Sex = sex
+                    Sex = sex,
+                    Nationality = nationality
                 }
             }, principal.ToUserContext(), ct);
 

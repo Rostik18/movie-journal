@@ -85,6 +85,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Sex, request.Filter.Sex.Value));
             }
+            if (!string.IsNullOrWhiteSpace(request.Filter.Nationality))
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Nationality, new(Regex.Escape(request.Filter.Nationality), "i")));
+            }
 
             return filter;
         }
@@ -106,6 +110,9 @@ namespace MovieJournalBackend.Repositories.Implementation
             ActorSortField.Sex => request.Sort.Direction == SortDirection.Ascending
                 ? _sBuilder.Ascending(x => x.Sex)
                 : _sBuilder.Descending(x => x.Sex),
+            ActorSortField.Nationality => request.Sort.Direction == SortDirection.Ascending
+                ? _sBuilder.Ascending(x => x.Nationality)
+                : _sBuilder.Descending(x => x.Nationality),
             _ => null
         };
     }

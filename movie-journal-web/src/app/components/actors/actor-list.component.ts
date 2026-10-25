@@ -10,6 +10,7 @@ import { MediaResponseSlim } from '../../models/media.model';
 import { ToastService } from '../../services/toast.service';
 import { ActorItem } from '../../models/actor.model';
 import { PageResponse } from '../../models/shared.model';
+import { COUNTRIES, formatNationality } from '../../utils/country.util';
 import { MediaTypeLabels, Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
 import { ActorSearchParams, ActorSortField, SortDirection } from '../../models/search.model';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -25,7 +26,7 @@ type DeleteCallback = () => ReturnType<ActorService['deleteActor']>;
 type ActorId = ActorItem['id'];
 
 /** Ключі ActorSearchParams, якими керують кнопки-фільтри тулбара. */
-const FILTER_KEYS = ['visibility', 'hasPhoto', 'Sex'] as const;
+const FILTER_KEYS = ['visibility', 'hasPhoto', 'Sex', 'nationality'] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 /** Скільки фільмів актора показуємо в сайдбарі. */
@@ -80,6 +81,7 @@ export class ActorListComponent implements OnInit {
     readonly isSidebarOpen = signal(false);
 
     readonly mediaTypeLabels = MediaTypeLabels;
+    readonly formatNationality = formatNationality;
     readonly sexLabels = SexLabels;
     readonly visibilityLabels = VisibilityLabels;
 
@@ -111,12 +113,16 @@ export class ActorListComponent implements OnInit {
         { value: Sex.Female, label: '♀️' }
     ];
 
+    /** Країни для фільтра: значення — ISO alpha-3, як у BE. */
+    private readonly nationalityOptions = COUNTRIES.map(c => ({ value: c.code, label: c.name }));
+
     readonly actorSortFields: SortFieldOption[] = enumOptions(ActorSortField, {
         [ActorSortField.FullName]: 'Іменем',
         [ActorSortField.BirthDate]: 'Датою народження',
         [ActorSortField.CreatedAt]: 'Датою створення',
         [ActorSortField.UpdatedAt]: 'Датою оновлення',
-        [ActorSortField.Sex]: 'Статтю'
+        [ActorSortField.Sex]: 'Статтю',
+        [ActorSortField.Nationality]: 'Громадянством'
     });
 
     // computed, а не масив у шаблоні: інакше новий масив на кожен цикл change detection
@@ -125,13 +131,14 @@ export class ActorListComponent implements OnInit {
         return [
             { key: 'hasPhoto', label: 'Фото', value: params.hasPhoto, options: this.hasPhotoOptions },
             { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions },
-            { key: 'Sex', label: 'Стать', value: params.Sex, options: this.sexOptions }
+            { key: 'Sex', label: 'Стать', value: params.Sex, options: this.sexOptions },
+            { key: 'nationality', label: 'Країна', value: params.nationality, options: this.nationalityOptions, type: 'select' }
         ];
     });
 
     readonly hasActiveFilters = computed(() => {
-        const { query, visibility, hasPhoto, birthYear, Sex } = this.searchParams();
-        return !!query || visibility !== undefined || hasPhoto !== undefined || birthYear !== undefined || Sex !== undefined && Sex !== null;
+        const { query, visibility, hasPhoto, birthYear, Sex, nationality } = this.searchParams();
+        return !!query || !!nationality || visibility !== undefined || hasPhoto !== undefined || birthYear !== undefined || Sex !== undefined && Sex !== null;
     });
 
     // Стани для шаблону: початкове завантаження / помилка / порожній список

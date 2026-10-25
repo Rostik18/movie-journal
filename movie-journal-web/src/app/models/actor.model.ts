@@ -8,6 +8,8 @@ export interface ActorItem {
     photoUrl: string | null;
     visibility: Visibility;
     sex?: Sex | null;
+    /** ISO 3166-1 alpha-3 через кому: «USA», «NLD,FRA». */
+    nationality?: string | null;
 }
 
 export interface CreateActorRequest {
@@ -17,6 +19,7 @@ export interface CreateActorRequest {
     photoUrl?: string | null;
     visibility: Visibility;
     sex?: Sex | null;
+    nationality?: string | null;
 }
 
 export interface UpdateActorRequest {
@@ -27,4 +30,5 @@ export interface UpdateActorRequest {
     photoUrl?: string | null;
     visibility?: Visibility | null;
     sex?: Sex | null;
+    nationality?: string | null;
 }
