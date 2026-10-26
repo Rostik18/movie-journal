@@ -8,7 +8,6 @@ import { ToastService } from '../../../services/toast.service';
 import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 import { CountryPickerComponent } from '../country-picker/country-picker.component';
-import { joinNationality, parseNationality } from '../../../utils/country.util';
 
 const MIN_BIRTH_YEAR = 1800;
 
@@ -18,34 +17,37 @@ type FormErrors = Partial<Record<FieldName, string>>;
 /** Нормалізований «знімок» полів форми: за ним визначаємо, що користувач змінив. */
 interface Snapshot {
     fullName: string;
+    alias: string;
     photoUrl: string;
     biography: string;
     visibility: Visibility;
     sex: Sex | null | undefined;
     /** «рік-місяць-день» як ввів користувач (порожні частини — порожні рядки). */
     birth: string;
-    /** ISO alpha-3 через кому («NLD,FRA»). */
-    nationality: string;
+    /** Коди країн (ISO alpha-3) через кому — лише для порівняння. */
+    nationalities: string;
 }
 
 const emptySnapshot = (): Snapshot => ({
     fullName: '',
+    alias: '',
     photoUrl: '',
     biography: '',
     visibility: Visibility.Public,
     sex: null,
     birth: '--',
-    nationality: ''
+    nationalities: ''
 });
 
 const createEmptyActor = (): CreateActorRequest => ({
     fullName: '',
+    alias: '',
     birthDate: null,
     biography: '',
     photoUrl: '',
     visibility: Visibility.Public,
     sex: null,
-    nationality: ''
+    nationalities: []
 });
 
 @Component({
@@ -166,11 +168,12 @@ export class ActorFormComponent implements OnInit {
         const payload: CreateActorRequest = {
             ...this.actorData,
             fullName: values.fullName,
+            alias: this.snapshot().alias || null,
             photoUrl: values.photoUrl,
             biography: values.biography,
             birthDate: values.birthDate,
             sex: this.actorData.sex ?? null,
-            nationality: this.snapshot().nationality || null
+            nationalities: [...this.actorData.nationalities]
         };
 
         this.actorService.createActor(payload).pipe(
@@ -195,13 +198,15 @@ export class ActorFormComponent implements OnInit {
         const payload: UpdateActorRequest = {
             actorId: actor.id,
             fullName: values.fullName !== base.fullName ? values.fullName : null,
+            // Порожній рядок очищає псевдонім; null — «не змінювати»
+            alias: this.snapshot().alias !== base.alias ? this.snapshot().alias : null,
             photoUrl: values.photoUrl !== base.photoUrl ? values.photoUrl : null,
             biography: values.biography !== base.biography ? values.biography : null,
             visibility: this.actorData.visibility !== base.visibility ? this.actorData.visibility : null,
             sex: this.actorData.sex !== base.sex ? (this.actorData.sex ?? null) : null,
             birthDate: this.snapshot().birth !== base.birth ? values.birthDate : null,
-            // Порожній рядок очищає громадянство; null — «не змінювати»
-            nationality: this.snapshot().nationality !== base.nationality ? this.snapshot().nationality : null
+            // Поле не nullable на BE, тому завжди надсилаємо поточний список
+            nationalities: [...this.actorData.nationalities]
         };
 
         this.actorService.updateActor(payload).pipe(
@@ -294,24 +299,26 @@ export class ActorFormComponent implements OnInit {
     private snapshot(): Snapshot {
         return {
             fullName: this.actorData.fullName.trim(),
+            alias: (this.actorData.alias ?? '').trim(),
             photoUrl: this.photoPreviewUrl,
             biography: (this.actorData.biography ?? '').trim(),
             visibility: this.actorData.visibility ?? Visibility.Public,
             sex: this.actorData.sex ?? null,
             birth: `${this.birthYear ?? ''}-${this.birthMonth ?? ''}-${this.birthDay ?? ''}`,
-            nationality: joinNationality(parseNationality(this.actorData.nationality))
+            nationalities: this.actorData.nationalities.join(',')
         };
     }
 
     private populateFrom(actor: ActorItem): void {
         this.actorData = {
             fullName: actor.fullName ?? '',
+            alias: actor.alias ?? '',
             birthDate: actor.birthDate ?? null,
             biography: actor.biography ?? '',
             photoUrl: actor.photoUrl ?? '',
             visibility: actor.visibility ?? Visibility.Public,
             sex: actor.sex ?? null,
-            nationality: joinNationality(parseNationality(actor.nationality))
+            nationalities: [...(actor.nationalities ?? [])]
         };
 
         const birth = actor.birthDate ? new Date(actor.birthDate) : null;

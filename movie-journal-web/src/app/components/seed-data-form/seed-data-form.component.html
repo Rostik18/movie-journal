@@ -4,11 +4,11 @@
     <!-- Таби перемикання режиму Seed зверху -->
     <div class="seed-tabs">
         <button type="button" class="tab-btn" [class.active]="seedMode() === 'actors'" (click)="seedMode.set('actors')">
-            Актори (Actors)
+            Актори
         </button>
         <button type="button" class="tab-btn" [class.active]="seedMode() === 'userWatch'"
             (click)="seedMode.set('userWatch')">
-            Дані перегляду (User Watch)
+            Дані перегляду
         </button>
     </div>
 
@@ -74,14 +74,15 @@
     <div class="form-group">
         <label>Дані (Payload):</label>
         <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
-            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    10' : 'name   https://photo-url.com   20.04.2010    biography   Male'"
+            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    10' : 'name   https://photo-url.com   20.04.2010    biography   Male    USA'"
             required>
         </textarea>
         <small class="hint">
             @if (seedMode() === 'userWatch') {
             Вставте рядки у форматі: URL [TAB] Назва [TAB] Оцінка
             } @else {
-            Вставте рядки у форматі: Назва [TAB] Фото URL [TAB] Дата народження [TAB] Біографія [TAB] Стать
+            Вставте рядки у форматі: Назва [TAB] Фото URL [TAB] Дата народження [TAB] Біографія [TAB] Стать [TAB]
+            Національність
             }
         </small>
     </div>

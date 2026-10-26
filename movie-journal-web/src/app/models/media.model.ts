@@ -14,6 +14,8 @@ export interface MediaItem {
     tags: string[];
     links: string[];
     cast: CastResponse[];
+    /** Колекція, до якої належить медіа. */
+    collection?: CollectionReference | null;
     visibility: Visibility;
 }
 
@@ -27,6 +29,12 @@ export interface MediaResponseSlim {
     genres: string[];
     links: string[];
     visibility: Visibility;
+}
+
+/** Посилання на колекцію у відповіді BE: id та назва (додаткові запити не потрібні). */
+export interface CollectionReference {
+    id: string;
+    name: string;
 }
 
 /** Актор у складі медіа (відповідь BE): дані актора вже вбудовані, додаткові запити не потрібні. */

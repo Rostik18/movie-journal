@@ -45,6 +45,8 @@ interface Snapshot {
     tags: string;
     links: string;
     cast: string;
+    /** «id:…» — обрана колекція, «new:…» — введена назва (буде знайдена/створена), порожньо — без колекції. */
+    collection: string;
 }
 
 const createEmptyMedia = (): CreateMediaRequest => ({
@@ -218,14 +220,26 @@ export class MediaFormComponent implements OnInit {
                 actorId: c.id,
                 fullName: c.fullName,
                 characterName: c.characterName ?? ''
-            }))
+            })),
+            collectionId: media.collection?.id ?? null
         };
+        // Назва колекції приходить разом з медіа — окремий запит не потрібен
+        this.collectionSearchQuery = media.collection?.name ?? '';
         this.genresInput = (media.genres ?? []).join(', ');
         this.tagsInput = (media.tags ?? []).join(', ');
         this.imageError = false;
         // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
         this.typeTouched = true;
         this.baseline = this.snapshot();
+    }
+
+    private collectionKey(): string {
+        const id = this.mediaData.collectionId;
+        if (id) {
+            return `id:${id}`;
+        }
+        const name = this.collectionSearchQuery.trim();
+        return name ? `new:${name.toLowerCase()}` : '';
     }
 
     private snapshot(): Snapshot {
@@ -243,7 +257,8 @@ export class MediaFormComponent implements OnInit {
             genres: parseCommaList(this.genresInput).join('\u0000'),
             tags: parseCommaList(this.tagsInput).join('\u0000'),
             links: d.links.join('\u0000'),
-            cast: d.cast.map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000')
+            cast: d.cast.map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
+            collection: this.collectionKey()
         };
     }
 
@@ -566,10 +581,14 @@ export class MediaFormComponent implements OnInit {
             return;
         }
 
-        const request = this.buildUpdatePayload(media.id);
         this.isSubmitting.set(true);
 
-        this.mediaService.updateMedia(request).pipe(
+        // Колекцію резолвимо (знайти існуючу / створити нову) лише якщо її змінили
+        const collectionChanged = this.snapshot().collection !== this.baseline!.collection;
+        const collectionId$ = collectionChanged ? this.resolveCollectionId() : of(null);
+
+        collectionId$.pipe(
+            switchMap(collectionId => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId))),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -577,6 +596,10 @@ export class MediaFormComponent implements OnInit {
                 this.toastService.show(`Фільм "${updated?.title ?? this.mediaData.title}" оновлено ✅`, 'success', 4000);
                 // Нова точка відліку: форма знову "чиста"
                 this.baseline = this.snapshot();
+                if (updated?.collection) {
+                    this.mediaData.collectionId = updated.collection.id;
+                    this.collectionSearchQuery = updated.collection.name;
+                }
                 this.mediaUpdated.emit(updated);
             },
             error: err => {
@@ -587,7 +610,7 @@ export class MediaFormComponent implements OnInit {
     }
 
     /** Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює). */
-    private buildUpdatePayload(mediaId: string): UpdateMediaRequest {
+    private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null): UpdateMediaRequest {
         const cur = this.snapshot();
         const base = this.baseline!;
         const changed = <K extends keyof Snapshot>(key: K): boolean => cur[key] !== base[key];
@@ -608,7 +631,7 @@ export class MediaFormComponent implements OnInit {
             links: changed('links') ? [...this.mediaData.links] : null,
             cast: changed('cast') ? this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })) : null,
             seasons: null,
-            collectionId: null
+            collectionId: changed('collection') ? collectionId : null
         };
     }
 
@@ -624,6 +647,10 @@ export class MediaFormComponent implements OnInit {
             return false;
         }
         if (this.baseline) {
+            if (this.baseline.collection.startsWith('id:') && this.collectionKey() === '') {
+                this.toastService.show('Колекцію не можна прибрати після збереження — оберіть іншу.', 'error');
+                return false;
+            }
             if (releaseYear == null && this.baseline.releaseYear != null) {
                 this.toastService.show('Рік випуску не можна очистити після збереження — вкажіть інше значення.', 'error');
                 return false;

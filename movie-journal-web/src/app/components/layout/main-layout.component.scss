@@ -16,7 +16,8 @@ $status-colors: (
     flex-direction: column;
     height: 100vh;
     height: 100dvh; // на мобільних враховує динамічну адресну стрічку
-    font-family: sans-serif;
+    // Шрифт «Twemoji Country Flags» (див. main.ts) стоїть першим: він використовується лише для емодзі-прапорців
+    font-family: 'Twemoji Country Flags', sans-serif;
     overflow: hidden;
 }
 

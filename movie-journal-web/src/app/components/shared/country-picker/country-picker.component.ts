@@ -1,18 +1,12 @@
 import { Component, ElementRef, HostListener, computed, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import {
-    COUNTRIES,
-    MAX_NATIONALITIES,
-    countryName,
-    joinNationality,
-    parseNationality
-} from '../../../utils/country.util';
+import { COUNTRIES, MAX_NATIONALITIES, countryFlag, countryName } from '../../../utils/country.util';
 
 const MAX_VISIBLE_MATCHES = 50;
 
 /**
- * Вибір країн (громадянство). Значення — ISO alpha-3 коди через кому: «USA», «NLD,FRA».
+ * Вибір країн (громадянство). Значення — масив ISO alpha-3 кодів: ['USA'], ['NLD', 'FRA'].
  * Двосторонній binding: `[value]="..." (valueChange)="..."`.
  */
 @Component({
@@ -25,7 +19,7 @@ const MAX_VISIBLE_MATCHES = 50;
 export class CountryPickerComponent {
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-    readonly value = model<string>('');
+    readonly value = model<string[]>([]);
     readonly max = input(MAX_NATIONALITIES);
     readonly inputId = input('nationality');
 
@@ -33,7 +27,7 @@ export class CountryPickerComponent {
     readonly isOpen = signal(false);
 
     readonly selected = computed(() =>
-        parseNationality(this.value()).map(code => ({ code, name: countryName(code) }))
+        this.value().map(code => ({ code, name: countryName(code), flag: countryFlag(code) }))
     );
 
     readonly canAdd = computed(() => this.selected().length < this.max());
@@ -53,17 +47,17 @@ export class CountryPickerComponent {
     }
 
     add(code: string): void {
-        const codes = parseNationality(this.value());
+        const codes = this.value();
         if (codes.length >= this.max() || codes.includes(code)) {
             return;
         }
-        this.value.set(joinNationality([...codes, code]));
+        this.value.set([...codes, code]);
         this.query.set('');
         this.isOpen.set(false);
     }
 
     remove(code: string): void {
-        this.value.set(joinNationality(parseNationality(this.value()).filter(c => c !== code)));
+        this.value.set(this.value().filter(c => c !== code));
     }
 
     /** Enter не сабмітить форму, а обирає першу країну зі списку. */

@@ -42,7 +42,7 @@
     <!-- РЕЖИМ 1: Плитки -->
     <div class="cards-grid">
         @for (actor of actors(); track actor.id) {
-        <app-grid-card [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName" [title]="actor.fullName"
+        <app-grid-card [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName" [title]="formatActorName(actor)"
             [titleMeta]="formatAge(actor.birthDate)" (cardClick)="openDetails(actor)" [visibility]="actor.visibility">
 
             @if (actor.biography) {
@@ -75,6 +75,9 @@
                     </td>
                     <td>
                         <strong>{{ actor.fullName }}</strong>
+                        @if (actorAlias(actor); as alias) {
+                        <span class="title-meta">({{ alias }})</span>
+                        }
                         @if (formatAge(actor.birthDate); as age) {
                         <span class="title-meta">{{ age }}</span>
                         }
@@ -111,7 +114,7 @@
     }
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedActor()?.fullName ?? ''"
+    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedActor() ? formatActorName(selectedActor()!) : ''"
         [imageUrl]="selectedActor()?.photoUrl" [imageAlt]="selectedActor()?.fullName ?? ''" (closed)="closeSidebar()"
         (editClicked)="onEditActor()" [deleteAction]="selectedDeleteCallback()" (deleted)="onSidebarActorDeleted()">
 
@@ -130,9 +133,9 @@
             </p>
             }
 
-            @if (actor.nationality) {
+            @if (actor.nationalities?.length) {
             <p class="detail-row">
-                <strong>Громадянство:</strong> {{ formatNationality(actor.nationality) }}
+                <strong>Громадянство:</strong> {{ formatNationalities(actor.nationalities) }}
             </p>
             }
 

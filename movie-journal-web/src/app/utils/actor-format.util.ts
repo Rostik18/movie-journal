@@ -43,3 +43,20 @@ export function formatAge(birthDate: string | null | undefined, today: Date = ne
 
     return `${age} ${unit}`;
 }
+
+/**
+ * Псевдонім для показу: порожній або такий самий, як повне ім'я, — не показуємо.
+ */
+export function actorAlias(actor: { fullName: string; alias?: string | null }): string {
+    const alias = (actor.alias ?? '').trim();
+    return alias && alias.toLowerCase() !== actor.fullName.trim().toLowerCase() ? alias : '';
+}
+
+/**
+ * «Ім'я Прізвище (Псевдонім)». Псевдонім додається в кінці, а не посередині імені:
+ * сценічне ім'я часто зовсім інше (Dwayne Johnson (The Rock)), тож вставка між ім'ям і прізвищем читалась би хибно.
+ */
+export function formatActorName(actor: { fullName: string; alias?: string | null }): string {
+    const alias = actorAlias(actor);
+    return alias ? `${actor.fullName} (${alias})` : actor.fullName;
+}

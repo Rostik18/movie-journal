@@ -77,15 +77,14 @@
                     <input id="author" type="text" [(ngModel)]="mediaData.author" name="author">
                 </div>
 
-                <!-- Колекція (недоступна в редагуванні: у MediaItem її немає) -->
-                @if (!isEditMode()) {
+                <!-- Колекція: у створенні та редагуванні (в редагуванні порожнє поле = не змінювати) -->
                 <div class="form-group collection-section">
-                    <label for="collection">Колекція (опціонально)</label>
+                    <label for="collection">Колекція</label>
                     <div class="collection-input-wrapper">
                         <input id="collection" type="text" [(ngModel)]="collectionSearchQuery"
                             (input)="onSearchCollections()" (keydown.escape)="onCollectionEscape($event)"
                             name="collectionSearchQuery" autocomplete="off"
-                            placeholder="Введіть назву існуючої або нової колекції...">
+                            [placeholder]="isEditMode() ? 'Оберіть або введіть колекцію...' : 'Введіть назву існуючої або нової колекції...'">
 
                         @if (mediaData.collectionId || collectionSearchQuery) {
                         <button type="button" class="btn-danger-sm" (click)="clearCollection()"
@@ -116,7 +115,6 @@
                     </div>
                     }
                 </div>
-                }
             </div>
 
             <div class="poster-preview-section" title="Прев'ю постера">

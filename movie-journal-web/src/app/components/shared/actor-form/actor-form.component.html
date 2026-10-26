@@ -1,7 +1,7 @@
 <form class="actor-form" (ngSubmit)="onSubmit()" novalidate>
     <h2 class="form-title">{{ isEditMode() ? 'Редагувати актора' : 'Додати нового актора' }}</h2>
 
-    <!-- Ім'я, стать та видимість в одному рядку -->
+    <!-- Ім'я та псевдонім -->
     <div class="form-row">
         <div class="form-group col-wide">
             <label for="fullName">Повне ім'я *</label>
@@ -14,6 +14,15 @@
             }
         </div>
 
+        <div class="form-group">
+            <label for="alias">Псевдонім</label>
+            <input type="text" id="alias" name="alias" [(ngModel)]="actorData.alias" autocomplete="off"
+                placeholder="Наприклад: The Rock">
+        </div>
+    </div>
+
+    <!-- Стать та видимість -->
+    <div class="form-row">
         <div class="form-group">
             <label for="sex">Стать</label>
             <select id="sex" name="sex" [(ngModel)]="actorData.sex">
@@ -68,8 +77,8 @@
 
             <div class="form-group">
                 <label for="nationality">Громадянство (до 2 країн)</label>
-                <app-country-picker inputId="nationality" [value]="actorData.nationality ?? ''"
-                    (valueChange)="actorData.nationality = $event" />
+                <app-country-picker inputId="nationality" [value]="actorData.nationalities"
+                    (valueChange)="actorData.nationalities = $event" />
             </div>
         </div>
 

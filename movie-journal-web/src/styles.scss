@@ -2,6 +2,15 @@
    Глобальні стилі форм та полів вводу (Inputs, Selects, Textareas)
    ========================================================== */
 
+/* Елементи форм за замовчуванням беруть системний шрифт, а не шрифт сторінки,
+   тому без цього емодзі-прапорці (шрифт «Twemoji Country Flags») не працювали б у кнопках, select і input */
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
 html,
 body {
     margin: 0;
@@ -1066,5 +1075,16 @@ textarea[aria-invalid="true"] {
         align-items: center;
         justify-content: center;
         font-size: 0.9rem;
+    }
+}
+
+/* Посилання на іншу сутність у рядку деталей сайдбару (наприклад, колекція фільму) */
+.sidebar-details-info .detail-link {
+    color: #0369a1;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
     }
 }

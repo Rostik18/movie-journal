@@ -3,32 +3,37 @@ import { Sex, Visibility } from "./enums";
 export interface ActorItem {
     id: string;
     fullName: string;
+    /** Псевдонім / сценічне ім'я. */
+    alias?: string | null;
     birthDate: string | null;
     biography: string | null;
     photoUrl: string | null;
     visibility: Visibility;
     sex?: Sex | null;
-    /** ISO 3166-1 alpha-3 через кому: «USA», «NLD,FRA». */
-    nationality?: string | null;
+    /** ISO 3166-1 alpha-3 коди громадянств: ['USA'], ['NLD', 'FRA']. */
+    nationalities: string[];
 }
 
 export interface CreateActorRequest {
     fullName: string;
+    alias?: string | null;
     birthDate?: string | null; // у форматі дати (рядок або Date)
     biography?: string | null;
     photoUrl?: string | null;
     visibility: Visibility;
     sex?: Sex | null;
-    nationality?: string | null;
+    nationalities: string[];
 }
 
 export interface UpdateActorRequest {
     actorId: string;
     fullName?: string | null;
+    alias?: string | null;
     birthDate?: string | null;
     biography?: string | null;
     photoUrl?: string | null;
     visibility?: Visibility | null;
     sex?: Sex | null;
-    nationality?: string | null;
+    /** Не nullable на BE: завжди надсилаємо актуальний список (порожній — без громадянств). */
+    nationalities: string[];
 }

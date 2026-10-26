@@ -51,6 +51,11 @@ export class ActorService {
         return this.http.get<PageResponse<ActorItem>>(`${this.apiUrl}/search`, { params: httpParams });
     }
 
+    /** Коди країн (ISO alpha-3), які зустрічаються в акторів, — для фільтра. */
+    getCountryCodes(): Observable<string[]> {
+        return this.http.get<string[]>(`${this.apiUrl}/country-codes`);
+    }
+
     getActorById(id: string): Observable<ActorItem> {
         return this.http.get<ActorItem>(`${this.apiUrl}/${id}`);
     }

@@ -189,6 +189,13 @@
             </p>
             }
 
+            @if (item.media.collection; as collection) {
+            <p class="detail-row">
+                <strong>Колекція:</strong>
+                <a class="detail-link" [routerLink]="['/collections', collection.id]">{{ collection.name }}</a>
+            </p>
+            }
+
             @if (item.media.duration) {
             <p class="detail-row">
                 <strong>Тривалість:</strong> {{ formatDuration(item.media.duration) }}

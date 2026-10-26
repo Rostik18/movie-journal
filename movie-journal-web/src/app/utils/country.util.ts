@@ -53,9 +53,11 @@ export interface Country {
     /** ISO 3166-1 alpha-3 — те, що зберігає й очікує BE. */
     code: string;
     name: string;
+    /** Прапорець-емодзі (на Windows браузери показують замість нього літери коду країни). */
+    flag: string;
 }
 
-/** Скільки громадянств можна вказати (подвійне — через кому). */
+/** Скільки громадянств можна вказати. */
 export const MAX_NATIONALITIES = 2;
 
 const regionNames = createRegionNames();
@@ -68,30 +70,36 @@ function createRegionNames(): Intl.DisplayNames | null {
     }
 }
 
+/** «NL» -> 🇳🇱: кожна літера alpha-2 стає «регіональним індикатором» Unicode. */
+function flagEmoji(alpha2: string): string {
+    return [...alpha2.toUpperCase()].map(ch => String.fromCodePoint(0x1f1e6 + ch.charCodeAt(0) - 65)).join('');
+}
+
 export const COUNTRIES: readonly Country[] = ISO_CODES
-    .map(([alpha2, alpha3]) => ({ code: alpha3, name: regionNames?.of(alpha2) ?? alpha3 }))
+    .map(([alpha2, alpha3]) => ({
+        code: alpha3,
+        name: regionNames?.of(alpha2) ?? alpha3,
+        flag: flagEmoji(alpha2)
+    }))
     .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
 const countryByCode = new Map(COUNTRIES.map(c => [c.code, c]));
-
-/** «NLD,FRA» -> ['NLD', 'FRA'] (верхній регістр, без порожніх і дублікатів). */
-export function parseNationality(value: string | null | undefined): string[] {
-    if (!value) {
-        return [];
-    }
-    return [...new Set(value.split(',').map(code => code.trim().toUpperCase()).filter(Boolean))];
-}
-
-/** ['NLD', 'FRA'] -> «NLD,FRA» (формат, який очікує BE). */
-export function joinNationality(codes: readonly string[]): string {
-    return codes.join(',');
-}
 
 export function countryName(code: string): string {
     return countryByCode.get(code.toUpperCase())?.name ?? code;
 }
 
-/** «NLD,FRA» -> «Нідерланди, Франція» для відображення. */
-export function formatNationality(value: string | null | undefined): string {
-    return parseNationality(value).map(countryName).join(', ');
+export function countryFlag(code: string): string {
+    return countryByCode.get(code.toUpperCase())?.flag ?? '';
+}
+
+/** «🇳🇱 Нідерланди» (для невідомого коду — сам код). */
+export function countryLabel(code: string): string {
+    const flag = countryFlag(code);
+    return flag ? `${flag} ${countryName(code)}` : countryName(code);
+}
+
+/** ['NLD', 'FRA'] -> «🇳🇱 Нідерланди, 🇫🇷 Франція». */
+export function formatNationalities(codes: readonly string[] | null | undefined): string {
+    return (codes ?? []).map(countryLabel).join(', ');
 }

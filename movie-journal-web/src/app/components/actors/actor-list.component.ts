@@ -10,7 +10,7 @@ import { MediaResponseSlim } from '../../models/media.model';
 import { ToastService } from '../../services/toast.service';
 import { ActorItem } from '../../models/actor.model';
 import { PageResponse } from '../../models/shared.model';
-import { COUNTRIES, formatNationality } from '../../utils/country.util';
+import { countryLabel, countryName, formatNationalities } from '../../utils/country.util';
 import { MediaTypeLabels, Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
 import { ActorSearchParams, ActorSortField, SortDirection } from '../../models/search.model';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -20,7 +20,7 @@ import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
-import { formatAge } from '../../utils/actor-format.util';
+import { actorAlias, formatActorName, formatAge } from '../../utils/actor-format.util';
 
 type DeleteCallback = () => ReturnType<ActorService['deleteActor']>;
 type ActorId = ActorItem['id'];
@@ -81,11 +81,13 @@ export class ActorListComponent implements OnInit {
     readonly isSidebarOpen = signal(false);
 
     readonly mediaTypeLabels = MediaTypeLabels;
-    readonly formatNationality = formatNationality;
+    readonly formatNationalities = formatNationalities;
     readonly sexLabels = SexLabels;
     readonly visibilityLabels = VisibilityLabels;
 
     readonly formatAge = formatAge;
+    readonly formatActorName = formatActorName;
+    readonly actorAlias = actorAlias;
 
     // Робимо Enum доступним у шаблоні
     readonly SortDirection = SortDirection;
@@ -113,8 +115,15 @@ export class ActorListComponent implements OnInit {
         { value: Sex.Female, label: '♀️' }
     ];
 
-    /** Країни для фільтра: значення — ISO alpha-3, як у BE. */
-    private readonly nationalityOptions = COUNTRIES.map(c => ({ value: c.code, label: c.name }));
+    /** Країни, що реально зустрічаються в акторів (GET /api/actors/country-codes). */
+    private readonly countryCodes = signal<string[]>([]);
+
+    /** Значення — ISO alpha-3, як у BE; підпис — «🇳🇱 Нідерланди», відсортовано за назвою. */
+    private readonly nationalityOptions = computed(() =>
+        [...this.countryCodes()]
+            .sort((a, b) => countryName(a).localeCompare(countryName(b), 'uk'))
+            .map(code => ({ value: code, label: countryLabel(code) }))
+    );
 
     readonly actorSortFields: SortFieldOption[] = enumOptions(ActorSortField, {
         [ActorSortField.FullName]: 'Іменем',
@@ -132,7 +141,7 @@ export class ActorListComponent implements OnInit {
             { key: 'hasPhoto', label: 'Фото', value: params.hasPhoto, options: this.hasPhotoOptions },
             { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions },
             { key: 'Sex', label: 'Стать', value: params.Sex, options: this.sexOptions },
-            { key: 'nationality', label: 'Країна', value: params.nationality, options: this.nationalityOptions, type: 'select' }
+            { key: 'nationality', label: 'Країна', value: params.nationality, options: this.nationalityOptions(), type: 'select' }
         ];
     });
 
@@ -259,6 +268,17 @@ export class ActorListComponent implements OnInit {
     ngOnInit(): void {
         this.watchRoute();
         this.loadActors();
+        this.loadCountryCodes();
+    }
+
+    /** Список країн для фільтра змінюється разом з акторами, тому його оновлюємо після створення / редагування / видалення. */
+    private loadCountryCodes(): void {
+        this.actorService.getCountryCodes().pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: codes => this.countryCodes.set(codes ?? []),
+            error: err => console.error('Помилка завантаження країн:', err)
+        });
     }
 
     loadActors(): void {
@@ -311,6 +331,7 @@ export class ActorListComponent implements OnInit {
         this.actors.update(list => list.filter(a => a.id !== actorId));
         this.totalCount.update(c => Math.max(0, c - 1));
         this.toastService.show('Актора успішно видалено', 'success', 3000);
+        this.loadCountryCodes();
 
         // Видалили останній елемент на сторінці > 1 — повертаємось на попередню
         const { offset = 0, size = DEFAULT_PAGE_SIZE } = this.searchParams();
@@ -367,6 +388,7 @@ export class ActorListComponent implements OnInit {
     onActorCreated(): void {
         this.closeModal();
         this.loadActors();
+        this.loadCountryCodes();
     }
 
     /** Оновлюємо актора в списку та в сайдбарі без перезавантаження списку. */
@@ -376,6 +398,7 @@ export class ActorListComponent implements OnInit {
         if (this.selectedActor()?.id === updated.id) {
             this.selectedActor.set(updated);
         }
+        this.loadCountryCodes();
     }
 
     // ====================== Пагінація, пошук, фільтри, сортування ======================

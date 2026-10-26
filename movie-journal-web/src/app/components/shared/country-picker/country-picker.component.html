@@ -3,7 +3,7 @@
     <div class="selected-countries">
         @for (country of selected(); track country.code) {
         <span class="country-chip">
-            {{ country.name }}
+            {{ country.flag }} {{ country.name }}
             <button type="button" class="chip-remove" [attr.aria-label]="'Прибрати: ' + country.name"
                 (click)="remove(country.code)">&times;</button>
         </span>
@@ -21,7 +21,7 @@
     <div class="country-dropdown" role="listbox">
         @for (country of matches(); track country.code) {
         <button type="button" class="country-option" role="option" (click)="add(country.code)">
-            {{ country.name }} <span class="country-code">{{ country.code }}</span>
+            <span>{{ country.flag }} {{ country.name }}</span> <span class="country-code">{{ country.code }}</span>
         </button>
         } @empty {
         <div class="country-empty">Нічого не знайдено</div>

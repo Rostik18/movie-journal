@@ -188,6 +188,12 @@
             @if (mov.author) {
             <p class="detail-row"><strong>Автор:</strong> {{ mov.author }}</p>
             }
+            @if (mov.collection; as collection) {
+            <p class="detail-row">
+                <strong>Колекція:</strong>
+                <a class="detail-link" [routerLink]="['/collections', collection.id]">{{ collection.name }}</a>
+            </p>
+            }
             @if (mov.duration) {
             <p class="detail-row"><strong>Тривалість:</strong> {{ formatDuration(mov.duration) }}</p>
             }
