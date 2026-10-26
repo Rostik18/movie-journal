@@ -60,7 +60,10 @@ namespace MovieJournalBackend.Services.Implementation
             if (request.FullName is not null)
             {
                 actor.FullName = request.FullName;
-                actor.NormalizedFullName = Helpers.Normalize(request.FullName, request.Alias is null ? actor.Alias : request.Alias);
+            }
+            if (request.Alias is not null)
+            {
+                actor.Alias = request.Alias;
             }
             if (request.BirthDate.HasValue)
             {
@@ -94,6 +97,7 @@ namespace MovieJournalBackend.Services.Implementation
                 actor.Nationality = request.Nationality;
             }
 
+            actor.NormalizedFullName = Helpers.Normalize(actor.FullName, actor.Alias);
             actor.LastModifiedByUserId = user.UserId;
 
             await _actorRepository.UpdateAsync(actor, ct);
