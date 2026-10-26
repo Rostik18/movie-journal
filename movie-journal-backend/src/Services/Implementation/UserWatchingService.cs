@@ -23,7 +23,20 @@ namespace MovieJournalBackend.Services.Implementation
 
             var media = await mediaService.GetByIdAsync(mediaId, user, ct);
 
-            return watching.ToResponse(media!);
+            return watching.ToResponse(media!.ToResponse());
+        }
+
+        public async Task<UserWatchingResponseSb?> GetByMediaSbAsync(string mediaId, UserContext user, CancellationToken ct = default)
+        {
+            var watching = await watchingRepository.GetByUserAndMediaAsync(user.UserId, mediaId, ct);
+
+            if (watching is null) return null;
+
+            var media = await mediaService.GetByIdSbAsync(mediaId, user, ct);
+
+            if (media is null) return null;
+
+            return watching.ToResponseSb(media);
         }
 
         public async Task<Page<UserWatchingResponseSlim>> SearchAsync(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user, CancellationToken ct = default)
@@ -98,7 +111,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(entity.UserId, Visibility.Private, ResourceType.UserWatching, EventType.Created, media.Id);
 
-            return entity.ToResponse(media);
+            return entity.ToResponse(media.ToResponse());
         }
 
         public async Task<UserWatchingResponse> UpdateAsync(UpdateUserWatchingRequest request, UserContext user, UserWatching? existingEntity = null, CancellationToken ct = default)
@@ -151,7 +164,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             var media = await mediaService.GetByIdAsync(request.MediaId, user, ct);
 
-            return entity.ToResponse(media!);
+            return entity.ToResponse(media!.ToResponse());
         }
 
         public Task<long> CountByStatusAsync(WatchStatus status, UserContext user, CancellationToken ct = default)

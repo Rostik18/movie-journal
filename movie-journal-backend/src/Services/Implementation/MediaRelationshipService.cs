@@ -39,7 +39,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             if (media.Cast.Any(x => x.ActorId == actorId))
             {
-                return media.ToResponse(actors);
+                return media.ToResponse();
             }
 
             media.Cast.Add(new()
@@ -54,7 +54,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
 
         public async Task<MediaResponse> RemoveActorAsync(string mediaId, string actorId, UserContext user, CancellationToken ct = default)
@@ -85,7 +85,7 @@ namespace MovieJournalBackend.Services.Implementation
                 await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
             }
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
 
         public async Task<MediaResponse> AddToCollectionAsync(string mediaId, string collectionId, UserContext user, CancellationToken ct = default)
@@ -117,7 +117,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
 
         public async Task<MediaResponse> RemoveFromCollectionAsync(string mediaId, UserContext user, CancellationToken ct = default)
@@ -131,7 +131,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             if (media.Collection is null)
             {
-                return media.ToResponse(actors);
+                return media.ToResponse();
             }
 
             media.Collection = null;
@@ -140,7 +140,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
     }
 }

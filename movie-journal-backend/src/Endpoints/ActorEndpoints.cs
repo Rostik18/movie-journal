@@ -19,6 +19,7 @@ namespace MovieJournalBackend.Endpoints
             app.MapGet("/api/actors/country-codes", GetCountryCodesAsync).Produces<string[]>().RequireAnyRole();
 
             app.MapGet("/api/actors/{actorId}", GetByIdAsync).Produces<ActorResponse>().RequireAnyRole();
+            app.MapGet("/api/actors/{actorId}/sidebar", GetByIdSbAsync).Produces<ActorResponseSb>().RequireAnyRole();
             app.MapGet("/api/actors/search", SearchAsync).Produces<Page<ActorResponse>>().RequireAnyRole();
             app.MapPost("/api/actors", CreateAsync).Produces<ActorResponse>().RequireAnyRole();
             app.MapPut("/api/actors", UpdateAsync).Produces<ActorResponse>().RequireAnyRole();
@@ -41,6 +42,21 @@ namespace MovieJournalBackend.Endpoints
             return actor is null
                 ? Results.NotFound()
                 : Results.Ok(actor.ToResponse());
+        }
+
+        private static async Task<IResult> GetByIdSbAsync(string actorId, ClaimsPrincipal principal, IActorService actorService, IMediaService mediaService, CancellationToken ct)
+        {
+            var actor = await actorService.GetByIdAsync(actorId, principal.ToUserContext(), ct);
+
+            if (actor is null) return Results.NotFound();
+
+            var mediaPage = await mediaService.SearchAsync(new()
+            {
+                Page = new(0, 50),
+                Filter = new() { ActorId = actorId }
+            }, principal.ToUserContext(), ct);
+
+            return Results.Ok(actor.ToResponseSb([.. mediaPage.Items.Select(x => x.ToResponseSlim())]));
         }
 
         private static async Task<IResult> SearchAsync(

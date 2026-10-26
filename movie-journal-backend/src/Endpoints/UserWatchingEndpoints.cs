@@ -16,6 +16,7 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapUserWatchingEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/user-watching/media/{mediaId}", GetByMediaAsync).Produces<UserWatchingResponse>().RequireAnyRole();
+            app.MapGet("/api/user-watching/media/{mediaId}/sidebar", GetByMediaSbAsync).Produces<UserWatchingResponseSb>().RequireAnyRole();
             app.MapGet("/api/user-watching/search", SearchAsync).Produces<Page<UserWatchingResponseSlim>>().RequireAnyRole();
             app.MapGet("/api/user-watching/statistics", GetStatisticsAsync).Produces<Dictionary<WatchStatus, long>>().RequireAnyRole();
             app.MapPost("/api/user-watching/", CreateAsync).Produces<UserWatchingResponse>().RequireAnyRole();
@@ -25,10 +26,18 @@ namespace MovieJournalBackend.Endpoints
             return app;
         }
 
-        private static async Task<IResult> GetByMediaAsync(
-            string mediaId, ClaimsPrincipal principal, IUserWatchingService service, CancellationToken ct)
+        private static async Task<IResult> GetByMediaAsync(string mediaId, ClaimsPrincipal principal, IUserWatchingService service, CancellationToken ct)
         {
             var entry = await service.GetByMediaAsync(mediaId, principal.ToUserContext(), ct);
+
+            return entry is null
+                ? Results.NotFound()
+                : Results.Ok(entry);
+        }
+
+        private static async Task<IResult> GetByMediaSbAsync(string mediaId, ClaimsPrincipal principal, IUserWatchingService service, CancellationToken ct)
+        {
+            var entry = await service.GetByMediaSbAsync(mediaId, principal.ToUserContext(), ct);
 
             return entry is null
                 ? Results.NotFound()

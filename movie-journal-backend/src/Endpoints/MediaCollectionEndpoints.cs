@@ -15,6 +15,7 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapMediaCollectionEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/collections/{collectionId}", GetByIdAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
+            app.MapGet("/api/collections/{collectionId}/sidebar", GetByIdSbAsync).Produces<MediaCollectionResponseSb>().RequireAnyRole();
             app.MapGet("/api/collections/search", SearchAsync).Produces<Page<MediaCollectionResponse>>().RequireAnyRole();
             app.MapPost("/api/collections", CreateAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
             app.MapPut("/api/collections", UpdateAsync).Produces<MediaCollectionResponse>().RequireAnyRole();
@@ -34,6 +35,21 @@ namespace MovieJournalBackend.Endpoints
             return collection is null
                 ? Results.NotFound()
                 : Results.Ok(collection.ToResponse());
+        }
+
+        private static async Task<IResult> GetByIdSbAsync(string collectionId, ClaimsPrincipal principal, IMediaCollectionService collectionService, IMediaService mediaService, CancellationToken ct)
+        {
+            var collection = await collectionService.GetByIdAsync(collectionId, principal.ToUserContext(), ct);
+
+            if (collection is null) return Results.NotFound();
+
+            var mediaPage = await mediaService.SearchAsync(new()
+            {
+                Page = new(0, 50),
+                Filter = new() { CollectionId = collectionId }
+            }, principal.ToUserContext(), ct);
+
+            return Results.Ok(collection.ToResponseSb([.. mediaPage.Items.Select(x => x.ToResponseSlim())]));
         }
 
         private static async Task<IResult> SearchAsync(

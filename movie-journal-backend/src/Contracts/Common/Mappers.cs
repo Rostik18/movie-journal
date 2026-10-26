@@ -27,7 +27,7 @@ namespace MovieJournalBackend.Contracts.Common
             actor.Sex,
             actor.Nationalities);
 
-        public static MediaResponse ToResponse(this Entities.Media.Media media, List<Entities.Actor.Actor> actors) => new(
+        public static MediaResponse ToResponse(this Entities.Media.Media media) => new(
             media.Id!,
             media.Title,
             media.Description,
@@ -40,7 +40,7 @@ namespace MovieJournalBackend.Contracts.Common
             media.Genres,
             media.Tags,
             media.Links,
-            [.. media.Cast.Select(cast => new CastResponse(cast.ActorId, cast.FullName, actors.First(x => x.Id == cast.ActorId).Alias, actors.First(x => x.Id == cast.ActorId).PhotoUrl, cast.CharacterName))],
+            media.Cast,
             media.Visibility,
             media.Collection
             );
@@ -99,6 +99,69 @@ namespace MovieJournalBackend.Contracts.Common
             entity.ImageUrl,
             entity.WebsiteUrl,
             entity.Visibility
+            );
+
+        public static ActorResponseSb ToResponseSb(this Entities.Actor.Actor actor, List<MediaResponseSlim> medias) => new(
+            actor.Id,
+            actor.FullName,
+            actor.Alias,
+            actor.BirthDate,
+            actor.Biography,
+            actor.PhotoUrl,
+            actor.Visibility,
+            actor.Sex,
+            actor.Nationalities,
+            medias);
+
+        public static MediaResponseSb ToResponseSb(this Entities.Media.Media media, List<CastResponse> actors, MediaCollectionResponse? collection) => new(
+            media.Id!,
+            media.Title,
+            media.Description,
+            media.OriginalTitle,
+            media.Type,
+            media.ReleaseYear,
+            media.DurationSec,
+            media.PosterUrl,
+            media.Creator,
+            media.Genres,
+            media.Tags,
+            media.Links,
+            actors,
+            media.Visibility,
+            collection
+            );
+
+        public static MediaCollectionResponseSb ToResponseSb(this Entities.Media.MediaCollection collection, List<MediaResponseSlim> media) => new(
+            collection.Id,
+            collection.Name,
+            collection.Description,
+            collection.PosterUrl,
+            collection.Tags,
+            collection.Visibility,
+            media
+            );
+
+        public static UserWatchingResponseSb ToResponseSb(this Entities.Journal.UserWatching entity, MediaResponseSb media) => new()
+        {
+            Media = media,
+            Status = entity.Status,
+            StoppedAtSeconds = entity.StoppedAtSeconds,
+            Rating = entity.Rating,
+            Notes = entity.Notes,
+            StartedAtUtc = entity.StartedAtUtc,
+            FinishedAtUtc = entity.FinishedAtUtc,
+            CurrentSeasonNumber = entity.CurrentSeasonNumber,
+            CurrentEpisodeNumber = entity.CurrentEpisodeNumber
+        };
+
+        public static CreatorResponseSb ToResponseSb(this Entities.Creator.Creator entity, List<MediaResponseSlim> medias) => new(
+            entity.Id,
+            entity.Name,
+            entity.Description,
+            entity.ImageUrl,
+            entity.WebsiteUrl,
+            entity.Visibility,
+            medias
             );
     }
 }

@@ -15,6 +15,7 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapCreatorEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/creators/{creatorId}", GetByIdAsync).Produces<CreatorResponse>().RequireAnyRole();
+            app.MapGet("/api/creators/{creatorId}/sidebar", GetByIdSbAsync).Produces<CreatorResponseSb>().RequireAnyRole();
             app.MapGet("/api/creators/search", SearchAsync).Produces<Page<CreatorResponse>>().RequireAnyRole();
             app.MapPost("/api/creators", CreateAsync).Produces<CreatorResponse>().RequireAnyRole();
             app.MapPut("/api/creators", UpdateAsync).Produces<CreatorResponse>().RequireAnyRole();
@@ -30,6 +31,21 @@ namespace MovieJournalBackend.Endpoints
             return creator is null
                 ? Results.NotFound()
                 : Results.Ok(creator.ToResponse());
+        }
+
+        private static async Task<IResult> GetByIdSbAsync(string creatorId, ClaimsPrincipal principal, ICreatorService creatorService, IMediaService mediaService, CancellationToken ct)
+        {
+            var creator = await creatorService.GetByIdAsync(creatorId, principal.ToUserContext(), ct);
+
+            if (creator is null) return Results.NotFound();
+
+            var mediaPage = await mediaService.SearchAsync(new()
+            {
+                Page = new(0, 50),
+                Filter = new() { CreatorId = creatorId }
+            }, principal.ToUserContext(), ct);
+
+            return Results.Ok(creator.ToResponseSb([.. mediaPage.Items.Select(x => x.ToResponseSlim())]));
         }
 
         private static async Task<IResult> SearchAsync(

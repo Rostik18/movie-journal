@@ -109,6 +109,10 @@ namespace MovieJournalBackend.Repositories.Implementation
 
                 filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.NormalizedName", new(Regex.Escape(query), "i")));
             }
+            if (!string.IsNullOrWhiteSpace(request.Filter.CreatorId))
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq("Creator.Id", request.Filter.CreatorId));
+            }
             if (request.Filter.Type.HasValue)
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Type, request.Filter.Type));

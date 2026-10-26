@@ -4,6 +4,7 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
@@ -16,6 +17,7 @@ namespace MovieJournalBackend.Endpoints
         {
             app.MapPost("/api/media", CreateAsync).Produces<MediaResponse>().RequireAnyRole();
             app.MapGet("/api/media/{mediaId}", GetByIdAsync).Produces<MediaResponse>().RequireAnyRole();
+            app.MapGet("/api/media/{mediaId}/sidebar", GetByIdSbAsync).Produces<MediaResponseSb>().RequireAnyRole();
             app.MapGet("/api/media/search", SearchAsync).Produces<Page<MediaResponseSlim>>().RequireAnyRole();
             app.MapPut("/api/media", UpdateAsync).Produces<MediaResponse>().RequireAnyRole();
             app.MapDelete("/api/media/{mediaId}", DeleteAsync).RequireAnyRole();
@@ -68,13 +70,18 @@ namespace MovieJournalBackend.Endpoints
                 : Results.Ok(media);
         }
 
-        private static async Task<IResult> GetByIdAsync(
-            string mediaId,
-            ClaimsPrincipal principal,
-            IMediaService mediaService,
-            CancellationToken ct)
+        private static async Task<IResult> GetByIdAsync(string mediaId, ClaimsPrincipal principal, IMediaService mediaService, CancellationToken ct)
         {
             var media = await mediaService.GetByIdAsync(mediaId, principal.ToUserContext(), ct);
+
+            return media is null
+                ? Results.NotFound()
+                : Results.Ok(media.ToResponse());
+        }
+
+        private static async Task<IResult> GetByIdSbAsync(string mediaId, ClaimsPrincipal principal, IMediaService mediaService, CancellationToken ct)
+        {
+            var media = await mediaService.GetByIdSbAsync(mediaId, principal.ToUserContext(), ct);
 
             return media is null
                 ? Results.NotFound()

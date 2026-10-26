@@ -7,7 +7,8 @@ namespace MovieJournalBackend.Services
 {
     public interface IMediaService
     {
-        Task<MediaResponse?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default);
+        Task<Media?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default);
+        Task<MediaResponseSb?> GetByIdSbAsync(string mediaId, UserContext user, CancellationToken ct = default);
         Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default);
         Task<MediaResponse> CreateAsync(CreateMediaRequest request, UserContext user, CancellationToken ct = default);
         Task<MediaResponse> UpdateAsync(UpdateMediaRequest request, UserContext user, CancellationToken ct = default);

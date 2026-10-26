@@ -1,5 +1,6 @@
 ﻿using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
+using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
 using MovieJournalBackend.Extensions;
@@ -17,18 +18,24 @@ namespace MovieJournalBackend.Services.Implementation
         IRealtimeService _realtimeService
     ) : IMediaService
     {
-        public async Task<MediaResponse?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default)
+        public Task<Media?> GetByIdAsync(string mediaId, UserContext user, CancellationToken ct = default) =>
+            _mediaRepository.GetByIdAsync(mediaId, user, ct);
+
+        public async Task<MediaResponseSb?> GetByIdSbAsync(string mediaId, UserContext user, CancellationToken ct = default)
         {
             var media = await _mediaRepository.GetByIdAsync(mediaId, user, ct);
 
-            if (media is null)
-            {
-                return null;
-            }
+            if (media is null) return null;
 
             var actors = await _actorRepository.GetByIdsAsync([.. media.Cast.Select(x => x.ActorId)], ct);
 
-            return media.ToResponse(actors);
+            var cast = MapCast(media, actors);
+
+            var collection = media.Collection is null
+                ? null
+                : await _collectionRepository.GetByIdAsync(media.Collection.Id, ct);
+
+            return media.ToResponseSb(cast, collection?.ToResponse());
         }
 
         public Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)
@@ -81,7 +88,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Created, media.Id);
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
 
         public async Task<MediaResponse> UpdateAsync(UpdateMediaRequest request, UserContext user, CancellationToken ct = default)
@@ -175,7 +182,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Updated, media.Id);
 
-            return media.ToResponse(actors);
+            return media.ToResponse();
         }
 
         public async Task DeleteAsync(string mediaId, UserContext user, CancellationToken ct = default)
@@ -214,6 +221,20 @@ namespace MovieJournalBackend.Services.Implementation
             }
 
             return new() { Id = collection.Id, Name = collection.Name };
+        }
+
+        private static List<CastResponse> MapCast(Media media, List<Actor> actors)
+        {
+            var cast = new List<CastResponse>(actors.Count);
+
+            foreach (var actor in actors)
+            {
+                var character = media.Cast.First(x => x.ActorId == actor.Id);
+
+                cast.Add(new(actor.Id, actor.FullName, actor.Alias, actor.PhotoUrl, character.CharacterName));
+            }
+
+            return cast;
         }
     }
 }
