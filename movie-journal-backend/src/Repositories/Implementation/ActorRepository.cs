@@ -52,6 +52,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             return new(items, request.Page.Offset, request.Page.Size, total);
         }
 
+        public Task<List<string>> GetCountryCodesAsync(CancellationToken ct = default) => Collection
+            .Distinct<string>("Nationalities", FilterDefinition<Actor>.Empty, cancellationToken: ct)
+            .ToListAsync(ct);
+
         public Task<bool> HasPrivateActorsAsync(IEnumerable<string> actorIds, CancellationToken ct = default) =>
             Collection.Find(x => actorIds.Contains(x.Id) && x.Visibility == Visibility.Private).AnyAsync(ct);
 
@@ -87,7 +91,7 @@ namespace MovieJournalBackend.Repositories.Implementation
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.Nationality))
             {
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Nationality, new(Regex.Escape(request.Filter.Nationality), "i")));
+                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.Nationalities, new(Regex.Escape(request.Filter.Nationality), "i")));
             }
 
             return filter;
@@ -111,8 +115,8 @@ namespace MovieJournalBackend.Repositories.Implementation
                 ? _sBuilder.Ascending(x => x.Sex)
                 : _sBuilder.Descending(x => x.Sex),
             ActorSortField.Nationality => request.Sort.Direction == SortDirection.Ascending
-                ? _sBuilder.Ascending(x => x.Nationality)
-                : _sBuilder.Descending(x => x.Nationality),
+                ? _sBuilder.Ascending(x => x.Nationalities)
+                : _sBuilder.Descending(x => x.Nationalities),
             _ => null
         };
     }

@@ -12,5 +12,5 @@ namespace MovieJournalBackend.Contracts.Actor
         string? PhotoUrl,
         Visibility Visibility,
         Sex? Sex,
-        string? Nationality);
+        List<string> Nationalities);
 }

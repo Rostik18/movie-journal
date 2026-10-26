@@ -5,6 +5,7 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
+using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
@@ -15,6 +16,8 @@ namespace MovieJournalBackend.Endpoints
     {
         public static IEndpointRouteBuilder MapActorEndpoints(this IEndpointRouteBuilder app)
         {
+            app.MapGet("/api/actors/country-codes", GetCountryCodesAsync).Produces<string[]>().RequireAnyRole();
+
             app.MapGet("/api/actors/{actorId}", GetByIdAsync).Produces<ActorResponse>().RequireAnyRole();
             app.MapGet("/api/actors/search", SearchAsync).Produces<Page<ActorResponse>>().RequireAnyRole();
             app.MapPost("/api/actors", CreateAsync).Produces<ActorResponse>().RequireAnyRole();
@@ -22,6 +25,13 @@ namespace MovieJournalBackend.Endpoints
             app.MapDelete("/api/actors/{actorId}", DeleteAsync).RequireAdmin();
 
             return app;
+        }
+
+        private static async Task<IResult> GetCountryCodesAsync(IActorRepository repo, CancellationToken ct)
+        {
+            var countryCodes = await repo.GetCountryCodesAsync(ct);
+
+            return Results.Ok(countryCodes ?? []);
         }
 
         private static async Task<IResult> GetByIdAsync(string actorId, ClaimsPrincipal principal, IActorService actorService, CancellationToken ct)

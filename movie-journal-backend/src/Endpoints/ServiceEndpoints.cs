@@ -197,7 +197,7 @@ namespace MovieJournalBackend.Endpoints
                              : item.PhotoUrl,
                         Biography = item.Biography,
                         Sex = item.Sex,
-                        Nationality = item.Nationality
+                        Nationalities = item.Nationalities
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch (Exception ex)
@@ -310,7 +310,7 @@ namespace MovieJournalBackend.Endpoints
                     : null))
         ];
 
-        public sealed record SeedActorItem(string FullName, string? Alias, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, string? Nationality);
+        public sealed record SeedActorItem(string FullName, string? Alias, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, List<string> Nationalities);
 
         private static SeedActorItem[] ParseActorsPayload(string payload) =>
         [..payload
@@ -340,9 +340,9 @@ namespace MovieJournalBackend.Endpoints
                     Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
                         ? sex
                         : null,
-                    Nationality: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
-                        ? columns[5]
-                        : null
+                    Nationalities: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
+                        ? [.. columns[5].Split(',').Select(n => n.Trim())]
+                        : []
                 );
             })
         ];

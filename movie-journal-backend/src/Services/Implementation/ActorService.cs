@@ -40,7 +40,7 @@ namespace MovieJournalBackend.Services.Implementation
                 OwnerUserId = user.UserId,
                 CreatedByUserId = user.UserId,
                 Sex = request.Sex,
-                Nationality = request.Nationality
+                Nationalities = request.Nationalities
             };
 
             await _actorRepository.CreateAsync(actor, ct);
@@ -92,9 +92,9 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 actor.Sex = request.Sex;
             }
-            if (request.Nationality is not null)
+            if (request.Nationalities.Count > 0)
             {
-                actor.Nationality = request.Nationality;
+                actor.Nationalities = request.Nationalities;
             }
 
             actor.NormalizedFullName = Helpers.Normalize(actor.FullName, actor.Alias);

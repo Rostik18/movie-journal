@@ -23,6 +23,8 @@ namespace MovieJournalBackend.Repositories.Common
             var collection = _database.GetCollection<Actor>("actors");
 
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Actor>(Builders<Actor>.IndexKeys.Ascending(x => x.NormalizedFullName)), cancellationToken: ct);
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Actor>(Builders<Actor>.IndexKeys.Ascending(x => x.NormalizedFullName)), cancellationToken: ct);
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Actor>(Builders<Actor>.IndexKeys.Ascending(x => x.Nationalities)), cancellationToken: ct);
 
             await CreateOwnerIndex(collection, ct);
         }

@@ -24,7 +24,7 @@ namespace MovieJournalBackend.Contracts.Common
             actor.PhotoUrl,
             actor.Visibility,
             actor.Sex,
-            actor.Nationality);
+            actor.Nationalities);
 
         public static MediaResponse ToResponse(this Entities.Media.Media media, List<Entities.Actor.Actor> actors) => new(
             media.Id!,
