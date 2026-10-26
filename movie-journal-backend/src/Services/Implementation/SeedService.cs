@@ -1,0 +1,299 @@
+﻿using MovieJournalBackend.Contracts.Media;
+using MovieJournalBackend.Contracts.Maintenance;
+using MovieJournalBackend.Entities.Actor;
+using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Extensions;
+using System.Globalization;
+
+namespace MovieJournalBackend.Services.Implementation
+{
+    public partial class SeedService(
+        IActorPhotoSearchService actorPhotoService,
+        IActorService actorService,
+        ICreatorService creatorService,
+        IMetadataService metadataService,
+        IMediaService mediaService,
+        IUserWatchingService uwService
+        ) : ISeedService
+    {
+        public async Task<IResult> SeedActors(SeedActorsRequest request, string userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            userId = request.UserId ?? userId;
+            var actors = ParseActorsPayload(request.Payload);
+
+            var missedLines = new List<SeedActorItem>();
+
+            var lastError = "";
+
+            foreach (var item in actors)
+            {
+                try
+                {
+                    await actorService.CreateAsync(new()
+                    {
+                        FullName = item.FullName,
+                        Alias = item.Alias,
+                        Visibility = request.Visibility,
+                        BirthDate = item.BirthDate,
+                        PhotoUrl = item.PhotoUrl is null
+                             ? (await actorPhotoService.TrySearchAsync(item.FullName, ct)).LastOrDefault()?.ImageUrl
+                             : item.PhotoUrl,
+                        Biography = item.Biography,
+                        Sex = item.Sex,
+                        Nationalities = item.Nationalities
+                    }, new(userId!, [UserRole.Admin]), ct);
+                }
+                catch (Exception ex)
+                {
+                    missedLines.Add(item);
+                    lastError = ex.Message;
+                    continue;
+                }
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedActors = missedLines,
+                LastError = lastError
+            });
+        }
+
+        public async Task<IResult> SeedCreators(SeedCreatorsRequest request, string userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            userId = request.UserId ?? userId;
+            var creators = ParseCreatorsPayload(request.Payload);
+
+            var missedLines = new List<SeedCreatorItem>();
+
+            var lastError = "";
+
+            foreach (var item in creators)
+            {
+                try
+                {
+                    await creatorService.CreateAsync(new()
+                    {
+                        Name = item.Name,
+                        Description = item.Description,
+                        ImageUrl = item.ImageUrl,
+                        WebsiteUrl = item.WebsiteUrl,
+                        Visibility = request.Visibility
+                    }, new(userId!, [UserRole.Admin]), ct);
+                }
+                catch (Exception ex)
+                {
+                    missedLines.Add(item);
+                    lastError = ex.Message;
+                    continue;
+                }
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedActors = missedLines,
+                LastError = lastError
+            });
+        }
+
+        public async Task<IResult> SeedUserWatch(SeedUserWatchRequest request, string userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            userId = request.UserId ?? userId;
+            var parsedPayload = Parse(request.Payload);
+
+            var actors = parsedPayload.Length > 0
+                ? (await actorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                : [];
+
+            var creators = parsedPayload.Length > 0
+                 ? (await creatorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                 : [];
+
+            var missedLines = new List<UserWatch>();
+            var lastError = "";
+
+            foreach (var parsedItem in parsedPayload)
+            {
+                try
+                {
+                    if (!Uri.TryCreate(parsedItem.Url, UriKind.Absolute, out var uri) ||
+                        string.IsNullOrWhiteSpace(uri.Host) ||
+                        !string.IsNullOrEmpty(uri.UserInfo) ||
+                        !string.IsNullOrEmpty(uri.Fragment))
+                    {
+                        missedLines.Add(parsedItem);
+                        continue;
+                    }
+
+                    var metadata = await metadataService.GetMetadataAsync(uri, ct);
+
+                    if (string.IsNullOrEmpty(metadata.Title) && string.IsNullOrEmpty(metadata.Image))
+                    {
+                        missedLines.Add(parsedItem);
+                        continue;
+                    }
+
+                    var creator = parsedItem.Creator is null
+                        ? null
+                        : creators.FirstOrDefault(x => x.Name == parsedItem.Creator);
+
+                    var media = new CreateMediaRequest()
+                    {
+                        Title = metadata.Title ?? parsedItem.Name ?? "",
+                        OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
+                        Description = metadata.Description,
+                        CreatorId = creator?.Id,
+                        Type = metadata.Type ?? request.Type,
+                        Visibility = request.Visibility,
+                        PosterUrl = metadata.Image,
+                        Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
+                        Duration = metadata.DurationSeconds,
+                        ReleaseYear = metadata.PublishedAtUtc?.Year,
+                        Links = [parsedItem.Url],
+                        CollectionId = request.CollectionId
+                    };
+
+                    foreach (var actor in actors)
+                    {
+                        if (
+                            media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
+                            (parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            actor.Alias is not null &&
+                            (media.Title.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ||
+                            (parsedItem.Name?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                            (media.Description?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false))
+                           )
+                        {
+                            media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
+                        }
+                    }
+
+                    var createdMedia = await mediaService.CreateAsync(media, new(userId!, [UserRole.Admin]), ct);
+
+                    var created = await uwService.CreateAsync(new()
+                    {
+                        MediaId = createdMedia.Id,
+                        Rating = parsedItem.Rate,
+                        Status = request.Status,
+                        Visibility = request.Visibility
+                    }, new(userId!, [UserRole.Admin]), ct);
+                }
+                catch (Exception ex)
+                {
+                    missedLines.Add(parsedItem);
+                    lastError = ex.Message;
+                    continue;
+                }
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedLines = missedLines,
+                LastError = lastError
+            });
+        }
+
+        public sealed record SeedActorItem(string FullName, string? Alias, string? PhotoUrl, DateTime? BirthDate, string? Biography, Sex? Sex, List<string> Nationalities);
+        private static SeedActorItem[] ParseActorsPayload(string payload) =>
+        [..payload
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns =>
+            {
+                var match = Regexes.AliasRegex().Match(columns[0]);
+                var fullName = Regexes.NameRegex().Replace(columns[0], "").Trim();
+                var alias = match.Success
+                    ? match.Groups[1].Value.Trim()
+                    : null;
+
+                return new SeedActorItem(
+                    FullName: fullName,
+                    Alias: string.IsNullOrWhiteSpace(alias) ? null : alias,
+                    PhotoUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                        ? columns[1]
+                        : null,
+                    BirthDate: columns.Length > 2 &&
+                    DateTime.TryParseExact(columns[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+                        ? parsedDate
+                        : null,
+                    Biography: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? columns[3]
+                        : null,
+                    Sex: columns.Length > 4 && Enum.TryParse<Sex>(columns[4], out var sex)
+                        ? sex
+                        : null,
+                    Nationalities: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
+                        ? [.. columns[5].Split(',').Select(n => n.Trim())]
+                        : []
+                );
+            })
+        ];
+
+        public sealed record SeedCreatorItem(string Name, string? Description, string? ImageUrl, string? WebsiteUrl);
+        private static SeedCreatorItem[] ParseCreatorsPayload(string payload) =>
+        [..payload
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns =>  new SeedCreatorItem(
+                    Name: columns[0],
+                    ImageUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                        ? columns[1]
+                        : null,
+                    Description: columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
+                        ? columns[2]
+                        : null,
+                    WebsiteUrl: null
+                    //todo
+                )
+            )
+        ];
+
+        private record UserWatch(string Url, string? Name, int? Year, int? Rate, string? Creator);
+        private static UserWatch[] Parse(string text) =>
+        [.. text
+        .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+        .Select(columns =>
+        {
+            var name = columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                ? columns[1]
+                : null;
+
+            int? year = null;
+
+            if (name is not null)
+            {
+                var match = Regexes.YearRegex().Match(name);
+
+                if (match.Success && int.TryParse(match.Groups[1].Value, out var parsedYear))
+                {
+                    year = parsedYear;
+                    name = name[..match.Index].TrimEnd();
+                }
+            }
+
+            return new UserWatch(
+                Url: columns[0],
+                Name: name,
+                Year: year,
+                Rate: columns.Length > 2 &&
+                      int.TryParse(columns[2], out var rate)
+                    ? rate
+                    : null,
+                Creator: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                    ? columns[3]
+                    : null
+            );
+        })
+        ];
+    }
+}

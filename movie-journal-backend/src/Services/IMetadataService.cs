@@ -1,4 +1,4 @@
-﻿using MovieJournalBackend.Contracts.Service;
+﻿using MovieJournalBackend.Contracts.Maintenance;
 
 namespace MovieJournalBackend.Services
 {

@@ -12,7 +12,7 @@ namespace MovieJournalBackend.Contracts.Media
         int? ReleaseYear,
         int? Duration,
         string? PosterUrl,
-        string? Author,
+        MediaCreator? Creator,
         List<string> Genres,
         List<string> Tags,
         List<string> Links,

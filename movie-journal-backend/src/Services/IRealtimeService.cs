@@ -14,7 +14,8 @@ namespace MovieJournalBackend.Services
         Media,
         Collection,
         Actor,
-        UserWatching
+        UserWatching,
+        Creator
     }
 
     public enum EventType

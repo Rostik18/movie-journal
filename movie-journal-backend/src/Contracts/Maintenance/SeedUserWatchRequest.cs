@@ -1,7 +1,7 @@
 ﻿using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Journal;
 
-namespace MovieJournalBackend.Contracts.Service
+namespace MovieJournalBackend.Contracts.Maintenance
 {
     public class SeedUserWatchRequest
     {
@@ -12,13 +12,6 @@ namespace MovieJournalBackend.Contracts.Service
         public List<string> Tags { get; init; } = [];
         public string? Author { get; set; }
         public string? CollectionId { get; set; }
-        public string Payload { get; set; } = "";
-    }
-
-    public class SeedActorsRequest
-    {
-        public string? UserId { get; set; }
-        public Visibility Visibility { get; set; } = Visibility.Private;
         public string Payload { get; set; } = "";
     }
 }

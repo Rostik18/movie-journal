@@ -11,8 +11,7 @@ namespace MovieJournalBackend.Entities.Media
         public string NormalizedTitle { get; set; } = null!;
         public string? OriginalTitle { get; set; }
 
-        public string? Author { get; set; }
-        public string? NormalizedAuthor { get; set; }
+        public MediaCreator? Creator { get; set; }
 
         [BsonRepresentation(BsonType.String)]
         public MediaType Type { get; set; }

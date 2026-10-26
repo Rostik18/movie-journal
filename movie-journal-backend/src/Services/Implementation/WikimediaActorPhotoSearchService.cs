@@ -1,10 +1,10 @@
-﻿using System.Net;
+﻿using MovieJournalBackend.Extensions;
+using System.Net;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace MovieJournalBackend.Services.Implementation
 {
-    public sealed class WikimediaActorPhotoSearchService(HttpClient httpClient) : IActorPhotoSearchService
+    public sealed partial class WikimediaActorPhotoSearchService(HttpClient httpClient) : IActorPhotoSearchService
     {
         private const int MaxResults = 10;
 
@@ -119,9 +119,10 @@ namespace MovieJournalBackend.Services.Implementation
             if (string.IsNullOrWhiteSpace(raw))
                 return null;
 
-            var withoutHtml = Regex.Replace(raw, "<[^>]+>", " ");
+            var withoutHtml = Regexes.WithoutHtmlRegex().Replace(raw, " ");
 
             return WebUtility.HtmlDecode(withoutHtml).Trim();
         }
+
     }
 }

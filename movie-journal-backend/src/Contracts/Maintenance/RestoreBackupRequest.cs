@@ -1,4 +1,4 @@
-﻿namespace MovieJournalBackend.Contracts.Service
+﻿namespace MovieJournalBackend.Contracts.Maintenance
 {
     public sealed class RestoreBackupRequest
     {

@@ -113,6 +113,7 @@ namespace MovieJournalBackend.Extensions
         public static void AddRepositories(this WebApplicationBuilder builder)
         {
             builder.Services.AddSingleton<IActorRepository, ActorRepository>();
+            builder.Services.AddSingleton<ICreatorRepository, CreatorRepository>();
             builder.Services.AddSingleton<IMediaCollectionRepository, MediaCollectionRepository>();
             builder.Services.AddSingleton<IMediaRepository, MediaRepository>();
             builder.Services.AddSingleton<IUserRepository, UserRepository>();
@@ -129,6 +130,7 @@ namespace MovieJournalBackend.Extensions
 
             builder.Services.AddSingleton<IAuthService, AuthService>();
             builder.Services.AddSingleton<IActorService, ActorService>();
+            builder.Services.AddSingleton<ICreatorService, CreatorService>();
             builder.Services.AddSingleton<IMediaCollectionService, MediaCollectionService>();
             builder.Services.AddSingleton<IMediaRelationshipService, MediaRelationshipService>();
             builder.Services.AddSingleton<IMediaService, MediaService>();
@@ -136,6 +138,7 @@ namespace MovieJournalBackend.Extensions
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserWatchingService, UserWatchingService>();
             builder.Services.AddSingleton<IDatabaseBackupService, DatabaseBackupService>();
+            builder.Services.AddSingleton<ISeedService, SeedService>();
             builder.Services.AddHttpClient<IMetadataService, MetadataService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(10);

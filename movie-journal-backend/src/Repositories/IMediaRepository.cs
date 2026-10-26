@@ -14,5 +14,6 @@ namespace MovieJournalBackend.Repositories
         Task ResetCollectionAsync(string collectionId, CancellationToken ct = default);
         Task<bool> HasPrivateMediaInCollectionAsync(string collectionId, CancellationToken ct = default);
         Task<bool> HasPublicMediaUsingActorAsync(string actorId, CancellationToken ct = default);
+        Task<bool> HasPublicMediaUsingCreatorAsync(string creatorId, CancellationToken ct = default);
     }
 }

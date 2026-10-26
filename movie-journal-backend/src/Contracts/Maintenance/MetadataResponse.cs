@@ -1,6 +1,6 @@
 ﻿using MovieJournalBackend.Entities.Base;
 
-namespace MovieJournalBackend.Contracts.Service
+namespace MovieJournalBackend.Contracts.Maintenance
 {
     public sealed record MetadataResponse(
         string? Title,

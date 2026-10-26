@@ -3,7 +3,7 @@
     public enum MediaSortField
     {
         Title = 1,
-        Author = 2,
+        Creator = 2,
         ReleaseYear = 3,
         CreatedAt = 4,
         UpdatedAt = 5

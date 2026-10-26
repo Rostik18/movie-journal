@@ -47,9 +47,10 @@ app.MapHub<UserHub>("/hubs/user");
 
 app.MapAuthEndpoints();
 app.MapActorEndpoints();
+app.MapCreatorEndpoints();
 app.MapMediaCollectionEndpoints();
 app.MapMediaEndpoints();
-app.MapServiceEndpoints();
+app.MapMaintenanceEndpoints();
 app.MapUserEndpoints();
 app.MapUserWatchingEndpoints();
 

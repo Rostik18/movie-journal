@@ -116,7 +116,7 @@ namespace MovieJournalBackend.Endpoints
                     Tag = tag,
                     CollectionId = collectionId,
                     ActorId = actorId,
-                    Author = author
+                    Creator = author
                 }
             }, principal.ToUserContext(), ct);
 

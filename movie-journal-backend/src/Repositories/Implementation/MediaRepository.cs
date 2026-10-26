@@ -2,6 +2,7 @@
 using MongoDB.Driver.Linq;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
+using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
 using MovieJournalBackend.Extensions;
@@ -71,6 +72,9 @@ namespace MovieJournalBackend.Repositories.Implementation
         public Task<bool> HasPublicMediaUsingActorAsync(string actorId, CancellationToken ct = default) =>
             Collection.Find(x => x.Visibility == Visibility.Public && x.Cast.Any(c => c.ActorId == actorId)).AnyAsync(ct);
 
+        public Task<bool> HasPublicMediaUsingCreatorAsync(string creatorId, CancellationToken ct = default) =>
+            Collection.Find(x => x.Visibility == Visibility.Public && x.Creator != null && x.Creator.Id == creatorId).AnyAsync(ct);
+
         private FilterDefinition<Media> CreateFilter(SearchRequest<MediaFilter, MediaSortField> request, UserContext user)
         {
             var filter = user.BuildVisibilityFilter<Media>();
@@ -99,11 +103,11 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.ElemMatch(x => x.Cast, actor => actor.ActorId == request.Filter.ActorId));
             }
-            if (!string.IsNullOrWhiteSpace(request.Filter.Author))
+            if (!string.IsNullOrWhiteSpace(request.Filter.Creator))
             {
-                var query = request.Filter.Author.Trim();
+                var query = request.Filter.Creator.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedAuthor, new(Regex.Escape(query), "i")));
+                filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.NormalizedName", new(Regex.Escape(query), "i")));
             }
             if (request.Filter.Type.HasValue)
             {
@@ -122,6 +126,9 @@ namespace MovieJournalBackend.Repositories.Implementation
             MediaSortField.Title => request.Sort.Direction == SortDirection.Ascending
                 ? _sBuilder.Ascending(x => x.Title)
                 : _sBuilder.Descending(x => x.Title),
+            MediaSortField.Creator => request.Sort.Direction == SortDirection.Ascending
+                ? _sBuilder.Ascending("Creator.Name")
+                : _sBuilder.Descending("Creator.Name"),
             MediaSortField.ReleaseYear => request.Sort.Direction == SortDirection.Ascending
                 ? _sBuilder.Ascending(x => x.ReleaseYear)
                 : _sBuilder.Descending(x => x.ReleaseYear),

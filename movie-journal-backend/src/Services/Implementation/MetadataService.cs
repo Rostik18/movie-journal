@@ -1,5 +1,5 @@
 ﻿using AngleSharp.Html.Parser;
-using MovieJournalBackend.Contracts.Service;
+using MovieJournalBackend.Contracts.Maintenance;
 using MovieJournalBackend.Entities.Base;
 using System.Globalization;
 

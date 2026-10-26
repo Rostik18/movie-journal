@@ -13,6 +13,7 @@ namespace MovieJournalBackend.Services.Implementation
         IMediaRepository _mediaRepository,
         IMediaCollectionRepository _collectionRepository,
         IActorRepository _actorRepository,
+        ICreatorRepository _creatorRepository,
         IRealtimeService _realtimeService
     ) : IMediaService
     {
@@ -42,25 +43,6 @@ namespace MovieJournalBackend.Services.Implementation
                 throw new ValidationException($"Media '{request.Title}' already exists.");
             }
 
-            CollectionReference? collection = null;
-
-            if (!string.IsNullOrWhiteSpace(request.CollectionId))
-            {
-                var existingCollection = await _collectionRepository.GetByIdAsync(request.CollectionId, user, ct)
-                    ?? throw new InvalidOperationException($"Collection '{request.CollectionId}' not found.");
-
-                if (existingCollection.Visibility == Visibility.Public && request.Visibility == Visibility.Private)
-                {
-                    throw new ValidationException("Private media cannot belong to a public collection.");
-                }
-
-                collection = new CollectionReference
-                {
-                    Id = existingCollection.Id!,
-                    Name = existingCollection.Name
-                };
-            }
-
             var media = new Media
             {
                 Title = request.Title,
@@ -71,15 +53,18 @@ namespace MovieJournalBackend.Services.Implementation
                 ReleaseYear = request.ReleaseYear,
                 DurationSec = request.Duration,
                 PosterUrl = request.PosterUrl,
-                Visibility = request.Visibility,
-
                 Genres = request.Genres,
                 Tags = request.Tags,
                 Cast = request.Cast,
                 Links = request.Links,
                 Seasons = request.Seasons,
-
-                Collection = collection,
+                Visibility = request.Visibility,
+                Creator = request.CreatorId is null
+                    ? null
+                    : await GetCreator(request.Visibility, request.CreatorId, ct),
+                Collection = request.CollectionId is null
+                    ? null
+                    : await GetCollection(request.Visibility, request.CollectionId, user, ct),
 
                 OwnerUserId = user.UserId,
                 CreatedByUserId = user.UserId
@@ -135,19 +120,6 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.PosterUrl = request.PosterUrl;
             }
-            if (request.Visibility.HasValue)
-            {
-                var actorIds = media.Cast.Select(x => x.ActorId).ToList();
-
-                var hasPrivateActors = await _actorRepository.HasPrivateActorsAsync(actorIds, ct);
-
-                if (hasPrivateActors)
-                {
-                    throw new ValidationException("Public media cannot contain private actors.");
-                }
-
-                media.Visibility = request.Visibility.Value;
-            }
             if (request.Genres is not null)
             {
                 media.Genres = request.Genres;
@@ -168,28 +140,26 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.Seasons = request.Seasons;
             }
+            if (request.Visibility.HasValue)
+            {
+                var actorIds = media.Cast.Select(x => x.ActorId).ToList();
+
+                var hasPrivateActors = await _actorRepository.HasPrivateActorsAsync(actorIds, ct);
+
+                if (request.Visibility == Visibility.Public && hasPrivateActors)
+                {
+                    throw new ValidationException("Public media cannot contain private actors.");
+                }
+
+                media.Visibility = request.Visibility.Value;
+            }
+            if (request.CreatorId is not null)
+            {
+                media.Creator = await GetCreator(media.Visibility, request.CreatorId, ct);
+            }
             if (request.CollectionId is not null)
             {
-                if (string.IsNullOrWhiteSpace(request.CollectionId))
-                {
-                    media.Collection = null;
-                }
-                else
-                {
-                    var collection = await _collectionRepository.GetByIdAsync(request.CollectionId, user, ct)
-                        ?? throw new InvalidOperationException($"Collection '{request.CollectionId}' not found.");
-
-                    if (collection.Visibility == Visibility.Public && request.Visibility == Visibility.Private)
-                    {
-                        throw new ValidationException("Private media cannot belong to a public collection.");
-                    }
-
-                    media.Collection = new()
-                    {
-                        Id = collection.Id,
-                        Name = collection.Name
-                    };
-                }
+                media.Collection = await GetCollection(media.Visibility, request.CollectionId, user, ct);
             }
 
             media.LastModifiedByUserId = user.UserId;
@@ -218,6 +188,32 @@ namespace MovieJournalBackend.Services.Implementation
             await _mediaRepository.DeleteAsync(mediaId, ct);
 
             await _realtimeService.PublishAsync(media.OwnerUserId, media.Visibility, ResourceType.Media, EventType.Deleted, media.Id);
+        }
+
+        private async Task<MediaCreator> GetCreator(Visibility mediaVisibility, string creatorId, CancellationToken ct)
+        {
+            var creator = await _creatorRepository.GetByIdAsync(creatorId, ct)
+                ?? throw new InvalidOperationException($"Media creator '{creatorId}' not found.");
+
+            if (mediaVisibility == Visibility.Public && creator.Visibility == Visibility.Private)
+            {
+                throw new ValidationException("Public media cannot contain private creator.");
+            }
+
+            return new() { Id = creator.Id, Name = creator.Name };
+        }
+
+        private async Task<CollectionReference> GetCollection(Visibility mediaVisibility, string collectionId, UserContext user, CancellationToken ct)
+        {
+            var collection = await _collectionRepository.GetByIdAsync(collectionId, user, ct)
+                ?? throw new InvalidOperationException($"Collection '{collectionId}' not found.");
+
+            if (mediaVisibility == Visibility.Private && collection.Visibility == Visibility.Public)
+            {
+                throw new ValidationException("Private media cannot belong to a public collection.");
+            }
+
+            return new() { Id = collection.Id, Name = collection.Name };
         }
     }
 }

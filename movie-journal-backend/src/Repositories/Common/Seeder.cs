@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Creator;
 using MovieJournalBackend.Entities.Media;
 using MovieJournalBackend.Entities.User;
 using MovieJournalBackend.Extensions;
@@ -12,6 +13,7 @@ namespace MovieJournalBackend.Repositories.Common
     public sealed class Seeder(
         IUserRepository _userRepository,
         IActorRepository _actorRepository,
+        ICreatorRepository _creatorRepository,
         IMediaCollectionRepository _mediaCollectionRepository,
         IMediaRepository _mediaRepository,
         IPasswordService _passwordService,
@@ -57,6 +59,32 @@ namespace MovieJournalBackend.Repositories.Common
                 Visibility = Visibility.Public,
                 Sex = Sex.Female,
                 Nationalities = ["CUB", "ESP"]
+            },
+            new()
+            {
+                FullName = "Гаррісон Форд",
+                NormalizedFullName = Helpers.Normalize("Гаррісон Форд"),
+                BirthDate = new(1942, 07, 13),
+                Biography = "Aмериканський актор. Відомий передусім за ролями Хана Соло в кіноепопеї «Зоряні війни» та Індіани Джонса в однойменній серії фільмів.",
+                CreatedByUserId = _adminId,
+                OwnerUserId = _adminId,
+                PhotoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBf4UMINDZ4l-r9OOR8_XFl7HQtj_1LdlsvccLQYrEOZBF7WbMJ31oyOTfwf7hHPX1DYA1JLI04Cen5pC0W1sPo7mSMopw8LrfFZ5D_pCkjg&s=10",
+                Visibility = Visibility.Public,
+                Sex = Sex.Male,
+                Nationalities = ["USA"]
+            }
+        ];
+        private static Creator[] _creators = [
+            new()
+            {
+                Name = "Warner Bros",
+                NormalizedName = Helpers.Normalize("Warner Bros"),
+                Description = "Американська компанія, один з найбільших концернів з виробництва фільмів і телесеріалів",
+                ImageUrl = "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Warner_Bros.jpg/960px-Warner_Bros.jpg?utm_source=uk.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+                WebsiteUrl = "https://uk.wikipedia.org/wiki/Warner_Bros.",
+                Visibility = Visibility.Public,
+                OwnerUserId = _adminId,
+                CreatedByUserId = _adminId,
             }
         ];
         private static MediaCollection[] _mediaCollection = [
@@ -101,7 +129,8 @@ namespace MovieJournalBackend.Repositories.Common
                 Tags = ["Гослінг", "літералі мі"],
                 Cast = [
                     new() { ActorId = _actors[0].Id, FullName = _actors[0].FullName },
-                    new() { ActorId = _actors[2].Id, FullName = _actors[2].FullName, CharacterName = "Джої" }
+                    new() { ActorId = _actors[2].Id, FullName = _actors[2].FullName, CharacterName = "Джої" },
+                    new() { ActorId = _actors[3].Id, FullName = _actors[3].FullName }
                     ],
                 CreatedByUserId = _adminId,
                 OwnerUserId = _adminId,
@@ -109,6 +138,30 @@ namespace MovieJournalBackend.Repositories.Common
                     Id = _mediaCollection[0].Id,
                     Name = _mediaCollection[0].Name
                 },
+                Creator = new() { Id = _creators[0].Id, Name = _creators[0].Name },
+                Visibility = Visibility.Public,
+            },
+            new()
+            {
+                Title = "Той, хто біжить по лезу",
+                NormalizedTitle = Helpers.Normalize("Той, хто біжить по лезу"),
+                OriginalTitle = "Blade Runner",
+                ReleaseYear = 1981,
+                DurationSec = 117 * 60,
+                Genres = ["Наукова фантастика", "Екшн"],
+                PosterUrl = "https://thumb.wikimedia.org/wikipedia/uk/thumb/5/53/Blade_Runner_poster.jpg/250px-Blade_Runner_poster.jpg?utm_source=uk.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+                Type = MediaType.Movie,
+                Tags = ["Гослінг", "літералі мі"],
+                Cast = [
+                    new() { ActorId = _actors[3].Id, FullName = _actors[3].FullName },
+                    ],
+                CreatedByUserId = _adminId,
+                OwnerUserId = _adminId,
+                Collection = new(){
+                    Id = _mediaCollection[0].Id,
+                    Name = _mediaCollection[0].Name
+                },
+                Creator = new() { Id = _creators[0].Id, Name = _creators[0].Name },
                 Visibility = Visibility.Public
             }
         ];
@@ -117,6 +170,7 @@ namespace MovieJournalBackend.Repositories.Common
         {
             await SeedAdmin(ct);
             await SeedActors(ct);
+            await SeedCreators(ct);
             await SeedMediaCollection(ct);
             await SeedMedia(ct);
         }
@@ -158,6 +212,21 @@ namespace MovieJournalBackend.Repositories.Common
             }
         }
 
+        private async Task SeedCreators(CancellationToken ct = default)
+        {
+            var exists = await _creatorRepository.Any(ct);
+
+            if (exists)
+            {
+                return;
+            }
+
+            foreach (var item in _creators)
+            {
+                await _creatorRepository.CreateAsync(item, ct);
+            }
+        }
+
         private async Task SeedMediaCollection(CancellationToken ct = default)
         {
             var exists = await _mediaCollectionRepository.Any(ct);
@@ -192,6 +261,7 @@ namespace MovieJournalBackend.Repositories.Common
         {
             _adminId = null!;
             _actors = null!;
+            _creators = null!;
             _mediaCollection = null!;
             _media = null!;
         }

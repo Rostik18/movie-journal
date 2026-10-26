@@ -1,4 +1,5 @@
 ﻿using MovieJournalBackend.Contracts.Actor;
+using MovieJournalBackend.Contracts.Creator;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Contracts.MediaCollection;
 using MovieJournalBackend.Contracts.User;
@@ -35,7 +36,7 @@ namespace MovieJournalBackend.Contracts.Common
             media.ReleaseYear,
             media.DurationSec,
             media.PosterUrl,
-            media.Author,
+            media.Creator,
             media.Genres,
             media.Tags,
             media.Links,
@@ -90,5 +91,14 @@ namespace MovieJournalBackend.Contracts.Common
             Rating = entity.Rating,
             Notes = entity.Notes,
         };
+
+        public static CreatorResponse ToResponse(this Entities.Creator.Creator entity) => new(
+            entity.Id,
+            entity.Name,
+            entity.Description,
+            entity.ImageUrl,
+            entity.WebsiteUrl,
+            entity.Visibility
+            );
     }
 }
