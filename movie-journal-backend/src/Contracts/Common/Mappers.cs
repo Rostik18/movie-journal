@@ -71,26 +71,24 @@ namespace MovieJournalBackend.Contracts.Common
             user.Roles,
             user.CreatedAtUtc);
 
-        public static UserWatchingResponse ToResponse(this Entities.Journal.UserWatching entity, MediaResponse media) => new()
-        {
-            Media = media,
-            Status = entity.Status,
-            StoppedAtSeconds = entity.StoppedAtSeconds,
-            Rating = entity.Rating,
-            Notes = entity.Notes,
-            StartedAtUtc = entity.StartedAtUtc,
-            FinishedAtUtc = entity.FinishedAtUtc,
-            CurrentSeasonNumber = entity.CurrentSeasonNumber,
-            CurrentEpisodeNumber = entity.CurrentEpisodeNumber
-        };
+        public static UserWatchingResponse ToResponse(this Entities.Journal.UserWatching entity, MediaResponse media) => new(
+            media,
+            entity.Status,
+            entity.StoppedAtSeconds,
+            entity.Rating,
+            entity.Notes,
+            entity.StartedAtUtc,
+            entity.FinishedAtUtc,
+            entity.CurrentSeasonNumber,
+            entity.CurrentEpisodeNumber
+            );
 
-        public static UserWatchingResponseSlim ToResponseSlim(this Entities.Journal.UserWatching entity, MediaResponseSlim media) => new()
-        {
-            Media = media,
-            Status = entity.Status,
-            Rating = entity.Rating,
-            Notes = entity.Notes,
-        };
+        public static UserWatchingResponseSlim ToResponseSlim(this Entities.Journal.UserWatching entity, MediaResponseSlim media) => new(
+            media,
+            entity.Status,
+            entity.Rating,
+            entity.Notes
+            );
 
         public static CreatorResponse ToResponse(this Entities.Creator.Creator entity) => new(
             entity.Id,
@@ -141,18 +139,17 @@ namespace MovieJournalBackend.Contracts.Common
             media
             );
 
-        public static UserWatchingResponseSb ToResponseSb(this Entities.Journal.UserWatching entity, MediaResponseSb media) => new()
-        {
-            Media = media,
-            Status = entity.Status,
-            StoppedAtSeconds = entity.StoppedAtSeconds,
-            Rating = entity.Rating,
-            Notes = entity.Notes,
-            StartedAtUtc = entity.StartedAtUtc,
-            FinishedAtUtc = entity.FinishedAtUtc,
-            CurrentSeasonNumber = entity.CurrentSeasonNumber,
-            CurrentEpisodeNumber = entity.CurrentEpisodeNumber
-        };
+        public static UserWatchingResponseSb ToResponseSb(this Entities.Journal.UserWatching entity, MediaResponseSb media) => new(
+            media,
+            entity.Status,
+            entity.StoppedAtSeconds,
+            entity.Rating,
+            entity.Notes,
+            entity.StartedAtUtc,
+            entity.FinishedAtUtc,
+            entity.CurrentSeasonNumber,
+            entity.CurrentEpisodeNumber
+            );
 
         public static CreatorResponseSb ToResponseSb(this Entities.Creator.Creator entity, List<MediaResponseSlim> medias) => new(
             entity.Id,

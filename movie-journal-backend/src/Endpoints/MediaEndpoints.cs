@@ -4,7 +4,6 @@ using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
-using MovieJournalBackend.Repositories;
 using MovieJournalBackend.Repositories.Common;
 using MovieJournalBackend.Services;
 using System.Security.Claims;
