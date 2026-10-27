@@ -2,35 +2,35 @@
     <header class="list-header">
         <h2 class="list-title">Мій список перегляду</h2>
 
-        <app-add-button label="Додати у список" (clicked)="openModal()" />
+        <app-add-button label="Додати у список" (clicked)="modal.openCreate()" />
 
         <div class="list-actions">
-            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
-                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
             <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
     </header>
 
     <!-- Універсальна панель пошуку, фільтрів та сортування -->
-    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук у списку за назвою..."
-        [filters]="toolbarFilters()" [sortFields]="watchingSortFields" [currentSortBy]="searchParams().sortBy"
-        [currentSort]="searchParams().sort ?? SortDirection.Descending"
-        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
-        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук у списку за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="watchingSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
 
-    @if (showInitialLoading()) {
+    @if (list.showInitialLoading()) {
     <div class="list-state loading">Завантаження вашого списку...</div>
-    } @else if (showError()) {
+    } @else if (list.showError()) {
     <div class="list-state error">
         <p>Не вдалося завантажити список перегляду.</p>
-        <button type="button" class="btn-secondary" (click)="loadList()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
     </div>
-    } @else if (showEmpty()) {
+    } @else if (list.showEmpty()) {
     <div class="list-state">
-        @if (hasActiveFilters()) {
+        @if (list.hasActiveFilters()) {
         <p><strong>Нічого не знайдено.</strong></p>
         <p>Спробуйте змінити або скинути фільтри.</p>
-        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
         } @else {
         <p><strong>Ваш список порожній.</strong></p>
         <p>Натисніть «Додати у список», щоб додати перший фільм чи серіал.</p>
@@ -45,7 +45,8 @@
         <!-- Бейдж зліва зверху: оцінка «★ 7» (лише якщо вона є) -->
         <app-grid-card [imageUrl]="item.media.posterUrl" [imageAlt]="item.media.title" [title]="item.media.title"
             [titleMeta]="item.media.releaseYear?.toString()" noImageText="Немає постера"
-            [visibility]="item.media.visibility" [badge]="ratingBadge(item.rating)" (cardClick)="openDetails(item)">
+            [visibility]="item.media.visibility" [badge]="ratingBadge(item.rating)"
+            (cardClick)="details.open(item.media.id, item)">
 
             <!-- Оверлей постера справа знизу: слот [poster-bottom-right] у grid-card -->
             @if (item.media.duration) {
@@ -85,7 +86,8 @@
             </thead>
             <tbody>
                 @for (item of watchingList(); track item.media.id) {
-                <tr class="clickable-row" tabindex="0" (click)="openDetails(item)" (keydown.enter)="openDetails(item)">
+                <tr class="clickable-row" tabindex="0" (click)="details.open(item.media.id, item)"
+                    (keydown.enter)="details.open(item.media.id, item)">
                     <td class="table-poster-cell">
                         @if (item.media.posterUrl) {
                         <img [src]="item.media.posterUrl" [alt]="item.media.title" class="table-poster">
@@ -126,22 +128,22 @@
     </div>
     }
 
-    @if (totalCount() > 10) {
+    @if (list.totalCount() > 10) {
     <div class="pagination-bottom">
-        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
-            (pageChange)="onPaginationChange($event)" />
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
     </div>
     }
     }
 
     <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ -->
-    @if (isModalOpen()) {
-    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
         <div class="modal-content" role="dialog" aria-modal="true"
-            [attr.aria-label]="editingItem() ? 'Редагувати запис у списку' : 'Додати до списку перегляду'">
-            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
+            [attr.aria-label]="modal.editing() ? 'Редагувати запис у списку' : 'Додати до списку перегляду'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
 
-            <app-user-watching-form [watching]="editingItem()" (watchingCreated)="onWatchingCreated()"
+            <app-user-watching-form [watching]="modal.editing()" (watchingCreated)="onWatchingCreated()"
                 (watchingUpdated)="onWatchingUpdated($event)" />
         </div>
     </div>
@@ -149,17 +151,17 @@
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ: заголовок і постер беремо зі скороченого запису (є одразу),
          решту — з повного запису, який підвантажується через getById -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedSlim()?.media?.title ?? ''"
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedSlim()?.media?.title ?? ''"
         [imageUrl]="selectedSlim()?.media?.posterUrl" [imageAlt]="selectedSlim()?.media?.title ?? ''"
-        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()"
+        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="details.close()"
         (editClicked)="onEditItem()" (deleted)="onSidebarItemDeleted()">
 
-        @if (detailsLoading()) {
+        @if (details.loading()) {
         <div class="list-state loading">Завантаження деталей...</div>
-        } @else if (detailsError()) {
+        } @else if (details.error()) {
         <div class="list-state error">
             <p>Не вдалося завантажити деталі.</p>
-            <button type="button" class="btn-secondary" (click)="loadDetails()">Спробувати знову</button>
+            <button type="button" class="btn-secondary" (click)="details.reload()">Спробувати знову</button>
         </div>
         } @else if (selectedItem(); as item) {
         <div class="sidebar-details-info">

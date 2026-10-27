@@ -1,13 +1,8 @@
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, Subject, of } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CollectionService } from '../../services/collection.service';
 import { ToastService } from '../../services/toast.service';
 import { CollectionSidebar, MediaCollectionResponse } from '../../models/collection.model';
 import { MediaLinkListComponent } from '../shared/media-link-list/media-link-list.component';
-import { PageResponse } from '../../models/shared.model';
 import { Visibility, VisibilityLabels } from '../../models/enums';
 import { CollectionSearchParams, MediaCollectionSortField, SortDirection } from '../../models/search.model';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -22,15 +17,10 @@ import {
     ToolbarFilter,
     enumOptions
 } from '../shared/search-toolbar/search-toolbar.component';
-
-type DeleteCallback = () => ReturnType<CollectionService['deleteCollection']>;
-type CollectionId = MediaCollectionResponse['id'];
-
-/** Ключі CollectionSearchParams, якими керують кнопки-фільтри тулбара. */
-const FILTER_KEYS = ['visibility', 'hasPoster'] as const;
-type FilterKey = (typeof FILTER_KEYS)[number];
-
-const DEFAULT_PAGE_SIZE = 20;
+import { createDeleteCallbacks } from '../../utils/delete-callbacks';
+import { createDetailsRoute } from '../../utils/details-route';
+import { createFormModal } from '../../utils/form-modal';
+import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
 
 @Component({
     selector: 'app-collection-list',
@@ -51,35 +41,44 @@ const DEFAULT_PAGE_SIZE = 20;
 export class CollectionListComponent implements OnInit {
     private readonly collectionService = inject(CollectionService);
     private readonly toastService = inject(ToastService);
-    private readonly route = inject(ActivatedRoute);
-    private readonly router = inject(Router);
-    private readonly destroyRef = inject(DestroyRef);
-
-    readonly collections = signal<MediaCollectionResponse[]>([]);
-    readonly totalCount = signal(0);
-    readonly loading = signal(true);
-    readonly hasError = signal(false);
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
-    readonly isModalOpen = signal(false);
-    /** Колекція, що редагується; null — модалка працює в режимі створення. */
-    readonly editingCollection = signal<MediaCollectionResponse | null>(null);
-    private readonly collectionForm = viewChild(CollectionFormComponent);
 
+    // ---------- Список: параметри пошуку, пагінація, завантаження ----------
+    readonly list = createListState<MediaCollectionResponse, CollectionSearchParams>({
+        search: params => this.collectionService.searchCollections(params),
+        defaults: { offset: 0, size: DEFAULT_PAGE_SIZE, sort: SortDirection.Ascending },
+        filterKeys: ['visibility', 'hasPoster'],
+        isFiltered: ({ query, visibility, hasPoster, tag, ownerUserId }) =>
+            !!query || !!tag || !!ownerUserId || visibility !== undefined || hasPoster !== undefined,
+        errorMessage: 'Не вдалося завантажити колекції.'
+    });
+    readonly collections = this.list.items;
+
+    // ---------- Модалка створення / редагування ----------
+    private readonly collectionForm = viewChild(CollectionFormComponent);
+    readonly modal = createFormModal<MediaCollectionResponse>(this.collectionForm);
+
+    // ---------- Сайдбар деталей (/collections/:id) ----------
+    readonly details = createDetailsRoute<never, CollectionSidebar>({
+        basePath: '/collections',
+        fetch: id => this.collectionService.getCollectionSidebar(id),
+        errorMessage: 'Не вдалося завантажити деталі колекції'
+    });
     /** Колекція із сайдбару: разом зі списком фільмів (GET /api/collections/{id}/sidebar). */
-    readonly selectedCollection = signal<CollectionSidebar | null>(null);
-    readonly isSidebarOpen = signal(false);
+    readonly selectedCollection = this.details.detail;
+
+    private readonly deleteCallbacks = createDeleteCallbacks((id: string) => this.collectionService.deleteCollection(id));
+
+    readonly selectedDeleteCallback = computed(() => {
+        const collection = this.selectedCollection();
+        return collection ? this.deleteCallbacks.get(collection.id) : undefined;
+    });
 
     readonly visibilityLabels = VisibilityLabels;
 
     // Робимо Enum доступним у шаблоні
     readonly SortDirection = SortDirection;
-
-    readonly searchParams = signal<CollectionSearchParams>({
-        offset: 0,
-        size: DEFAULT_PAGE_SIZE,
-        sort: SortDirection.Ascending
-    });
 
     // ---------- Панель пошуку ----------
     private readonly visibilityOptions = enumOptions(
@@ -99,267 +98,48 @@ export class CollectionListComponent implements OnInit {
 
     // computed, а не масив у шаблоні: інакше новий масив на кожен цикл change detection
     readonly toolbarFilters = computed<ToolbarFilter[]>(() => {
-        const params = this.searchParams();
+        const params = this.list.searchParams();
         return [
             { key: 'hasPoster', label: 'Постер', value: params.hasPoster, options: this.hasPosterOptions },
             { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions }
         ];
     });
 
-    readonly hasActiveFilters = computed(() => {
-        const { query, visibility, hasPoster, tag, ownerUserId } = this.searchParams();
-        return !!query || !!tag || !!ownerUserId || visibility !== undefined || hasPoster !== undefined;
-    });
-
-    // Стани для шаблону: завантаження / помилка / порожній список
-    readonly showInitialLoading = computed(() => this.loading() && this.collections().length === 0);
-    readonly showError = computed(() => this.hasError() && this.collections().length === 0);
-    readonly showEmpty = computed(() => !this.loading() && !this.hasError() && this.collections().length === 0);
-
-    private readonly reload$ = new Subject<void>();
-    private readonly details$ = new Subject<CollectionId>();
-
-    /** Кешування колбеків видалення для запобігання новим викликам у CD */
-    private readonly deleteCallbacks = new Map<CollectionId, DeleteCallback>();
-
-    readonly selectedDeleteCallback = computed(() => {
-        const collection = this.selectedCollection();
-        return collection ? this.getDeleteCallback(collection) : undefined;
-    });
-
-    constructor() {
-        // Завантаження списку колекцій з автоматичним скасуванням попереднього запиту
-        this.reload$.pipe(
-            tap(() => {
-                this.loading.set(true);
-                this.hasError.set(false);
-            }),
-            switchMap(() =>
-                this.collectionService.searchCollections(this.searchParams()).pipe(
-                    map((response: PageResponse<MediaCollectionResponse>) => ({
-                        ok: true as const,
-                        items: response.items ?? [],
-                        total: response.totalCount ?? response.items?.length ?? 0
-                    })),
-                    catchError(err => {
-                        console.error('Помилка завантаження колекцій:', err);
-                        return of({ ok: false as const });
-                    })
-                )
-            ),
-            takeUntilDestroyed()
-        ).subscribe(result => {
-            if (result.ok) {
-                this.collections.set(result.items);
-                this.totalCount.set(result.total);
-            } else {
-                this.hasError.set(true);
-                this.toastService.show('Не вдалося завантажити колекції.', 'error', 4000);
-            }
-            this.loading.set(false);
-        });
-
-        // Запити деталей колекції для сайдбару з switchMap
-        this.details$.pipe(
-            switchMap(id =>
-                this.collectionService.getCollectionSidebar(id).pipe(
-                    catchError(err => {
-                        console.error('Помилка завантаження деталей колекції:', err);
-                        this.toastService.show('Не вдалося завантажити деталі колекції', 'error');
-                        // Некоректне посилання: прибираємо id з адреси
-                        this.router.navigate(['/collections'], { replaceUrl: true });
-                        return EMPTY;
-                    })
-                )
-            ),
-            takeUntilDestroyed()
-        ).subscribe(detailedCol => {
-            this.selectedCollection.set(detailedCol);
-            this.isSidebarOpen.set(true);
-        });
-    }
-
-    /** URL — джерело правди для сайдбару: /collections/:id відкриває деталі (також при прямому переході й Back/Forward).
-     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
-    private watchRoute(): void {
-        this.route.paramMap.pipe(
-            map(params => params.get('id')),
-            distinctUntilChanged(),
-            takeUntilDestroyed(this.destroyRef)
-        ).subscribe(id => {
-            if (id) {
-                this.details$.next(id);
-            } else {
-                this.isSidebarOpen.set(false);
-            }
-        });
-    }
-
     ngOnInit(): void {
-        this.watchRoute();
-        this.loadCollections();
-    }
-
-    loadCollections(): void {
-        this.reload$.next();
-    }
-
-    // ====================== Деталі (сайдбар) ======================
-    openDetails(collection: MediaCollectionResponse): void {
-        // Деталі завантажуються за зміною маршруту
-        this.router.navigate(['/collections', collection.id]);
-    }
-
-    /**
-     * selectedCollection навмисно не скидається: поки панель виїжджає, її вміст має лишатись на місці.
-     */
-    closeSidebar(): void {
-        this.isSidebarOpen.set(false);
-        if (this.route.snapshot.paramMap.has('id')) {
-            this.router.navigate(['/collections']);
-        }
+        this.details.watchRoute();
+        this.list.load();
     }
 
     onEditCollection(): void {
         const collection = this.selectedCollection();
-        if (!collection) {
-            return;
+        if (collection) {
+            this.modal.openEdit(collection);
         }
-        this.editingCollection.set(collection);
-        this.isModalOpen.set(true);
     }
 
     // ====================== Видалення ======================
-    getDeleteCallback(collection: MediaCollectionResponse): DeleteCallback {
-        const colId = collection.id;
-
-        let callback = this.deleteCallbacks.get(colId);
-        if (!callback) {
-            callback = () => this.collectionService.deleteCollection(colId);
-            this.deleteCallbacks.set(colId, callback);
-        }
-        return callback;
-    }
-
-    onDeleted(collection: MediaCollectionResponse): void {
-        const colId = collection.id;
-
-        this.deleteCallbacks.delete(colId);
-        this.collections.update(list => list.filter(c => c.id !== colId));
-        this.totalCount.update(c => Math.max(0, c - 1));
-        this.toastService.show('Колекцію успішно видалено', 'success', 3000);
-
-        // Видалили останній елемент на сторінці > 1 — повертаємось на попередню
-        const { offset = 0, size = DEFAULT_PAGE_SIZE } = this.searchParams();
-        if (this.collections().length === 0 && offset > 0) {
-            this.updateParams({ offset: Math.max(0, offset - size) });
-        }
-    }
-
     onSidebarCollectionDeleted(): void {
         const collection = this.selectedCollection();
         if (!collection) {
             return;
         }
 
-        this.onDeleted(collection);
-        this.closeSidebar();
+        this.deleteCallbacks.forget(collection.id);
+        this.list.removeItems(c => c.id === collection.id);
+        this.toastService.show('Колекцію успішно видалено', 'success', 3000);
+        this.details.close();
     }
 
-    // ====================== Модальне вікно ======================
-    openModal(): void {
-        this.editingCollection.set(null);
-        this.isModalOpen.set(true);
-    }
-
-    closeModal(): void {
-        this.isModalOpen.set(false);
-        this.editingCollection.set(null);
-    }
-
-    onBackdropMouseDown(event: MouseEvent): void {
-        if (event.target === event.currentTarget) {
-            this.closeModalUnlessDirty();
-        }
-    }
-
-    @HostListener('document:keydown.escape')
-    onEscape(): void {
-        if (this.isModalOpen()) {
-            this.closeModalUnlessDirty();
-        }
-    }
-
-    /** Backdrop/Escape не закривають форму з незбереженими змінами (хрестик — закриває завжди). */
-    private closeModalUnlessDirty(): void {
-        if (!this.collectionForm()?.hasChanges()) {
-            this.closeModal();
-        }
-    }
-
+    // ====================== Форма ======================
     onCollectionUpdated(updated: MediaCollectionResponse): void {
-        this.closeModal();
+        this.modal.close();
         this.collections.update(list => list.map(c => (c.id === updated.id ? updated : c)));
         // Відповідь на оновлення без списку фільмів: зберігаємо поточний список із сайдбару
         this.selectedCollection.update(current => (current?.id === updated.id ? { ...current, ...updated } : current));
     }
 
     onCollectionCreated(): void {
-        this.closeModal();
-        this.loadCollections();
-    }
-
-    // ====================== Пагінація, пошук, фільтри, сортування ======================
-    onPaginationChange(event: { offset: number; size: number }): void {
-        this.updateParams({ offset: event.offset, size: event.size });
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    onSearchQueryChanged(query: string): void {
-        this.resetPageAndUpdate({ query: query || undefined });
-    }
-
-    onFilterChanged(event: { key: string; value: unknown }): void {
-        if (!(FILTER_KEYS as readonly string[]).includes(event.key)) {
-            return;
-        }
-        this.resetPageAndUpdate({ [event.key as FilterKey]: event.value } as Partial<CollectionSearchParams>);
-    }
-
-    onSortByChanged(sortBy: unknown): void {
-        this.resetPageAndUpdate({ sortBy: sortBy as MediaCollectionSortField | undefined });
-    }
-
-    onSortDirectionChanged(sort: SortDirection): void {
-        this.resetPageAndUpdate({ sort });
-    }
-
-    resetFilters(): void {
-        this.searchParams.update(p => ({
-            offset: 0,
-            size: p.size,
-            sort: p.sort,
-            sortBy: p.sortBy
-        }));
-        this.loadCollections();
-    }
-
-    private resetPageAndUpdate(patch: Partial<CollectionSearchParams>): void {
-        this.updateParams({ ...patch, offset: 0 });
-    }
-
-    /** Зливає зміни в параметри (undefined прибирає ключ) і перезавантажує список. */
-    private updateParams(patch: Partial<CollectionSearchParams>): void {
-        this.searchParams.update(current => {
-            const next: Record<string, unknown> = { ...current, ...patch };
-            for (const key of Object.keys(next)) {
-                if (next[key] === undefined) {
-                    delete next[key];
-                }
-            }
-            return next as CollectionSearchParams;
-        });
-        this.loadCollections();
+        this.modal.close();
+        this.list.load();
     }
 }

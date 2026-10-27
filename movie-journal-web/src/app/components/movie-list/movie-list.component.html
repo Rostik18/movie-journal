@@ -2,35 +2,35 @@
     <header class="list-header">
         <h2 class="list-title">Каталог фільмів</h2>
 
-        <app-add-button label="Додати фільм" (clicked)="openModal()" />
+        <app-add-button label="Додати фільм" (clicked)="modal.openCreate()" />
 
         <div class="list-actions">
-            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
-                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
             <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
     </header>
 
     <!-- Універсальна панель пошуку, фільтрів та сортування -->
-    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук фільмів за назвою..."
-        [filters]="toolbarFilters()" [sortFields]="movieSortFields" [currentSortBy]="searchParams().sortBy"
-        [currentSort]="searchParams().sort ?? SortDirection.Descending"
-        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
-        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук фільмів за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="movieSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
 
-    @if (showInitialLoading()) {
+    @if (list.showInitialLoading()) {
     <div class="list-state loading">Завантаження фільмів...</div>
-    } @else if (showError()) {
+    } @else if (list.showError()) {
     <div class="list-state error">
         <p>Не вдалося завантажити фільми.</p>
-        <button type="button" class="btn-secondary" (click)="loadMovies()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
     </div>
-    } @else if (showEmpty()) {
+    } @else if (list.showEmpty()) {
     <div class="list-state">
-        @if (hasActiveFilters()) {
+        @if (list.hasActiveFilters()) {
         <p><strong>Нічого не знайдено.</strong></p>
         <p>Спробуйте змінити або скинути фільтри.</p>
-        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
         } @else {
         <p><strong>Каталог порожній.</strong></p>
         <p>Натисніть «Додати фільм», щоб створити перший запис.</p>
@@ -44,7 +44,7 @@
         @for (mov of movies(); track mov.id) {
         <app-grid-card [imageUrl]="mov.posterUrl" [imageAlt]="mov.title" [title]="mov.title"
             [titleMeta]="mov.releaseYear?.toString()" noImageText="Немає постера" [visibility]="mov.visibility"
-            (cardClick)="openDetails(mov)">
+            (cardClick)="details.open(mov.id, mov)">
 
             <!-- Оверлеї постера: слоти [poster-top-left] та [poster-bottom-right] у grid-card -->
             <button poster-top-left type="button" class="bookmark-btn poster-bookmark"
@@ -91,8 +91,8 @@
             </thead>
             <tbody>
                 @for (movie of movies(); track movie.id) {
-                <tr class="clickable-row" tabindex="0" (click)="openDetails(movie)"
-                    (keydown.enter)="openDetails(movie)">
+                <tr class="clickable-row" tabindex="0" (click)="details.open(movie.id, movie)"
+                    (keydown.enter)="details.open(movie.id, movie)">
                     <td class="table-poster-cell">
                         @if (movie.posterUrl) {
                         <img [src]="movie.posterUrl" [alt]="movie.title" class="table-poster">
@@ -140,21 +140,21 @@
     </div>
     }
 
-    @if (totalCount() > 10) {
+    @if (list.totalCount() > 10) {
     <div class="pagination-bottom">
-        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
-            (pageChange)="onPaginationChange($event)" />
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
     </div>
     }
     }
 
     <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ ФІЛЬМУ -->
-    @if (isModalOpen()) {
-    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
         <div class="modal-content" role="dialog" aria-modal="true"
-            [attr.aria-label]="editingMovie() ? 'Редагувати фільм' : 'Додати новий фільм'">
-            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
-            <app-media-form [media]="editingMovie()" (mediaCreated)="onMediaCreated()"
+            [attr.aria-label]="modal.editing() ? 'Редагувати фільм' : 'Додати новий фільм'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
+            <app-media-form [media]="modal.editing()" (mediaCreated)="onMediaCreated()"
                 (mediaUpdated)="onMediaUpdated($event)" />
         </div>
     </div>
@@ -162,17 +162,17 @@
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ: заголовок і постер беремо зі скороченого запису (є одразу),
          решту — з повного запису, який підвантажується через getMediaById -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedSlim()?.title ?? ''"
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedSlim()?.title ?? ''"
         [imageUrl]="selectedSlim()?.posterUrl" [imageAlt]="selectedSlim()?.title ?? ''" noImageText="Немає постера"
-        [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()" (editClicked)="onEditMovie()"
+        [deleteAction]="selectedDeleteCallback()" (closed)="details.close()" (editClicked)="onEditMovie()"
         (deleted)="onSidebarMovieDeleted()">
 
-        @if (detailsLoading()) {
+        @if (details.loading()) {
         <div class="list-state loading">Завантаження деталей...</div>
-        } @else if (detailsError()) {
+        } @else if (details.error()) {
         <div class="list-state error">
             <p>Не вдалося завантажити деталі фільму.</p>
-            <button type="button" class="btn-secondary" (click)="loadDetails()">Спробувати знову</button>
+            <button type="button" class="btn-secondary" (click)="details.reload()">Спробувати знову</button>
         </div>
         } @else if (selectedMovie(); as mov) {
         <div class="sidebar-details-info">

@@ -1,8 +1,6 @@
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, of } from 'rxjs';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
+import { RouterLink } from '@angular/router';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -14,21 +12,17 @@ import { MediaService } from '../../services/media.service';
 import { UserWatchingService } from '../../services/user-watching.service';
 import { MediaItem, MediaResponseSlim, MediaSidebar } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus } from '../../models/enums';
-import { PageResponse } from '../../models/shared.model';
 import { CreateUserWatchingRequest } from '../../models/user-watching.model';
 import { formatDuration } from '../../utils/media-format.util';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { MediaSearchParams, MediaSortField, SortDirection } from '../../models/search.model';
+import { createDeleteCallbacks } from '../../utils/delete-callbacks';
+import { createDetailsRoute } from '../../utils/details-route';
+import { createFormModal } from '../../utils/form-modal';
+import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
 
-type DeleteCallback = () => ReturnType<MediaService['deleteMedia']>;
 type MediaId = MediaItem['id'];
-
-/** Ключі MediaSearchParams, якими керують кнопки-фільтри тулбара. */
-const FILTER_KEYS = ['type', 'visibility'] as const;
-type FilterKey = (typeof FILTER_KEYS)[number];
-
-const DEFAULT_PAGE_SIZE = 20;
 
 interface WatchState {
     status: WatchStatus;
@@ -57,28 +51,44 @@ export class MovieListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
-    private readonly route = inject(ActivatedRoute);
-    private readonly router = inject(Router);
-
-    readonly movies = signal<MediaResponseSlim[]>([]);
-    readonly totalCount = signal(0);
-    readonly loading = signal(true);
-    readonly hasError = signal(false);
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
-    readonly isModalOpen = signal(false);
-    /** Фільм, що редагується; null — модалка працює в режимі створення. */
-    readonly editingMovie = signal<MediaSidebar | null>(null);
-    private readonly mediaForm = viewChild(MediaFormComponent);
 
-    // ---------- Сайдбар деталей ----------
+    // ---------- Список: параметри пошуку, пагінація, завантаження ----------
+    readonly list = createListState<MediaResponseSlim, MediaSearchParams>({
+        search: params => this.mediaService.searchMedia(params),
+        defaults: { offset: 0, size: DEFAULT_PAGE_SIZE, sort: SortDirection.Descending },
+        filterKeys: ['type', 'visibility'],
+        isFiltered: ({ query, type, visibility }) => !!query || type !== undefined || visibility !== undefined,
+        errorMessage: 'Не вдалося завантажити фільми.'
+    });
+    readonly movies = this.list.items;
+
+    // ---------- Модалка створення / редагування ----------
+    private readonly mediaForm = viewChild(MediaFormComponent);
+    readonly modal = createFormModal<MediaSidebar>(this.mediaForm);
+
+    // ---------- Сайдбар деталей (/movies/:id) ----------
+    readonly details = createDetailsRoute<MediaResponseSlim, MediaSidebar>({
+        basePath: '/movies',
+        fetch: id => this.mediaService.getMediaSidebar(id),
+        errorMessage: 'Не вдалося завантажити деталі фільму',
+        summary: {
+            find: id => this.movies().find(m => m.id === id) ?? null,
+            fromDetail: movie => movie
+        }
+    });
     /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
-    readonly selectedSlim = signal<MediaResponseSlim | null>(null);
+    readonly selectedSlim = this.details.summary;
     /** Повний запис із GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, колекція, автор). */
-    readonly selectedMovie = signal<MediaSidebar | null>(null);
-    readonly isSidebarOpen = signal(false);
-    readonly detailsLoading = signal(false);
-    readonly detailsError = signal(false);
+    readonly selectedMovie = this.details.detail;
+
+    private readonly deleteCallbacks = createDeleteCallbacks((id: MediaId) => this.mediaService.deleteMedia(id));
+
+    readonly selectedDeleteCallback = computed(() => {
+        const movie = this.selectedSlim();
+        return movie ? this.deleteCallbacks.get(movie.id) : undefined;
+    });
 
     readonly mediaTypeLabels = MediaTypeLabels;
 
@@ -87,12 +97,6 @@ export class MovieListComponent implements OnInit {
 
     // Робимо Enum доступними у шаблоні
     readonly SortDirection = SortDirection;
-
-    readonly searchParams = signal<MediaSearchParams>({
-        offset: 0,
-        size: DEFAULT_PAGE_SIZE,
-        sort: SortDirection.Descending
-    });
 
     // ---------- Панель пошуку: опції будуються з enum-ів ----------
     private readonly typeOptions = enumOptions(MediaType, MediaTypeLabels);
@@ -113,119 +117,18 @@ export class MovieListComponent implements OnInit {
 
     // computed, а не масив у шаблоні: інакше новий масив на кожен цикл change detection
     readonly toolbarFilters = computed<ToolbarFilter[]>(() => {
-        const params = this.searchParams();
+        const params = this.list.searchParams();
         return [
             { key: 'type', label: 'Тип', value: params.type, options: this.typeOptions },
             { key: 'visibility', label: 'Видимість', value: params.visibility, options: this.visibilityOptions }
         ];
     });
 
-    readonly hasActiveFilters = computed(() => {
-        const { query, type, visibility } = this.searchParams();
-        return !!query || type !== undefined || visibility !== undefined;
-    });
-
-    readonly showInitialLoading = computed(() => this.loading() && this.movies().length === 0);
-    readonly showError = computed(() => this.hasError() && this.movies().length === 0);
-    readonly showEmpty = computed(() => !this.loading() && !this.hasError() && this.movies().length === 0);
-
     private readonly watchStates = signal<ReadonlyMap<MediaId, WatchState>>(new Map());
 
-    private readonly reload$ = new Subject<void>();
-    /** id фільму для завантаження деталей; null — скасувати поточний запит. */
-    private readonly details$ = new Subject<MediaId | null>();
-
-    private readonly deleteCallbacks = new Map<MediaId, DeleteCallback>();
-
-    readonly selectedDeleteCallback = computed(() => {
-        const movie = this.selectedSlim();
-        return movie ? this.getDeleteCallback(movie) : undefined;
-    });
-
-    constructor() {
-        this.reload$.pipe(
-            tap(() => {
-                this.loading.set(true);
-                this.hasError.set(false);
-            }),
-            switchMap(() =>
-                this.mediaService.searchMedia(this.searchParams()).pipe(
-                    map((response: PageResponse<MediaResponseSlim>) => ({
-                        ok: true as const,
-                        items: response.items ?? [],
-                        total: response.totalCount ?? response.items?.length ?? 0
-                    })),
-                    catchError(err => {
-                        console.error('Помилка завантаження фільмів:', err);
-                        return of({ ok: false as const });
-                    })
-                )
-            ),
-            takeUntilDestroyed()
-        ).subscribe(result => {
-            if (result.ok) {
-                this.movies.set(result.items);
-                this.totalCount.set(result.total);
-            } else {
-                this.hasError.set(true);
-                this.toastService.show('Не вдалося завантажити фільми.', 'error', 4000);
-            }
-            this.loading.set(false);
-        });
-
-        // Деталі для сайдбару: switchMap відкидає відповідь, якщо користувач
-        // клікнув інший фільм або закрив сайдбар до її приходу
-        this.details$.pipe(
-            switchMap(id => {
-                if (id === null) {
-                    return of(null);
-                }
-                this.detailsLoading.set(true);
-                this.detailsError.set(false);
-                return this.mediaService.getMediaSidebar(id).pipe(
-                    map(movie => ({ ok: true as const, movie })),
-                    catchError(err => {
-                        console.error('Помилка завантаження деталей фільму:', err);
-                        return of({ ok: false as const });
-                    })
-                );
-            }),
-            takeUntilDestroyed()
-        ).subscribe(result => {
-            this.detailsLoading.set(false);
-            if (result === null) {
-                return;
-            }
-            if (result.ok) {
-                // Пряме посилання: скороченого запису зі списку немає — будуємо його з повного
-                if (this.selectedSlim()?.id !== result.movie.id) {
-                    this.selectedSlim.set(result.movie);
-                }
-                this.selectedMovie.set(result.movie);
-            } else {
-                this.detailsError.set(true);
-                this.toastService.show('Не вдалося завантажити деталі фільму', 'error');
-            }
-        });
-    }
-
-    /** URL — джерело правди для сайдбару: /movies/:id відкриває деталі (також при прямому переході й Back/Forward).
-     *  Викликається з ngOnInit, коли потоки деталей уже підписані (Subject не буферизує). */
-    private watchRoute(): void {
-        this.route.paramMap.pipe(
-            map(params => params.get('id')),
-            distinctUntilChanged(),
-            takeUntilDestroyed(this.destroyRef)
-        ).subscribe(id => this.syncSidebarWithRoute(id));
-    }
-
     ngOnInit(): void {
-        this.watchRoute();
-        this.loadMovies();
-    }
-
-    loadMovies(): void {
-        this.reload$.next();
+        this.details.watchRoute();
+        this.list.load();
     }
 
     typeLabel(type: MediaItem['type'] | null | undefined): string {
@@ -288,135 +191,32 @@ export class MovieListComponent implements OnInit {
         });
     }
 
-    // ====================== Деталі (сайдбар) ======================
-    openDetails(movie: MediaResponseSlim): void {
-        this.showSidebarFor(movie.id, movie);
-        this.router.navigate(['/movies', movie.id]);
-    }
-
-    /** Також викликається кнопкою «Спробувати знову» у сайдбарі. */
-    loadDetails(): void {
-        const id = this.selectedSlim()?.id ?? this.route.snapshot.paramMap.get('id');
-        if (id) {
-            this.details$.next(id);
-        }
-    }
-
-    closeSidebar(): void {
-        this.hideSidebar();
-        if (this.route.snapshot.paramMap.has('id')) {
-            this.router.navigate(['/movies']);
-        }
-    }
-
-    private showSidebarFor(id: MediaId, slim: MediaResponseSlim | null): void {
-        this.selectedSlim.set(slim);
-        this.selectedMovie.set(null); // не показуємо дані попереднього фільму
-        this.isSidebarOpen.set(true);
-        this.details$.next(id);
-    }
-
-    private hideSidebar(): void {
-        this.isSidebarOpen.set(false);
-        this.details$.next(null); // скасовуємо запит, що ще летить
-        this.detailsError.set(false);
-    }
-
-    private syncSidebarWithRoute(id: string | null): void {
-        if (!id) {
-            if (this.isSidebarOpen()) {
-                this.hideSidebar();
-            }
-            return;
-        }
-        // Уже відкрито через клік у списку — нічого не робимо
-        if (this.isSidebarOpen() && this.selectedSlim()?.id === id) {
-            return;
-        }
-        this.showSidebarFor(id, this.movies().find(m => m.id === id) ?? null);
-    }
-
     onEditMovie(): void {
         const movie = this.selectedMovie();
         if (!movie) {
             this.toastService.show('Деталі фільму ще завантажуються.', 'info', 3000);
             return;
         }
-        this.editingMovie.set(movie);
-        this.isModalOpen.set(true);
+        this.modal.openEdit(movie);
     }
 
     // ====================== Видалення ======================
-    getDeleteCallback(movie: MediaResponseSlim): DeleteCallback {
-        const movieId = movie.id;
-
-        let callback = this.deleteCallbacks.get(movieId);
-        if (!callback) {
-            callback = () => this.mediaService.deleteMedia(movieId);
-            this.deleteCallbacks.set(movieId, callback);
-        }
-        return callback;
-    }
-
-    onDeleted(movie: MediaResponseSlim): void {
-        const movieId = movie.id;
-
-        this.deleteCallbacks.delete(movieId);
-        this.setWatchState(movieId, undefined);
-        this.movies.update(list => list.filter(m => m.id !== movieId));
-        this.totalCount.update(c => Math.max(0, c - 1));
-        this.toastService.show('Фільм успішно видалено', 'success', 3000);
-
-        // Видалили останній елемент на сторінці > 1 — повертаємось на попередню
-        const { offset = 0, size = DEFAULT_PAGE_SIZE } = this.searchParams();
-        if (this.movies().length === 0 && offset > 0) {
-            this.updateParams({ offset: Math.max(0, offset - size) });
-        }
-    }
-
     onSidebarMovieDeleted(): void {
         const movie = this.selectedSlim();
         if (!movie) {
             return;
         }
 
-        this.onDeleted(movie);
-        this.closeSidebar();
+        this.deleteCallbacks.forget(movie.id);
+        this.setWatchState(movie.id, undefined);
+        this.list.removeItems(m => m.id === movie.id);
+        this.toastService.show('Фільм успішно видалено', 'success', 3000);
+        this.details.close();
     }
 
-    // ====================== Модальне вікно ======================
-    openModal(): void {
-        this.editingMovie.set(null);
-        this.isModalOpen.set(true);
-    }
-
-    closeModal(): void {
-        this.isModalOpen.set(false);
-        this.editingMovie.set(null);
-    }
-
-    onBackdropMouseDown(event: MouseEvent): void {
-        if (event.target === event.currentTarget) {
-            this.closeModalUnlessDirty();
-        }
-    }
-
-    @HostListener('document:keydown.escape')
-    onEscape(): void {
-        if (this.isModalOpen()) {
-            this.closeModalUnlessDirty();
-        }
-    }
-
-    /** Backdrop/Escape не закривають форму з незбереженими змінами (хрестик — закриває завжди). */
-    private closeModalUnlessDirty(): void {
-        if (!this.mediaForm()?.hasChanges()) {
-            this.closeModal();
-        }
-    }
-
+    // ====================== Форма ======================
     onMediaUpdated(updated: MediaItem): void {
-        this.closeModal();
+        this.modal.close();
 
         this.movies.update(list => list.map(m => m.id === updated.id
             ? {
@@ -440,7 +240,7 @@ export class MovieListComponent implements OnInit {
                 cast: current.cast,
                 collection: current.collection
             } : current);
-            this.refreshSidebar(updated.id);
+            this.details.refresh();
         }
         const slim = this.selectedSlim();
         if (slim?.id === updated.id) {
@@ -448,22 +248,9 @@ export class MovieListComponent implements OnInit {
         }
     }
 
-    private refreshSidebar(id: MediaId): void {
-        this.mediaService.getMediaSidebar(id).pipe(
-            takeUntilDestroyed(this.destroyRef)
-        ).subscribe({
-            next: fresh => {
-                if (this.selectedMovie()?.id === fresh.id) {
-                    this.selectedMovie.set(fresh);
-                }
-            },
-            error: err => console.error('Не вдалося оновити сайдбар фільму:', err)
-        });
-    }
-
     onMediaCreated(): void {
-        this.closeModal();
-        this.loadMovies();
+        this.modal.close();
+        this.list.load();
     }
 
     copyToClipboard(url: string): void {
@@ -473,59 +260,5 @@ export class MovieListComponent implements OnInit {
             console.error('Не вдалося скопіювати посилання:', err);
             this.toastService.show('Помилка копіювання посилання.', 'error', 3000);
         });
-    }
-
-    onPaginationChange(event: { offset: number; size: number }): void {
-        this.updateParams({ offset: event.offset, size: event.size });
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // ====================== Пошук, фільтри, сортування ======================
-    onSearchQueryChanged(query: string): void {
-        this.resetPageAndUpdate({ query: query || undefined });
-    }
-
-    onFilterChanged(event: { key: string; value: unknown }): void {
-        if (!(FILTER_KEYS as readonly string[]).includes(event.key)) {
-            return;
-        }
-        this.resetPageAndUpdate({ [event.key as FilterKey]: event.value } as Partial<MediaSearchParams>);
-    }
-
-    onSortByChanged(sortBy: unknown): void {
-        this.resetPageAndUpdate({ sortBy: sortBy as MediaSortField | undefined });
-    }
-
-    onSortDirectionChanged(sort: SortDirection): void {
-        this.resetPageAndUpdate({ sort });
-    }
-
-    resetFilters(): void {
-        this.searchParams.update(p => ({
-            offset: 0,
-            size: p.size,
-            sort: p.sort,
-            sortBy: p.sortBy
-        }));
-        this.loadMovies();
-    }
-
-    private resetPageAndUpdate(patch: Partial<MediaSearchParams>): void {
-        this.updateParams({ ...patch, offset: 0 });
-    }
-
-    /** Зливає зміни в параметри (undefined прибирає ключ) і перезавантажує список. */
-    private updateParams(patch: Partial<MediaSearchParams>): void {
-        this.searchParams.update(current => {
-            const next: Record<string, unknown> = { ...current, ...patch };
-            for (const key of Object.keys(next)) {
-                if (next[key] === undefined) {
-                    delete next[key];
-                }
-            }
-            return next as MediaSearchParams;
-        });
-        this.loadMovies();
     }
 }

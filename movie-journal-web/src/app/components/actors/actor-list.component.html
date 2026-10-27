@@ -2,35 +2,35 @@
     <header class="list-header">
         <h2 class="list-title">Актори</h2>
 
-        <app-add-button label="Додати актора" (clicked)="openModal()" />
+        <app-add-button label="Додати актора" (clicked)="modal.openCreate()" />
 
         <div class="list-actions">
-            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
-                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
             <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
     </header>
 
     <!-- Універсальна панель пошуку, фільтрів та сортування -->
-    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук акторів за іменем..."
-        [filters]="toolbarFilters()" [sortFields]="actorSortFields" [currentSortBy]="searchParams().sortBy"
-        [currentSort]="searchParams().sort ?? SortDirection.Descending"
-        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
-        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук акторів за іменем..."
+        [filters]="toolbarFilters()" [sortFields]="actorSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Descending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
 
-    @if (showInitialLoading()) {
+    @if (list.showInitialLoading()) {
     <div class="list-state loading">Завантаження акторів...</div>
-    } @else if (showError()) {
+    } @else if (list.showError()) {
     <div class="list-state error">
         <p>Не вдалося завантажити акторів.</p>
-        <button type="button" class="btn-secondary" (click)="loadActors()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
     </div>
-    } @else if (showEmpty()) {
+    } @else if (list.showEmpty()) {
     <div class="list-state">
-        @if (hasActiveFilters()) {
+        @if (list.hasActiveFilters()) {
         <p><strong>Нічого не знайдено.</strong></p>
         <p>Спробуйте змінити або скинути фільтри.</p>
-        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
         } @else {
         <p><strong>Акторів ще немає.</strong></p>
         <p>Натисніть «Додати актора», щоб створити першого.</p>
@@ -43,7 +43,8 @@
     <div class="cards-grid">
         @for (actor of actors(); track actor.id) {
         <app-grid-card [imageUrl]="actor.photoUrl" [imageAlt]="actor.fullName" [title]="formatActorName(actor)"
-            [titleMeta]="formatAge(actor.birthDate)" (cardClick)="openDetails(actor)" [visibility]="actor.visibility">
+            [titleMeta]="formatAge(actor.birthDate)" (cardClick)="details.open(actor.id)"
+            [visibility]="actor.visibility">
 
             @if (actor.biography) {
             <p class="card-excerpt">{{ actor.biography }}</p>
@@ -64,8 +65,8 @@
             </thead>
             <tbody>
                 @for (actor of actors(); track actor.id) {
-                <tr class="clickable-row" tabindex="0" (click)="openDetails(actor)"
-                    (keydown.enter)="openDetails(actor)">
+                <tr class="clickable-row" tabindex="0" (click)="details.open(actor.id)"
+                    (keydown.enter)="details.open(actor.id)">
                     <td class="table-photo-cell">
                         @if (actor.photoUrl) {
                         <img [src]="actor.photoUrl" [alt]="actor.fullName" class="table-photo">
@@ -92,30 +93,30 @@
     </div>
     }
 
-    @if (totalCount() > 10) {
+    @if (list.totalCount() > 10) {
     <div class="pagination-bottom">
-        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
-            (pageChange)="onPaginationChange($event)" />
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
     </div>
     }
     }
 
     <!-- МОДАЛЬНЕ ВІКНО ДЛЯ АКТОРА: створення або редагування -->
-    @if (isModalOpen()) {
-    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
         <div class="modal-content" role="dialog" aria-modal="true"
-            [attr.aria-label]="editingActor() ? 'Редагувати актора' : 'Додати нового актора'">
-            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
+            [attr.aria-label]="modal.editing() ? 'Редагувати актора' : 'Додати нового актора'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
 
-            <app-actor-form [actor]="editingActor()" (actorCreated)="onActorCreated()"
-                (actorUpdated)="onActorUpdated($event)" (cancelled)="closeModal()" />
+            <app-actor-form [actor]="modal.editing()" (actorCreated)="onActorCreated()"
+                (actorUpdated)="onActorUpdated($event)" (cancelled)="modal.close()" />
         </div>
     </div>
     }
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedActor() ? formatActorName(selectedActor()!) : ''"
-        [imageUrl]="selectedActor()?.photoUrl" [imageAlt]="selectedActor()?.fullName ?? ''" (closed)="closeSidebar()"
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedActor() ? formatActorName(selectedActor()!) : ''"
+        [imageUrl]="selectedActor()?.photoUrl" [imageAlt]="selectedActor()?.fullName ?? ''" (closed)="details.close()"
         (editClicked)="onEditActor()" [deleteAction]="selectedDeleteCallback()" (deleted)="onSidebarActorDeleted()">
 
         @if (selectedActor(); as actor) {

@@ -2,35 +2,35 @@
     <header class="list-header">
         <h2 class="list-title">Колекції медіа</h2>
 
-        <app-add-button label="Додати колекцію" (clicked)="openModal()" />
+        <app-add-button label="Додати колекцію" (clicked)="modal.openCreate()" />
 
         <div class="list-actions">
-            <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20"
-                [total]="totalCount()" (pageChange)="onPaginationChange($event)" />
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
             <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </div>
     </header>
 
     <!-- Універсальна панель пошуку, фільтрів та сортування -->
-    <app-search-toolbar [searchQuery]="searchParams().query" searchPlaceholder="Пошук колекцій за назвою..."
-        [filters]="toolbarFilters()" [sortFields]="collectionSortFields" [currentSortBy]="searchParams().sortBy"
-        [currentSort]="searchParams().sort ?? SortDirection.Ascending"
-        (searchQueryChange)="onSearchQueryChanged($event)" (filterChange)="onFilterChanged($event)"
-        (sortByChange)="onSortByChanged($event)" (sortDirectionChange)="onSortDirectionChanged($event)" />
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук колекцій за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="collectionSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Ascending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
 
-    @if (showInitialLoading()) {
+    @if (list.showInitialLoading()) {
     <div class="list-state loading">Завантаження колекцій...</div>
-    } @else if (showError()) {
+    } @else if (list.showError()) {
     <div class="list-state error">
         <p>Не вдалося завантажити колекції.</p>
-        <button type="button" class="btn-secondary" (click)="loadCollections()">Спробувати знову</button>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
     </div>
-    } @else if (showEmpty()) {
+    } @else if (list.showEmpty()) {
     <div class="list-state">
-        @if (hasActiveFilters()) {
+        @if (list.hasActiveFilters()) {
         <p><strong>Нічого не знайдено.</strong></p>
         <p>Спробуйте змінити або скинути фільтри.</p>
-        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
         } @else {
         <p><strong>Колекцій ще немає.</strong></p>
         <p>Натисніть «Додати колекцію», щоб створити першу.</p>
@@ -43,7 +43,7 @@
     <div class="cards-grid">
         @for (col of collections(); track col.id) {
         <app-grid-card [imageUrl]="col.posterUrl" [imageAlt]="col.name" [title]="col.name" noImageText="Немає постера"
-            [visibility]="col.visibility" (cardClick)="openDetails(col)">
+            [visibility]="col.visibility" (cardClick)="details.open(col.id)">
 
             @if (col.tags?.length) {
             <div class="genres">
@@ -68,7 +68,8 @@
             </thead>
             <tbody>
                 @for (col of collections(); track col.id) {
-                <tr class="clickable-row" tabindex="0" (click)="openDetails(col)" (keydown.enter)="openDetails(col)">
+                <tr class="clickable-row" tabindex="0" (click)="details.open(col.id)"
+                    (keydown.enter)="details.open(col.id)">
                     <td class="table-poster-cell">
                         @if (col.posterUrl) {
                         <img [src]="col.posterUrl" [alt]="col.name" class="table-poster">
@@ -95,31 +96,31 @@
     </div>
     }
 
-    @if (totalCount() > 10) {
+    @if (list.totalCount() > 10) {
     <div class="pagination-bottom">
-        <app-pagination [offset]="searchParams().offset ?? 0" [size]="searchParams().size ?? 20" [total]="totalCount()"
-            (pageChange)="onPaginationChange($event)" />
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
     </div>
     }
     }
 
     <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ КОЛЕКЦІЇ -->
-    @if (isModalOpen()) {
-    <div class="modal-backdrop" (mousedown)="onBackdropMouseDown($event)">
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
         <div class="modal-content" role="dialog" aria-modal="true"
-            [attr.aria-label]="editingCollection() ? 'Редагувати колекцію' : 'Додати нову колекцію'">
-            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="closeModal()">&times;</button>
+            [attr.aria-label]="modal.editing() ? 'Редагувати колекцію' : 'Додати нову колекцію'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
 
-            <app-collection-form [collection]="editingCollection()" (collectionCreated)="onCollectionCreated()"
+            <app-collection-form [collection]="modal.editing()" (collectionCreated)="onCollectionCreated()"
                 (collectionUpdated)="onCollectionUpdated($event)" />
         </div>
     </div>
     }
 
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ КОЛЕКЦІЇ -->
-    <app-details-sidebar [isOpen]="isSidebarOpen()" [title]="selectedCollection()?.name ?? ''"
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedCollection()?.name ?? ''"
         [imageUrl]="selectedCollection()?.posterUrl" [imageAlt]="selectedCollection()?.name ?? ''"
-        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="closeSidebar()"
+        noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()" (closed)="details.close()"
         (editClicked)="onEditCollection()" (deleted)="onSidebarCollectionDeleted()">
 
         @if (selectedCollection(); as col) {
