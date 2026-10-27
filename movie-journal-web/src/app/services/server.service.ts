@@ -36,6 +36,14 @@ export interface SeedCreatorsRequest {
     payload: string;
 }
 
+export interface SeedCollectionsRequest {
+    userId?: string | null;
+    visibility: Visibility;
+    /** Теги, що додаються до кожної створеної колекції. */
+    tags: string[];
+    payload: string;
+}
+
 export interface CollectionRestoreResult {
     collection: string;
     imported: number;
@@ -90,6 +98,19 @@ export interface SeedCreatorsResponse {
     lastError?: string | null;
 }
 
+export interface SeedCollectionItemResult {
+    name: string;
+    description?: string | null;
+    imageUrl?: string | null;
+    tags?: string[] | null;
+}
+
+export interface SeedCollectionsResponse {
+    message: string;
+    missedLines: SeedCollectionItemResult[];
+    lastError?: string | null;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -117,6 +138,10 @@ export class ServerService {
 
     seedCreatorsData(request: SeedCreatorsRequest): Observable<SeedCreatorsResponse> {
         return this.http.post<SeedCreatorsResponse>(`${this.apiUrl}/seed-creators`, request);
+    }
+
+    seedCollectionsData(request: SeedCollectionsRequest): Observable<SeedCollectionsResponse> {
+        return this.http.post<SeedCollectionsResponse>(`${this.apiUrl}/seed-collections`, request);
     }
 
     // ==================== Нові ендпоінти бази даних (Admin) ====================

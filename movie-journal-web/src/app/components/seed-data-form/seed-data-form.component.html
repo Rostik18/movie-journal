@@ -10,6 +10,10 @@
             (click)="seedMode.set('creators')">
             Автори
         </button>
+        <button type="button" class="tab-btn" [class.active]="seedMode() === 'collections'"
+            (click)="seedMode.set('collections')">
+            Колекції
+        </button>
         <button type="button" class="tab-btn" [class.active]="seedMode() === 'userWatch'"
             (click)="seedMode.set('userWatch')">
             Дані перегляду
@@ -70,10 +74,18 @@
     </div>
     }
 
+    @if (seedMode() === 'collections') {
+    <div class="form-group">
+        <label>Теги для всіх колекцій (через кому):</label>
+        <input type="text" [ngModel]="tagsInput()" (ngModelChange)="tagsInput.set($event)" name="collectionTags"
+            placeholder="top, favorites">
+    </div>
+    }
+
     <div class="form-group">
         <label>Дані (Payload):</label>
         <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
-            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    10' : seedMode() === 'creators' ? 'name   description   https://logo-url.com   https://website.com' : 'name   https://photo-url.com   20.04.2010    biography   Male    USA'"
+            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    10' : seedMode() === 'creators' ? 'name   description   https://logo-url.com   https://website.com' : seedMode() === 'collections' ? 'name   description   https://poster-url.com   tag1, tag2' : 'name   https://photo-url.com   20.04.2010    biography   Male    USA'"
             required>
         </textarea>
         <small class="hint">
@@ -82,6 +94,8 @@
             } @else if (seedMode() === 'creators') {
             Вставте рядки у форматі: Назва (режисера чи компанії) [TAB] Опис / біографія [TAB] Лого URL [TAB] Вебсайт
             (чи YouTube-канал)
+            } @else if (seedMode() === 'collections') {
+            Вставте рядки у форматі: Назва [TAB] Опис [TAB] Постер URL [TAB] Теги
             } @else {
             Вставте рядки у форматі: Назва [TAB] Фото URL [TAB] Дата народження [TAB] Біографія [TAB] Стать [TAB]
             Національність
@@ -131,6 +145,27 @@
     <div class="form-group missed-section">
         <label class="error-label">Остання помилка:</label>
         <textarea [ngModel]="creatorLastError()" name="creatorLastError" rows="3" readonly
+            class="missed-textarea"></textarea>
+    </div>
+    }
+
+    <!-- Блок пропущених колекцій (для Collections) -->
+    @if (collectionResultText()) {
+    <div class="form-group success-section">
+        <div class="missed-header">
+            <label class="error-label">Пропущені колекції:</label>
+            <button type="button" class="btn-copy" (click)="copyText(collectionResultText())">Скопіювати 📋</button>
+        </div>
+        <textarea [ngModel]="collectionResultText()" name="collectionResults" rows="5" readonly
+            class="missed-textarea"></textarea>
+        <small class="hint">Ці рядки не вдалося імпортувати.</small>
+    </div>
+    }
+
+    @if (collectionLastError()) {
+    <div class="form-group missed-section">
+        <label class="error-label">Остання помилка:</label>
+        <textarea [ngModel]="collectionLastError()" name="collectionLastError" rows="3" readonly
             class="missed-textarea"></textarea>
     </div>
     }

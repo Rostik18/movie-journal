@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
 import { Visibility, WatchStatus, MediaType, VisibilityLabels, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
-import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest } from '../../services/server.service';
+import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest, SeedCollectionsRequest } from '../../services/server.service';
 import { MediaCollectionResponse } from '../../models/collection.model';
 
 @Component({
@@ -19,7 +19,7 @@ export class SeedDataFormComponent implements OnInit {
     private collectionService = inject(CollectionService);
     private toastService = inject(ToastService);
 
-    seedMode = signal<'userWatch' | 'actors' | 'creators'>('actors');
+    seedMode = signal<'userWatch' | 'actors' | 'creators' | 'collections'>('actors');
 
     // Моделі для форми
     payloadText = signal('');
@@ -34,6 +34,8 @@ export class SeedDataFormComponent implements OnInit {
     actorResultText = signal<string>('');
     creatorResultText = signal<string>('');
     creatorLastError = signal<string>('');
+    collectionResultText = signal<string>('');
+    collectionLastError = signal<string>('');
 
     collections = signal<MediaCollectionResponse[]>([]);
     loading = signal(false);
@@ -81,6 +83,8 @@ export class SeedDataFormComponent implements OnInit {
         this.actorResultText.set(''); // Очищуємо попередні результати акторів
         this.creatorResultText.set('');
         this.creatorLastError.set('');
+        this.collectionResultText.set('');
+        this.collectionLastError.set('');
 
         if (this.seedMode() === 'actors') {
             const request: SeedActorsRequest = {
@@ -152,10 +156,46 @@ export class SeedDataFormComponent implements OnInit {
                     this.toastService.show('Помилка при виконанні seed авторів', 'error', 4000);
                 }
             });
+        } else if (this.seedMode() === 'collections') {
+            const request: SeedCollectionsRequest = {
+                userId: null,
+                visibility: this.selectedVisibility(),
+                tags: this.parseTags(),
+                payload: text
+            };
+
+            this.serverService.seedCollectionsData(request).subscribe({
+                next: (response) => {
+                    this.loading.set(false);
+
+                    this.toastService.show(`Імпорт колекцій завершено: ${response.message ?? 'Done'}`, 'success', 4000);
+
+                    const missed = response.missedLines ?? [];
+                    if (response.lastError) {
+                        this.collectionLastError.set(response.lastError);
+                    }
+
+                    if (missed.length > 0) {
+                        // Той самий формат, що й на вході (Назва / Опис / Постер / Теги) — можна одразу вставити назад
+                        this.collectionResultText.set(missed.map(item => [
+                            item.name,
+                            item.description ?? '',
+                            item.imageUrl ?? '',
+                            (item.tags ?? []).join(', ')
+                        ].join('\t')).join('\n'));
+                        this.toastService.show(`Пропущено колекцій: ${missed.length}`, 'error', 5000);
+                    } else if (!response.lastError) {
+                        this.submitted.emit();
+                    }
+                },
+                error: (err) => {
+                    this.loading.set(false);
+                    console.error('Помилка seed колекцій:', err);
+                    this.toastService.show('Помилка при виконанні seed колекцій', 'error', 4000);
+                }
+            });
         } else {
-            const tags = this.tagsInput()
-                ? this.tagsInput().split(',').map(t => t.trim()).filter(Boolean)
-                : [];
+            const tags = this.parseTags();
 
             const collectionIdVal = this.selectedCollectionId();
 
@@ -200,6 +240,12 @@ export class SeedDataFormComponent implements OnInit {
                 }
             });
         }
+    }
+
+    private parseTags(): string[] {
+        return this.tagsInput()
+            ? this.tagsInput().split(',').map(t => t.trim()).filter(Boolean)
+            : [];
     }
 
     copyText(textToCopy: string): void {
