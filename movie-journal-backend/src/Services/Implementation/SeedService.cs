@@ -13,7 +13,8 @@ namespace MovieJournalBackend.Services.Implementation
         ICreatorService creatorService,
         IMetadataService metadataService,
         IMediaService mediaService,
-        IUserWatchingService uwService
+        IUserWatchingService uwService,
+        IMediaCollectionService collectionService
         ) : ISeedService
     {
         public async Task<IResult> SeedActors(SeedActorsRequest request, string userId, CancellationToken ct)
@@ -24,7 +25,6 @@ namespace MovieJournalBackend.Services.Implementation
             var actors = ParseActorsPayload(request.Payload);
 
             var missedLines = new List<SeedActorItem>();
-
             var lastError = "";
 
             foreach (var item in actors)
@@ -57,6 +57,45 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 Message = "Done",
                 MissedActors = missedLines,
+                LastError = lastError
+            });
+        }
+
+        public async Task<IResult> SeedCollections(SeedCollectionsRequest request, string userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            userId = request.UserId ?? userId;
+            var collections = ParseCollectionsPayload(request.Payload);
+
+            var missedLines = new List<SeedCollectionItem>();
+            var lastError = "";
+
+            foreach (var item in collections)
+            {
+                try
+                {
+                    await collectionService.CreateAsync(new()
+                    {
+                        Name = item.Name,
+                        Description = item.Description,
+                        PosterUrl = item.ImageUrl,
+                        Visibility = request.Visibility,
+                        Tags = item.Tags.Concat(request.Tags).Distinct().ToList() ?? []
+                    }, new(userId!, [UserRole.Admin]), ct);
+                }
+                catch (Exception ex)
+                {
+                    missedLines.Add(item);
+                    lastError = ex.Message;
+                    continue;
+                }
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedLines = missedLines,
                 LastError = lastError
             });
         }
@@ -116,6 +155,10 @@ namespace MovieJournalBackend.Services.Implementation
                  ? (await creatorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
                  : [];
 
+            var collections = parsedPayload.Length > 0 && !string.IsNullOrEmpty(request.CollectionId)
+                ? (await collectionService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                : [];
+
             var missedLines = new List<UserWatch>();
             var lastError = "";
 
@@ -157,7 +200,9 @@ namespace MovieJournalBackend.Services.Implementation
                         Duration = metadata.DurationSeconds,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [parsedItem.Url],
-                        CollectionId = request.CollectionId
+                        CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
+                            ? request.CollectionId
+                            : collections.FirstOrDefault(x => x.Name == parsedItem.Name)?.Id
                     };
 
                     foreach (var cast in parsedItem.Cast)
@@ -231,6 +276,34 @@ namespace MovieJournalBackend.Services.Implementation
             })
         ];
 
+        public sealed record SeedCollectionItem(string Name, string? Description, string? ImageUrl, string[] Tags);
+        private static SeedCollectionItem[] ParseCollectionsPayload(string payload) =>
+        [..payload
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns =>
+            {
+                var match = Regexes.AliasRegex().Match(columns[0]);
+                var fullName = Regexes.NameRegex().Replace(columns[0], "").Trim();
+                var alias = match.Success
+                    ? match.Groups[1].Value.Trim()
+                    : null;
+
+                return new SeedCollectionItem(
+                    Name: columns[0],
+                    Description: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                        ? columns[1]
+                        : null,
+                    ImageUrl: columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
+                        ? columns[2]
+                        : null,
+                    Tags: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? [.. columns[3].Split(',').Select(n => n.Trim())]
+                        : []
+                );
+            })
+        ];
+
         public sealed record SeedCreatorItem(string Name, string? Description, string? ImageUrl, string? WebsiteUrl);
         private static SeedCreatorItem[] ParseCreatorsPayload(string payload) =>
         [..payload
@@ -251,7 +324,7 @@ namespace MovieJournalBackend.Services.Implementation
             )
         ];
 
-        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate);
+        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate, string? Collection);
         private static UserWatch[] Parse(string text) =>
         [..text
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -285,10 +358,13 @@ namespace MovieJournalBackend.Services.Implementation
                     Year: year,
                     Cast: cast,
                     Creator: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
-                        ? columns[3]
+                        ? columns[3].Trim()
                         : null,
                     Rate: columns.Length > 4 && int.TryParse(columns[4], out var rate)
                         ? rate
+                        : null,
+                    Collection: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
+                        ? columns[5].Trim()
                         : null
                 );
             })

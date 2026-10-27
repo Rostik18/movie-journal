@@ -15,6 +15,7 @@ namespace MovieJournalBackend.Endpoints
             app.MapGet("/api/service/metadata", GetMetadataAsync).Produces<MetadataResponse>().RequireAnyRole();
             app.MapPost("/api/service/seed-user-media", SeedUserMediaAsync).Produces<object>().RequireAdmin();
             app.MapPost("/api/service/seed-actors", SeedActorsAsync).Produces<object>().RequireAdmin();
+            app.MapPost("/api/service/seed-collections", SeedCollectionsAsync).Produces<object>().RequireAdmin();
             app.MapPost("/api/service/seed-creators", SeedCreatorsAsync).Produces<object>().RequireAdmin();
             app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
@@ -67,6 +68,9 @@ namespace MovieJournalBackend.Endpoints
 
         private static Task<IResult> SeedActorsAsync(SeedActorsRequest request, ClaimsPrincipal principal, ISeedService seedService, CancellationToken ct) =>
             seedService.SeedActors(request, principal.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
+
+        private static Task<IResult> SeedCollectionsAsync(SeedCollectionsRequest request, ClaimsPrincipal principal, ISeedService seedService, CancellationToken ct) =>
+            seedService.SeedCollections(request, principal.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
 
         private static Task<IResult> SeedCreatorsAsync(SeedCreatorsRequest request, ClaimsPrincipal principal, ISeedService seedService, CancellationToken ct) =>
             seedService.SeedCreators(request, principal.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
