@@ -96,7 +96,7 @@ namespace MovieJournalBackend.Services.Implementation
             return Results.Ok(new
             {
                 Message = "Done",
-                MissedActors = missedLines,
+                MissedCreators = missedLines,
                 LastError = lastError
             });
         }

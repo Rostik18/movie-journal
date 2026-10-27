@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
 import { Visibility, WatchStatus, MediaType, VisibilityLabels, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
-import { ServerService, SeedUserWatchRequest, SeedActorsRequest } from '../../services/server.service';
+import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest } from '../../services/server.service';
 import { MediaCollectionResponse } from '../../models/collection.model';
 
 @Component({
@@ -19,7 +19,7 @@ export class SeedDataFormComponent implements OnInit {
     private collectionService = inject(CollectionService);
     private toastService = inject(ToastService);
 
-    seedMode = signal<'userWatch' | 'actors'>('actors');
+    seedMode = signal<'userWatch' | 'actors' | 'creators'>('actors');
 
     // Моделі для форми
     payloadText = signal('');
@@ -33,6 +33,8 @@ export class SeedDataFormComponent implements OnInit {
     // Сигнали для тексту результатів/пропущених рядків
     missedLinesText = signal<string>('');
     actorResultText = signal<string>('');
+    creatorResultText = signal<string>('');
+    creatorLastError = signal<string>('');
 
     collections = signal<MediaCollectionResponse[]>([]);
     loading = signal(false);
@@ -78,6 +80,8 @@ export class SeedDataFormComponent implements OnInit {
         this.loading.set(true);
         this.missedLinesText.set('');
         this.actorResultText.set(''); // Очищуємо попередні результати акторів
+        this.creatorResultText.set('');
+        this.creatorLastError.set('');
 
         if (this.seedMode() === 'actors') {
             const request: SeedActorsRequest = {
@@ -110,6 +114,43 @@ export class SeedDataFormComponent implements OnInit {
                     this.loading.set(false);
                     console.error('Помилка seed акторів:', err);
                     this.toastService.show('Помилка при виконанні seed акторів', 'error', 4000);
+                }
+            });
+        } else if (this.seedMode() === 'creators') {
+            const request: SeedCreatorsRequest = {
+                userId: null,
+                visibility: this.selectedVisibility(),
+                payload: text
+            };
+
+            this.serverService.seedCreatorsData(request).subscribe({
+                next: (response) => {
+                    this.loading.set(false);
+
+                    this.toastService.show(`Імпорт авторів завершено: ${response.message ?? 'Done'}`, 'success', 4000);
+
+                    const missed = response.missedCreators ?? [];
+                    if (response.lastError) {
+                        this.creatorLastError.set(response.lastError);
+                    }
+
+                    if (missed.length > 0) {
+                        // Той самий формат, що й на вході (Назва / Опис / Лого / Вебсайт) — можна одразу вставити назад
+                        this.creatorResultText.set(missed.map(item => [
+                            item.name,
+                            item.description ?? '',
+                            item.imageUrl ?? '',
+                            item.websiteUrl ?? ''
+                        ].join('\t')).join('\n'));
+                        this.toastService.show(`Пропущено авторів: ${missed.length}`, 'error', 5000);
+                    } else if (!response.lastError) {
+                        this.submitted.emit();
+                    }
+                },
+                error: (err) => {
+                    this.loading.set(false);
+                    console.error('Помилка seed авторів:', err);
+                    this.toastService.show('Помилка при виконанні seed авторів', 'error', 4000);
                 }
             });
         } else {
