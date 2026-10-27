@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UserWatchingItem, UserWatchingResponseSlim, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
+import { UserWatchingItem, UserWatchingResponseSlim, UserWatchingSidebar, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
 import { environment } from '../../environments/environment';
 import { PageResponse } from '../models/shared.model';
 import { UserWatchingSearchParams } from '../models/search.model';
@@ -15,6 +15,11 @@ export class UserWatchingService {
 
     getByMediaId(id: string): Observable<UserWatchingItem> {
         return this.http.get<UserWatchingItem>(`${this.baseUrl}/media/${id}`);
+    }
+
+    /** Запис списку разом з повним медіа (склад з фото, колекція, автор) — для сайдбару. */
+    getSidebarByMediaId(id: string): Observable<UserWatchingSidebar> {
+        return this.http.get<UserWatchingSidebar>(`${this.baseUrl}/media/${id}/sidebar`);
     }
 
     searchUserWatchingList(params: UserWatchingSearchParams = {}): Observable<PageResponse<UserWatchingResponseSlim>> {

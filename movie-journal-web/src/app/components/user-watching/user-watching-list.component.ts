@@ -6,7 +6,7 @@ import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/oper
 
 import { UserWatchingService } from '../../services/user-watching.service';
 import { ToastService } from '../../services/toast.service';
-import { UserWatchingItem, UserWatchingResponseSlim } from '../../models/user-watching.model';
+import { UserWatchingItem, UserWatchingResponseSlim, UserWatchingSidebar } from '../../models/user-watching.model';
 import { MediaItem } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus, WatchStatusLabels } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
@@ -63,14 +63,14 @@ export class UserWatchingListComponent implements OnInit {
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
     /** Запис, що редагується; null — модалка працює в режимі додавання. */
-    readonly editingItem = signal<UserWatchingItem | null>(null);
+    readonly editingItem = signal<UserWatchingSidebar | null>(null);
     private readonly watchingForm = viewChild(UserWatchingFormComponent);
 
     // ---------- Сайдбар деталей ----------
     /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
     readonly selectedSlim = signal<UserWatchingResponseSlim | null>(null);
     /** Повний запис із getById: усе, що потрібно сайдбару. */
-    readonly selectedItem = signal<UserWatchingItem | null>(null);
+    readonly selectedItem = signal<UserWatchingSidebar | null>(null);
     readonly isSidebarOpen = signal(false);
     readonly detailsLoading = signal(false);
     readonly detailsError = signal(false);
@@ -197,7 +197,7 @@ export class UserWatchingListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
-                return this.userWatchingService.getByMediaId(mediaId).pipe(
+                return this.userWatchingService.getSidebarByMediaId(mediaId).pipe(
                     map(item => ({ ok: true as const, item })),
                     catchError(err => {
                         console.error('Помилка завантаження деталей:', err);
@@ -266,7 +266,7 @@ export class UserWatchingListComponent implements OnInit {
     }
 
     /** «Сезон 2 / Серія 5»; якщо задано лише одне з чисел, зайвого роздільника немає. */
-    progressLabel(item: UserWatchingItem): string {
+    progressLabel(item: UserWatchingSidebar): string {
         const parts: string[] = [];
         if (item.currentSeasonNumber) {
             parts.push(`Сезон ${item.currentSeasonNumber}`);
@@ -369,7 +369,7 @@ export class UserWatchingListComponent implements OnInit {
             this.selectedSlim.update(s => (s ? { ...s, ...patch } : s));
         }
         if (this.selectedItem()?.media?.id === mediaId) {
-            this.selectedItem.update(i => (i ? { ...i, ...(patch as Partial<UserWatchingItem>) } : i));
+            this.selectedItem.update(i => (i ? { ...i, ...(patch as Partial<UserWatchingSidebar>) } : i));
         }
     }
 
@@ -459,7 +459,7 @@ export class UserWatchingListComponent implements OnInit {
             this.selectedSlim.set({ ...slim, status: updated.status, rating: updated.rating, notes: updated.notes });
         }
         if (this.selectedItem()?.media?.id === mediaId) {
-            this.selectedItem.update(current => (current ? { ...current, ...updated, media: updated.media ?? current.media } : current));
+            this.selectedItem.update(current => (current ? { ...current, status: updated.status, rating: updated.rating, notes: updated.notes } : current));
         }
     }
 

@@ -11,7 +11,7 @@ import { UserWatchingService } from '../../../services/user-watching.service';
 import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
 import { MediaItem } from '../../../models/media.model';
-import { CreateUserWatchingRequest, UpdateUserWatchingRequest, UserWatchingItem } from '../../../models/user-watching.model';
+import { CreateUserWatchingRequest, UpdateUserWatchingRequest, UserWatchingItem, UserWatchingSidebar } from '../../../models/user-watching.model';
 
 type SearchOutcome =
     | { kind: 'empty' }
@@ -65,7 +65,7 @@ export class UserWatchingFormComponent implements OnInit {
     readonly watchingCreated = output<void>();
 
     /** Якщо передано запис — форма працює в режимі редагування (медіа не змінюється). */
-    readonly watching = input<UserWatchingItem | null>(null);
+    readonly watching = input<UserWatchingSidebar | null>(null);
     readonly isEditMode = computed(() => this.watching() !== null);
     /** Повертає збережену на сервері версію після успішного оновлення. */
     readonly watchingUpdated = output<UserWatchingItem>();

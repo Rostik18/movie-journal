@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { MediaItem, MediaResponseSlim, CreateMediaRequest, UpdateMediaRequest } from '../models/media.model';
+import { MediaItem, MediaResponseSlim, MediaSidebar, CreateMediaRequest, UpdateMediaRequest } from '../models/media.model';
 import { PageResponse } from '../models/shared.model';
 import { MediaSearchParams } from '../models/search.model';
 
@@ -40,8 +40,11 @@ export class MediaService {
         if (params.actorId) {
             httpParams = httpParams.set('actorId', params.actorId);
         }
-        if (params.author) {
-            httpParams = httpParams.set('author', params.author);
+        if (params.creator) {
+            httpParams = httpParams.set('creator', params.creator);
+        }
+        if (params.creatorId) {
+            httpParams = httpParams.set('creatorId', params.creatorId);
         }
         if (params.sortBy !== undefined && params.sortBy !== null) {
             httpParams = httpParams.set('sortBy', params.sortBy.toString());
@@ -61,6 +64,11 @@ export class MediaService {
 
     getMediaById(id: string): Observable<MediaItem> {
         return this.http.get<MediaItem>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Усе для сайдбару одним запитом: склад з фото, колекція, автор. */
+    getMediaSidebar(id: string): Observable<MediaSidebar> {
+        return this.http.get<MediaSidebar>(`${this.apiUrl}/${id}/sidebar`);
     }
 
     createMedia(request: CreateMediaRequest): Observable<MediaItem> {

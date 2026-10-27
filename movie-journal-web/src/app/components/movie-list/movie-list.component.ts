@@ -12,7 +12,7 @@ import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.compon
 import { ToastService } from '../../services/toast.service';
 import { MediaService } from '../../services/media.service';
 import { UserWatchingService } from '../../services/user-watching.service';
-import { MediaItem, MediaResponseSlim } from '../../models/media.model';
+import { MediaItem, MediaResponseSlim, MediaSidebar } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
 import { CreateUserWatchingRequest } from '../../models/user-watching.model';
@@ -68,14 +68,14 @@ export class MovieListComponent implements OnInit {
     readonly viewMode = signal<'grid' | 'list'>('grid');
     readonly isModalOpen = signal(false);
     /** Фільм, що редагується; null — модалка працює в режимі створення. */
-    readonly editingMovie = signal<MediaItem | null>(null);
+    readonly editingMovie = signal<MediaSidebar | null>(null);
     private readonly mediaForm = viewChild(MediaFormComponent);
 
     // ---------- Сайдбар деталей ----------
     /** Скорочений запис зі списку: доступний одразу, дає заголовок і постер, поки вантажаться деталі. */
     readonly selectedSlim = signal<MediaResponseSlim | null>(null);
-    /** Повний запис із getMediaById: усе, що потрібно сайдбару. */
-    readonly selectedMovie = signal<MediaItem | null>(null);
+    /** Повний запис із GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, колекція, автор). */
+    readonly selectedMovie = signal<MediaSidebar | null>(null);
     readonly isSidebarOpen = signal(false);
     readonly detailsLoading = signal(false);
     readonly detailsError = signal(false);
@@ -105,7 +105,7 @@ export class MovieListComponent implements OnInit {
 
     readonly movieSortFields: SortFieldOption[] = enumOptions(MediaSortField, {
         [MediaSortField.Title]: 'Назвою',
-        [MediaSortField.Author]: 'Автором',
+        [MediaSortField.Creator]: 'Автором',
         [MediaSortField.ReleaseYear]: 'Роком випуску',
         [MediaSortField.CreatedAt]: 'Датою створення',
         [MediaSortField.UpdatedAt]: 'Датою оновлення'
@@ -182,7 +182,7 @@ export class MovieListComponent implements OnInit {
                 }
                 this.detailsLoading.set(true);
                 this.detailsError.set(false);
-                return this.mediaService.getMediaById(id).pipe(
+                return this.mediaService.getMediaSidebar(id).pipe(
                     map(movie => ({ ok: true as const, movie })),
                     catchError(err => {
                         console.error('Помилка завантаження деталей фільму:', err);
@@ -432,12 +432,33 @@ export class MovieListComponent implements OnInit {
             : m));
 
         if (this.selectedMovie()?.id === updated.id) {
-            this.selectedMovie.set(updated);
+            // Відповідь на оновлення має короткий склад і лише посилання на колекцію: одразу показуємо нові поля,
+            // а склад і колекцію підтягуємо тихим запитом до сайдбару (без індикатора завантаження)
+            this.selectedMovie.update(current => current ? {
+                ...current,
+                ...updated,
+                cast: current.cast,
+                collection: current.collection
+            } : current);
+            this.refreshSidebar(updated.id);
         }
         const slim = this.selectedSlim();
         if (slim?.id === updated.id) {
             this.selectedSlim.set(this.movies().find(m => m.id === updated.id) ?? slim);
         }
+    }
+
+    private refreshSidebar(id: MediaId): void {
+        this.mediaService.getMediaSidebar(id).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
+            next: fresh => {
+                if (this.selectedMovie()?.id === fresh.id) {
+                    this.selectedMovie.set(fresh);
+                }
+            },
+            error: err => console.error('Не вдалося оновити сайдбар фільму:', err)
+        });
     }
 
     onMediaCreated(): void {

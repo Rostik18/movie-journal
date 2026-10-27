@@ -1,4 +1,5 @@
 import { MediaType, Visibility } from "./enums";
+import { MediaCollectionResponse } from "./collection.model";
 
 export interface MediaItem {
     id: string;
@@ -9,14 +10,27 @@ export interface MediaItem {
     releaseYear: number | null;
     duration: number | null;
     posterUrl: string;
-    author?: string;
+    creator?: MediaCreator | null;
     genres: string[];
     tags: string[];
     links: string[];
-    cast: CastResponse[];
+    /** У звичайній відповіді склад короткий (без фото); повний — у MediaSidebar. */
+    cast: MediaActor[];
     /** Колекція, до якої належить медіа. */
     collection?: CollectionReference | null;
     visibility: Visibility;
+}
+
+/** Відповідь GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, повна колекція). */
+export interface MediaSidebar extends Omit<MediaItem, 'cast' | 'collection'> {
+    cast: CastResponse[];
+    collection?: MediaCollectionResponse | null;
+}
+
+/** Автор / творець медіа (канал, режисер тощо). */
+export interface MediaCreator {
+    id: string;
+    name: string;
 }
 
 export interface MediaResponseSlim {
@@ -41,6 +55,7 @@ export interface CollectionReference {
 export interface CastResponse {
     id: string;
     fullName: string;
+    alias?: string | null;
     photoUrl?: string | null;
     characterName?: string | null;
 }
@@ -76,7 +91,7 @@ export interface CreateMediaRequest {
     links: string[];
     cast: MediaActor[];
     seasons: Season[];
-    author?: string | null;
+    creatorId?: string | null;
     collectionId?: string | null;
 }
 
@@ -95,6 +110,6 @@ export interface UpdateMediaRequest {
     links?: string[] | null;
     cast?: MediaActor[] | null;
     seasons?: Season[] | null;
-    author?: string | null;
+    creatorId?: string | null;
     collectionId?: string | null;
 }

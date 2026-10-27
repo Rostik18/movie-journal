@@ -160,20 +160,13 @@ namespace MovieJournalBackend.Services.Implementation
                         CollectionId = request.CollectionId
                     };
 
-                    foreach (var actor in actors)
+                    foreach (var cast in parsedItem.Cast)
                     {
-                        if (
-                            media.Title.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ||
-                            (parsedItem.Name?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                            (media.Description?.Contains(actor.FullName, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                            actor.Alias is not null &&
-                            (media.Title.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ||
-                            (parsedItem.Name?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                            (media.Description?.Contains(actor.Alias, StringComparison.InvariantCultureIgnoreCase) ?? false))
-                           )
-                        {
-                            media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
-                        }
+                        var actor = actors.FirstOrDefault(x => x.FullName == cast || x.Alias == cast);
+
+                        if (actor is null) continue;
+
+                        media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
                     }
 
                     var createdMedia = await mediaService.CreateAsync(media, new(userId!, [UserRole.Admin]), ct);
@@ -182,7 +175,7 @@ namespace MovieJournalBackend.Services.Implementation
                     {
                         MediaId = createdMedia.Id,
                         Rating = parsedItem.Rate,
-                        Status = request.Status,
+                        Status = parsedItem.Rate is null ? Entities.Journal.WatchStatus.Wishlist : Entities.Journal.WatchStatus.Watched,
                         Visibility = request.Visibility
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
@@ -245,55 +238,60 @@ namespace MovieJournalBackend.Services.Implementation
             .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
             .Select(columns =>  new SeedCreatorItem(
                     Name: columns[0],
-                    ImageUrl: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                    Description: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
                         ? columns[1]
                         : null,
-                    Description: columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
+                    ImageUrl: columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
                         ? columns[2]
                         : null,
-                    WebsiteUrl: null
-                    //todo
+                    WebsiteUrl: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? columns[3]
+                        : null
                 )
             )
         ];
 
-        private record UserWatch(string Url, string? Name, int? Year, int? Rate, string? Creator);
+        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate);
         private static UserWatch[] Parse(string text) =>
-        [.. text
-        .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
-        .Select(columns =>
-        {
-            var name = columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
-                ? columns[1]
-                : null;
-
-            int? year = null;
-
-            if (name is not null)
+        [..text
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns =>
             {
-                var match = Regexes.YearRegex().Match(name);
+                var name = columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                    ? columns[1]
+                    : null;
 
-                if (match.Success && int.TryParse(match.Groups[1].Value, out var parsedYear))
+                int? year = null;
+
+                if (name is not null)
                 {
-                    year = parsedYear;
-                    name = name[..match.Index].TrimEnd();
-                }
-            }
+                    var match = Regexes.YearRegex().Match(name);
 
-            return new UserWatch(
-                Url: columns[0],
-                Name: name,
-                Year: year,
-                Rate: columns.Length > 2 &&
-                      int.TryParse(columns[2], out var rate)
-                    ? rate
-                    : null,
-                Creator: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
-                    ? columns[3]
-                    : null
-            );
-        })
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out var parsedYear))
+                    {
+                        year = parsedYear;
+                        name = name[..match.Index].TrimEnd();
+                    }
+                }
+
+                var cast = columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
+                    ? columns[2].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    : [];
+
+                return new UserWatch(
+                    Url: columns[0],
+                    Name: name,
+                    Year: year,
+                    Cast: cast,
+                    Creator: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? columns[3]
+                        : null,
+                    Rate: columns.Length > 4 && int.TryParse(columns[4], out var rate)
+                        ? rate
+                        : null
+                );
+            })
         ];
     }
 }

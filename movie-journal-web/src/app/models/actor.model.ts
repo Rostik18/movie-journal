@@ -1,4 +1,5 @@
 import { Sex, Visibility } from "./enums";
+import { MediaResponseSlim } from "./media.model";
 
 export interface ActorItem {
     id: string;
@@ -12,6 +13,11 @@ export interface ActorItem {
     sex?: Sex | null;
     /** ISO 3166-1 alpha-3 коди громадянств: ['USA'], ['NLD', 'FRA']. */
     nationalities: string[];
+}
+
+/** Відповідь GET /api/actors/{id}/sidebar: актор разом зі списком його фільмів. */
+export interface ActorSidebar extends ActorItem {
+    media: MediaResponseSlim[];
 }
 
 export interface CreateActorRequest {

@@ -30,7 +30,7 @@ export enum UserWatchingSortField {
 
 export enum MediaSortField {
     Title = 'Title',
-    Author = 'Author',
+    Creator = 'Creator',
     ReleaseYear = 'ReleaseYear',
     CreatedAt = 'CreatedAt',
     UpdatedAt = 'UpdatedAt'
@@ -75,7 +75,9 @@ export interface MediaSearchParams {
     tag?: string;
     collectionId?: string;
     actorId?: string;
-    author?: string;
+    /** Назва автора (пошук за назвою). */
+    creator?: string;
+    creatorId?: string;
     sortBy?: MediaSortField;
     sort?: SortDirection;
     offset?: number;

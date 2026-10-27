@@ -5,7 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { CollectionService } from '../../services/collection.service';
 import { ToastService } from '../../services/toast.service';
-import { MediaCollectionResponse } from '../../models/collection.model';
+import { CollectionSidebar, MediaCollectionResponse } from '../../models/collection.model';
+import { MediaLinkListComponent } from '../shared/media-link-list/media-link-list.component';
 import { PageResponse } from '../../models/shared.model';
 import { Visibility, VisibilityLabels } from '../../models/enums';
 import { CollectionSearchParams, MediaCollectionSortField, SortDirection } from '../../models/search.model';
@@ -35,6 +36,7 @@ const DEFAULT_PAGE_SIZE = 20;
     selector: 'app-collection-list',
     standalone: true,
     imports: [
+        MediaLinkListComponent,
         ViewSwitcherComponent,
         AddButtonComponent,
         CollectionFormComponent,
@@ -64,7 +66,8 @@ export class CollectionListComponent implements OnInit {
     readonly editingCollection = signal<MediaCollectionResponse | null>(null);
     private readonly collectionForm = viewChild(CollectionFormComponent);
 
-    readonly selectedCollection = signal<MediaCollectionResponse | null>(null);
+    /** Колекція із сайдбару: разом зі списком фільмів (GET /api/collections/{id}/sidebar). */
+    readonly selectedCollection = signal<CollectionSidebar | null>(null);
     readonly isSidebarOpen = signal(false);
 
     readonly visibilityLabels = VisibilityLabels;
@@ -159,7 +162,7 @@ export class CollectionListComponent implements OnInit {
         // Запити деталей колекції для сайдбару з switchMap
         this.details$.pipe(
             switchMap(id =>
-                this.collectionService.getCollectionById(id).pipe(
+                this.collectionService.getCollectionSidebar(id).pipe(
                     catchError(err => {
                         console.error('Помилка завантаження деталей колекції:', err);
                         this.toastService.show('Не вдалося завантажити деталі колекції', 'error');
@@ -297,9 +300,8 @@ export class CollectionListComponent implements OnInit {
     onCollectionUpdated(updated: MediaCollectionResponse): void {
         this.closeModal();
         this.collections.update(list => list.map(c => (c.id === updated.id ? updated : c)));
-        if (this.selectedCollection()?.id === updated.id) {
-            this.selectedCollection.set(updated);
-        }
+        // Відповідь на оновлення без списку фільмів: зберігаємо поточний список із сайдбару
+        this.selectedCollection.update(current => (current?.id === updated.id ? { ...current, ...updated } : current));
     }
 
     onCollectionCreated(): void {

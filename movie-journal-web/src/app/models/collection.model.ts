@@ -1,4 +1,5 @@
 import { Visibility } from './enums';
+import { MediaResponseSlim } from './media.model';
 
 export interface MediaCollectionResponse {
     id: string;
@@ -7,6 +8,11 @@ export interface MediaCollectionResponse {
     posterUrl?: string | null;
     tags: string[];
     visibility: Visibility;
+}
+
+/** Відповідь GET /api/collections/{id}/sidebar: колекція разом зі списком її фільмів. */
+export interface CollectionSidebar extends MediaCollectionResponse {
+    media: MediaResponseSlim[];
 }
 
 export interface CreateMediaCollectionRequest {

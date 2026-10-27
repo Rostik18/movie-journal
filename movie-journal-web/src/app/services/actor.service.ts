@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ActorItem, UpdateActorRequest } from '../models/actor.model';
+import { ActorItem, ActorSidebar, UpdateActorRequest } from '../models/actor.model';
 import { PageResponse } from '../models/shared.model';
 import { environment } from '../../environments/environment';
 import { CreateActorRequest } from '../models/actor.model';
@@ -54,6 +54,11 @@ export class ActorService {
     /** Коди країн (ISO alpha-3), які зустрічаються в акторів, — для фільтра. */
     getCountryCodes(): Observable<string[]> {
         return this.http.get<string[]>(`${this.apiUrl}/country-codes`);
+    }
+
+    /** Актор разом зі списком фільмів — для сайдбару. */
+    getActorSidebar(id: string): Observable<ActorSidebar> {
+        return this.http.get<ActorSidebar>(`${this.apiUrl}/${id}/sidebar`);
     }
 
     getActorById(id: string): Observable<ActorItem> {

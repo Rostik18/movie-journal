@@ -58,7 +58,7 @@ export interface Country {
 }
 
 /** Скільки громадянств можна вказати. */
-export const MAX_NATIONALITIES = 2;
+export const MAX_NATIONALITIES = 3;
 
 const regionNames = createRegionNames();
 

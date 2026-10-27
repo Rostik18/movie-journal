@@ -1,5 +1,5 @@
 import { Visibility, WatchStatus } from './enums';
-import { MediaItem, MediaResponseSlim } from './media.model';
+import { MediaItem, MediaResponseSlim, MediaSidebar } from './media.model';
 
 export interface UserWatchingItem {
     media: MediaItem;
@@ -11,6 +11,11 @@ export interface UserWatchingItem {
     finishedAtUtc: string | null;
     currentSeasonNumber: number | null;
     currentEpisodeNumber: number | null;
+}
+
+/** Відповідь GET /api/user-watching/media/{id}/sidebar: запис списку разом з повним медіа. */
+export interface UserWatchingSidebar extends Omit<UserWatchingItem, 'media'> {
+    media: MediaSidebar;
 }
 
 export interface UserWatchingResponseSlim {

@@ -1,20 +1,23 @@
 import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { EMPTY, Observable, Subject, Subscription, of } from 'rxjs';
+import { EMPTY, Observable, Subject, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
 import { MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
+import { CreatorResponse } from '../../../models/creator.model';
 import { MediaService } from '../../../services/media.service';
 import { ActorService } from '../../../services/actor.service';
 import { CollectionService } from '../../../services/collection.service';
+import { CreatorService } from '../../../services/creator.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
-import { CreateMediaRequest, MediaItem, UpdateMediaRequest } from '../../../models/media.model';
+import { CreateMediaRequest, MediaItem, MediaSidebar, UpdateMediaRequest } from '../../../models/media.model';
 
 type ActorId = CreateMediaRequest['cast'][number]['actorId'];
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
+type CreatorId = NonNullable<CreateMediaRequest['creatorId']>;
 
 type MediaMetadata = ReturnType<ServerService['getMetadata']> extends Observable<infer T> ? T : never;
 
@@ -39,7 +42,8 @@ interface Snapshot {
     releaseYear: number | null;
     duration: number | null;
     posterUrl: string;
-    author: string;
+    /** «id:…» — обраний автор, «new:…» — введене ім'я (буде знайдено/створено), порожньо — без автора. */
+    creator: string;
     visibility: Visibility;
     genres: string;
     tags: string;
@@ -52,7 +56,7 @@ interface Snapshot {
 const createEmptyMedia = (): CreateMediaRequest => ({
     title: '',
     originalTitle: '',
-    author: null,
+    creatorId: null,
     type: MediaType.Movie,
     releaseYear: null,
     duration: null,
@@ -80,6 +84,7 @@ export class MediaFormComponent implements OnInit {
     private readonly mediaService = inject(MediaService);
     private readonly actorService = inject(ActorService);
     private readonly collectionService = inject(CollectionService);
+    private readonly creatorService = inject(CreatorService);
     private readonly serverService = inject(ServerService);
     private readonly toastService = inject(ToastService);
     private readonly cdr = inject(ChangeDetectorRef);
@@ -93,7 +98,7 @@ export class MediaFormComponent implements OnInit {
     readonly mediaCreatedWithData = output<any>();
 
     /** Якщо передано фільм — форма працює в режимі редагування. */
-    readonly media = input<MediaItem | null>(null);
+    readonly media = input<MediaSidebar | null>(null);
     readonly isEditMode = computed(() => this.media() !== null);
     /** Повертає збережену на сервері версію після успішного оновлення. */
     readonly mediaUpdated = output<MediaItem>();
@@ -132,6 +137,12 @@ export class MediaFormComponent implements OnInit {
     readonly collectionSearchResults = signal<MediaCollectionResponse[]>([]);
     readonly hasSearchedOnce = signal(false);
     private readonly collectionQuery$ = new Subject<string>();
+
+    // ---- Автори (творці) ----
+    creatorSearchQuery = '';
+    readonly creatorSearchResults = signal<CreatorResponse[]>([]);
+    readonly hasSearchedCreatorOnce = signal(false);
+    private readonly creatorQuery$ = new Subject<string>();
 
     constructor() {
         this.actorQuery$.pipe(
@@ -180,6 +191,35 @@ export class MediaFormComponent implements OnInit {
             const query = this.collectionSearchQuery.trim().toLowerCase();
             this.mediaData.collectionId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
         });
+
+        this.creatorQuery$.pipe(
+            debounceTime(SEARCH_DEBOUNCE_MS),
+            distinctUntilChanged(),
+            switchMap(query => {
+                if (!query) {
+                    return of<CreatorResponse[] | null>(null);
+                }
+                return this.creatorService.searchCreators({ query, size: 5 }).pipe(
+                    map(res => res.items ?? []),
+                    catchError(err => {
+                        console.error('Помилка пошуку авторів:', err);
+                        return of<CreatorResponse[]>([]);
+                    })
+                );
+            }),
+            takeUntilDestroyed()
+        ).subscribe(items => {
+            if (items === null) {
+                this.creatorSearchResults.set([]);
+                this.hasSearchedCreatorOnce.set(false);
+                return;
+            }
+            this.creatorSearchResults.set(items);
+            this.hasSearchedCreatorOnce.set(true);
+
+            const query = this.creatorSearchQuery.trim().toLowerCase();
+            this.mediaData.creatorId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
+        });
     }
 
     ngOnInit(): void {
@@ -203,13 +243,13 @@ export class MediaFormComponent implements OnInit {
         }
     }
 
-    private populateFrom(media: MediaItem): void {
+    private populateFrom(media: MediaSidebar): void {
         this.mediaData = {
             ...createEmptyMedia(),
             title: media.title ?? '',
             description: media.description ?? '',
             originalTitle: media.originalTitle ?? '',
-            author: media.author ?? null,
+            creatorId: media.creator?.id ?? null,
             type: media.type,
             releaseYear: media.releaseYear ?? null,
             duration: media.duration ?? null,
@@ -223,6 +263,8 @@ export class MediaFormComponent implements OnInit {
             })),
             collectionId: media.collection?.id ?? null
         };
+        // Ім'я автора приходить разом з медіа — окремий запит не потрібен
+        this.creatorSearchQuery = media.creator?.name ?? '';
         // Назва колекції приходить разом з медіа — окремий запит не потрібен
         this.collectionSearchQuery = media.collection?.name ?? '';
         this.genresInput = (media.genres ?? []).join(', ');
@@ -231,6 +273,15 @@ export class MediaFormComponent implements OnInit {
         // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
         this.typeTouched = true;
         this.baseline = this.snapshot();
+    }
+
+    private creatorKey(): string {
+        const id = this.mediaData.creatorId;
+        if (id) {
+            return `id:${id}`;
+        }
+        const name = this.creatorSearchQuery.trim();
+        return name ? `new:${name.toLowerCase()}` : '';
     }
 
     private collectionKey(): string {
@@ -252,7 +303,7 @@ export class MediaFormComponent implements OnInit {
             releaseYear: d.releaseYear ?? null,
             duration: d.duration ?? null,
             posterUrl: (d.posterUrl ?? '').trim(),
-            author: (d.author ?? '').trim(),
+            creator: this.creatorKey(),
             visibility: d.visibility,
             genres: parseCommaList(this.genresInput).join('\u0000'),
             tags: parseCommaList(this.tagsInput).join('\u0000'),
@@ -412,8 +463,9 @@ export class MediaFormComponent implements OnInit {
             filled.push('постер');
         }
 
-        if (meta.author && !data.author?.trim()) {
-            data.author = meta.author.trim();
+        if (meta.author && !data.creatorId && !this.creatorSearchQuery.trim()) {
+            this.creatorSearchQuery = meta.author.trim();
+            this.onSearchCreators(); // підхопить існуючого автора з таким ім'ям, інакше буде створено нового
             filled.push('автор');
         }
 
@@ -498,6 +550,38 @@ export class MediaFormComponent implements OnInit {
         }
     }
 
+    onSearchCreators(): void {
+        const query = this.creatorSearchQuery.trim();
+
+        this.mediaData.creatorId = null;
+        this.hasSearchedCreatorOnce.set(false);
+        if (!query) {
+            this.creatorSearchResults.set([]);
+        }
+        this.creatorQuery$.next(query);
+    }
+
+    selectCreator(creator: CreatorResponse): void {
+        this.mediaData.creatorId = creator.id;
+        this.creatorSearchQuery = creator.name;
+        this.creatorSearchResults.set([]);
+    }
+
+    clearCreator(): void {
+        this.mediaData.creatorId = null;
+        this.creatorSearchQuery = '';
+        this.creatorSearchResults.set([]);
+        this.hasSearchedCreatorOnce.set(false);
+        this.creatorQuery$.next('');
+    }
+
+    onCreatorEscape(event: Event): void {
+        if (this.creatorSearchResults().length > 0) {
+            event.stopPropagation();
+            this.creatorSearchResults.set([]);
+        }
+    }
+
     onSearchCollections(): void {
         const query = this.collectionSearchQuery.trim();
 
@@ -562,8 +646,8 @@ export class MediaFormComponent implements OnInit {
 
         this.isSubmitting.set(true);
 
-        this.resolveCollectionId().pipe(
-            switchMap(collectionId => this.mediaService.createMedia(this.buildPayload(collectionId))),
+        forkJoin([this.resolveCollectionId(), this.resolveCreatorId()]).pipe(
+            switchMap(([collectionId, creatorId]) => this.mediaService.createMedia(this.buildPayload(collectionId, creatorId))),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -586,9 +670,12 @@ export class MediaFormComponent implements OnInit {
         // Колекцію резолвимо (знайти існуючу / створити нову) лише якщо її змінили
         const collectionChanged = this.snapshot().collection !== this.baseline!.collection;
         const collectionId$ = collectionChanged ? this.resolveCollectionId() : of(null);
+        // Автора теж резолвимо (знайти існуючого / створити нового) лише якщо його змінили
+        const creatorChanged = this.snapshot().creator !== this.baseline!.creator;
+        const creatorId$ = creatorChanged ? this.resolveCreatorId() : of(null);
 
-        collectionId$.pipe(
-            switchMap(collectionId => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId))),
+        forkJoin([collectionId$, creatorId$]).pipe(
+            switchMap(([collectionId, creatorId]) => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId, creatorId))),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -600,6 +687,10 @@ export class MediaFormComponent implements OnInit {
                     this.mediaData.collectionId = updated.collection.id;
                     this.collectionSearchQuery = updated.collection.name;
                 }
+                if (updated?.creator) {
+                    this.mediaData.creatorId = updated.creator.id;
+                    this.creatorSearchQuery = updated.creator.name;
+                }
                 this.mediaUpdated.emit(updated);
             },
             error: err => {
@@ -610,7 +701,7 @@ export class MediaFormComponent implements OnInit {
     }
 
     /** Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює). */
-    private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null): UpdateMediaRequest {
+    private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null, creatorId: CreatorId | null): UpdateMediaRequest {
         const cur = this.snapshot();
         const base = this.baseline!;
         const changed = <K extends keyof Snapshot>(key: K): boolean => cur[key] !== base[key];
@@ -624,7 +715,7 @@ export class MediaFormComponent implements OnInit {
             releaseYear: changed('releaseYear') ? cur.releaseYear : null,
             duration: changed('duration') ? cur.duration : null,
             posterUrl: changed('posterUrl') ? cur.posterUrl : null,
-            author: changed('author') ? cur.author : null,
+            creatorId: changed('creator') ? creatorId : null,
             visibility: changed('visibility') ? cur.visibility : null,
             genres: changed('genres') ? parseCommaList(this.genresInput) : null,
             tags: changed('tags') ? parseCommaList(this.tagsInput) : null,
@@ -647,6 +738,10 @@ export class MediaFormComponent implements OnInit {
             return false;
         }
         if (this.baseline) {
+            if (this.baseline.creator.startsWith('id:') && this.creatorKey() === '') {
+                this.toastService.show('Автора не можна прибрати після збереження — оберіть іншого.', 'error');
+                return false;
+            }
             if (this.baseline.collection.startsWith('id:') && this.collectionKey() === '') {
                 this.toastService.show('Колекцію не можна прибрати після збереження — оберіть іншу.', 'error');
                 return false;
@@ -675,19 +770,46 @@ export class MediaFormComponent implements OnInit {
         return true;
     }
 
-    private buildPayload(collectionId: CollectionId | null): CreateMediaRequest {
+    private buildPayload(collectionId: CollectionId | null, creatorId: CreatorId | null): CreateMediaRequest {
         return {
             ...this.mediaData,
             title: this.mediaData.title.trim(),
             originalTitle: (this.mediaData.originalTitle ?? '').trim(),
             posterUrl: (this.mediaData.posterUrl ?? '').trim(),
-            author: this.mediaData.author?.trim() || null,
+            creatorId,
             genres: parseCommaList(this.genresInput),
             tags: parseCommaList(this.tagsInput),
             cast: this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })),
             seasons: this.isSeries ? this.mediaData.seasons : [],
             collectionId
         };
+    }
+
+    private resolveCreatorId(): Observable<CreatorId | null> {
+        if (this.mediaData.creatorId) {
+            return of(this.mediaData.creatorId as CreatorId);
+        }
+
+        const name = this.creatorSearchQuery.trim();
+        if (!name) {
+            return of(null);
+        }
+
+        return this.creatorService.searchCreators({ query: name, size: 5 }).pipe(
+            map(res => (res.items ?? []).find(c => c.name.toLowerCase() === name.toLowerCase())),
+            switchMap(existing =>
+                existing
+                    ? of(existing.id as CreatorId)
+                    : this.creatorService
+                        .createCreator({ name, visibility: this.mediaData.visibility })
+                        .pipe(map(created => created.id as CreatorId))
+            ),
+            catchError(err => {
+                console.error('Помилка створення нового автора:', err);
+                this.toastService.show(`Не вдалося створити автора "${name}".`, 'error', 6000);
+                return EMPTY;
+            })
+        );
     }
 
     private resolveCollectionId(): Observable<CollectionId | null> {

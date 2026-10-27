@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../models/collection.model';
+import { CollectionSidebar, CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../models/collection.model';
 import { PageResponse } from '../models/shared.model';
 import { CollectionSearchParams } from '../models/search.model';
 
@@ -49,6 +49,11 @@ export class CollectionService {
 
     getCollectionById(id: string): Observable<MediaCollectionResponse> {
         return this.http.get<MediaCollectionResponse>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Колекція разом зі списком фільмів — для сайдбару. */
+    getCollectionSidebar(id: string): Observable<CollectionSidebar> {
+        return this.http.get<CollectionSidebar>(`${this.apiUrl}/${id}/sidebar`);
     }
 
     createCollection(request: CreateMediaCollectionRequest): Observable<MediaCollectionResponse> {

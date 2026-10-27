@@ -185,8 +185,8 @@
             @if (mov.type != null) {
             <p class="detail-row"><strong>Тип:</strong> {{ typeLabel(mov.type) }}</p>
             }
-            @if (mov.author) {
-            <p class="detail-row"><strong>Автор:</strong> {{ mov.author }}</p>
+            @if (mov.creator) {
+            <p class="detail-row"><strong>Автор:</strong> {{ mov.creator.name }}</p>
             }
             @if (mov.collection; as collection) {
             <p class="detail-row">

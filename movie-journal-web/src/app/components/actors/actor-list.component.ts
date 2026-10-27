@@ -5,10 +5,9 @@ import { EMPTY, Subject, of } from 'rxjs';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { ActorService } from '../../services/actor.service';
-import { MediaService } from '../../services/media.service';
-import { MediaResponseSlim } from '../../models/media.model';
 import { ToastService } from '../../services/toast.service';
-import { ActorItem } from '../../models/actor.model';
+import { MediaLinkListComponent } from '../shared/media-link-list/media-link-list.component';
+import { ActorItem, ActorSidebar } from '../../models/actor.model';
 import { PageResponse } from '../../models/shared.model';
 import { countryLabel, countryName, formatNationalities } from '../../utils/country.util';
 import { MediaTypeLabels, Sex, SexLabels, Visibility, VisibilityLabels } from '../../models/enums';
@@ -29,16 +28,13 @@ type ActorId = ActorItem['id'];
 const FILTER_KEYS = ['visibility', 'hasPhoto', 'Sex', 'nationality'] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
-/** Скільки фільмів актора показуємо в сайдбарі. */
-const ACTOR_MOVIES_PAGE_SIZE = 50;
-
 const DEFAULT_PAGE_SIZE = 20;
 
 @Component({
     selector: 'app-actor-list',
     standalone: true,
     imports: [
-        RouterLink,
+        MediaLinkListComponent,
         DatePipe,
         ViewSwitcherComponent,
         AddButtonComponent,
@@ -53,7 +49,6 @@ const DEFAULT_PAGE_SIZE = 20;
 })
 export class ActorListComponent implements OnInit {
     private readonly actorService = inject(ActorService);
-    private readonly mediaService = inject(MediaService);
     private readonly toastService = inject(ToastService);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
@@ -71,13 +66,8 @@ export class ActorListComponent implements OnInit {
     readonly editingActor = signal<ActorItem | null>(null);
     private readonly actorForm = viewChild(ActorFormComponent);
 
-    readonly selectedActor = signal<ActorItem | null>(null);
-
-    // ---------- Фільми актора (сайдбар) ----------
-    readonly actorMovies = signal<MediaResponseSlim[]>([]);
-    readonly actorMoviesTotal = signal(0);
-    readonly actorMoviesLoading = signal(false);
-    readonly actorMoviesError = signal(false);
+    /** Актор із сайдбару: разом зі списком фільмів (GET /api/actors/{id}/sidebar). */
+    readonly selectedActor = signal<ActorSidebar | null>(null);
     readonly isSidebarOpen = signal(false);
 
     readonly mediaTypeLabels = MediaTypeLabels;
@@ -167,38 +157,6 @@ export class ActorListComponent implements OnInit {
     });
 
     constructor() {
-        // Фільми актора: окремий запит searchMedia({ actorId }); switchMap відкидає застарілу відповідь
-        this.details$.pipe(
-            tap(() => {
-                this.actorMovies.set([]);
-                this.actorMoviesTotal.set(0);
-                this.actorMoviesError.set(false);
-                this.actorMoviesLoading.set(true);
-            }),
-            switchMap(id =>
-                this.mediaService.searchMedia({ actorId: id, size: ACTOR_MOVIES_PAGE_SIZE }).pipe(
-                    map(res => ({
-                        ok: true as const,
-                        items: res.items ?? [],
-                        total: res.totalCount ?? res.items?.length ?? 0
-                    })),
-                    catchError(err => {
-                        console.error('Помилка завантаження фільмів актора:', err);
-                        return of({ ok: false as const });
-                    })
-                )
-            ),
-            takeUntilDestroyed()
-        ).subscribe(result => {
-            this.actorMoviesLoading.set(false);
-            if (result.ok) {
-                this.actorMovies.set(result.items);
-                this.actorMoviesTotal.set(result.total);
-            } else {
-                this.actorMoviesError.set(true);
-            }
-        });
-
         // switchMap скасовує попередній запит, якщо список перезавантажили повторно
         this.reload$.pipe(
             tap(() => {
@@ -232,7 +190,7 @@ export class ActorListComponent implements OnInit {
         // Швидкі кліки по різних акторах: відповідь на попередній запит скасовується
         this.details$.pipe(
             switchMap(id =>
-                this.actorService.getActorById(id).pipe(
+                this.actorService.getActorSidebar(id).pipe(
                     catchError(err => {
                         console.error('Помилка завантаження деталей актора:', err);
                         this.toastService.show('Не вдалося завантажити деталі актора', 'error');
@@ -395,9 +353,8 @@ export class ActorListComponent implements OnInit {
     onActorUpdated(updated: ActorItem): void {
         this.closeModal();
         this.actors.update(list => list.map(a => (a.id === updated.id ? updated : a)));
-        if (this.selectedActor()?.id === updated.id) {
-            this.selectedActor.set(updated);
-        }
+        // Відповідь на оновлення без списку фільмів: зберігаємо поточний список із сайдбару
+        this.selectedActor.update(current => (current?.id === updated.id ? { ...current, ...updated } : current));
         this.loadCountryCodes();
     }
 

@@ -72,9 +72,42 @@
                         (ngModelChange)="onPosterUrlChange()" name="posterUrl" placeholder="https://...">
                 </div>
 
-                <div class="form-group">
-                    <label for="author">Автор</label>
-                    <input id="author" type="text" [(ngModel)]="mediaData.author" name="author">
+                <!-- Автор: пошук існуючого або створення нового за іменем при збереженні -->
+                <div class="form-group collection-section">
+                    <label for="creator">Автор / Режисер</label>
+                    <div class="collection-input-wrapper">
+                        <input id="creator" type="text" [(ngModel)]="creatorSearchQuery" (input)="onSearchCreators()"
+                            (keydown.escape)="onCreatorEscape($event)" name="creatorSearchQuery" autocomplete="off"
+                            placeholder="Введіть ім'я існуючого або нового автора...">
+
+                        @if (mediaData.creatorId || creatorSearchQuery) {
+                        <button type="button" class="btn-danger-sm" (click)="clearCreator()"
+                            title="Очистити">&times;</button>
+                        }
+                    </div>
+
+                    @if (creatorSearchResults().length > 0) {
+                    <div class="actor-dropdown-results">
+                        @for (cr of creatorSearchResults(); track cr.id) {
+                        <button type="button" class="actor-dropdown-item" (click)="selectCreator(cr)">
+                            <span>🎬 {{ cr.name }}</span>
+                        </button>
+                        }
+                    </div>
+                    }
+
+                    @if (creatorSearchQuery && !mediaData.creatorId && hasSearchedCreatorOnce()) {
+                    <div class="new-collection-hint">
+                        <span>✨ Такого автора немає в базі. При збереженні буде створено нового:
+                            <strong>"{{ creatorSearchQuery }}"</strong></span>
+                    </div>
+                    }
+
+                    @if (mediaData.creatorId) {
+                    <div class="selected-collection-success">
+                        <span>✅ Обрано існуючого автора</span>
+                    </div>
+                    }
                 </div>
 
                 <!-- Колекція: у створенні та редагуванні (в редагуванні порожнє поле = не змінювати) -->
