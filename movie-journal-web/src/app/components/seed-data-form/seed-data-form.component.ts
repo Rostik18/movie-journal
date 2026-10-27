@@ -27,7 +27,6 @@ export class SeedDataFormComponent implements OnInit {
     selectedStatus = signal<WatchStatus>(WatchStatus.Watched);
     selectedType = signal<MediaType>(MediaType.Video);
     tagsInput = signal('');
-    authorInput = signal('');
     selectedCollectionId = signal<string | null>(null);
 
     // Сигнали для тексту результатів/пропущених рядків
@@ -158,7 +157,6 @@ export class SeedDataFormComponent implements OnInit {
                 ? this.tagsInput().split(',').map(t => t.trim()).filter(Boolean)
                 : [];
 
-            const authorVal = this.authorInput().trim();
             const collectionIdVal = this.selectedCollectionId();
 
             const request: SeedUserWatchRequest = {
@@ -167,7 +165,6 @@ export class SeedDataFormComponent implements OnInit {
                 status: this.selectedStatus(),
                 type: this.selectedType(),
                 tags: tags,
-                author: authorVal ? authorVal : null,
                 collectionId: collectionIdVal ? collectionIdVal : null,
                 payload: text
             };

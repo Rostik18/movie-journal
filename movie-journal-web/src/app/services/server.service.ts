@@ -20,7 +20,6 @@ export interface SeedUserWatchRequest {
     status: WatchStatus;
     type: MediaType;
     tags: string[];
-    author?: string | null;
     payload: string;
     collectionId?: string | null;
 }

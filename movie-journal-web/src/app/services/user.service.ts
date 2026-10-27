@@ -6,6 +6,7 @@ import { ChangePasswordRequest, CreateUserRequest, UpdateUserRequest, UserRespon
 import { UserRole } from '../models/enums';
 import { UserSearchParams } from '../models/search.model';
 import { PageResponse } from '../models/shared.model';
+import { AuthStorage } from './auth-storage.service';
 
 @Injectable({
     providedIn: 'root'
@@ -13,10 +14,11 @@ import { PageResponse } from '../models/shared.model';
 export class UserService {
     private baseUrl = `${environment.apiUrl}/api/users`;
     private http = inject(HttpClient);
+    private authStorage = inject(AuthStorage);
 
     // --- РЕАКТИВНИЙ СТАН (SIGNALS) ---
     // Приватний сигнал для зберігання поточного користувача
-    private currentUserSignal = signal<UserResponse | null>(this.loadUserFromStorage());
+    private currentUserSignal = signal<UserResponse | null>(this.authStorage.getUser());
 
     // Публічний сигнал (доступний лише для читання ззовні)
     public currentUser = this.currentUserSignal.asReadonly();
@@ -27,23 +29,9 @@ export class UserService {
         return !!user?.roles && user.roles.includes(UserRole.Admin);
     });
 
-    private loadUserFromStorage(): UserResponse | null {
-        try {
-            const userStr = localStorage.getItem('auth_user');
-            return userStr ? JSON.parse(userStr) : null;
-        } catch (e) {
-            console.error('Помилка читання користувача з localStorage', e);
-            return null;
-        }
-    }
-
     // Встановлення користувача в стан (викликається під час Login)
     public setUserData(user: UserResponse | null) {
-        if (user) {
-            localStorage.setItem('auth_user', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('auth_user');
-        }
+        this.authStorage.setUser(user);
         this.currentUserSignal.set(user);
     }
 

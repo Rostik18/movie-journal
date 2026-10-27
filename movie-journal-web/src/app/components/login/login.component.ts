@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LoginResult } from '../../models/user.model';
 import { UserService } from '../../services/user.service';
 
@@ -26,25 +26,25 @@ export class LoginComponent {
     successMessage = '';
 
     private router = inject(Router);
+    private route = inject(ActivatedRoute);
     private authService = inject(AuthService);
+
+    /** Адреса, з якої користувача перекинуло на логін; приймаємо лише внутрішні шляхи (захист від open redirect). */
+    private safeReturnUrl(): string {
+        const url = this.route.snapshot.queryParamMap.get('returnUrl');
+        return url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/login') ? url : '/movies';
+    }
 
     onSubmit() {
         this.authService.login(this.loginData).subscribe({
             next: (response: LoginResult) => {
                 console.log('Успішний вхід:', response);
 
-                // Зберігаємо токен
-                if (response.accessToken) {
-                    localStorage.setItem('auth_token', response.accessToken);
-                }
-
-                if (response.user) {
-                    this.userService.setUserData(response.user);
-                }
+                this.authService.startSession(response);
 
                 this.successMessage = 'Успішна авторизація!';
                 this.errorMessage = '';
-                this.router.navigate(['/movies']);
+                this.router.navigateByUrl(this.safeReturnUrl());
             },
             error: (err) => {
                 console.error('Помилка входу:', err);

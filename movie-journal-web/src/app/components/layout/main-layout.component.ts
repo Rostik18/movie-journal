@@ -3,15 +3,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { EMPTY, timer } from 'rxjs';
 import { catchError, exhaustMap } from 'rxjs/operators';
-
-import { UserResponse } from '../../models/user.model';
 import { ToastComponent } from '../shared/toast/toast.component';
 import { ServerService } from '../../services/server.service';
 import { ServerHealth, ServerHealthService } from '../../services/server-health.service';
 import { UserService } from '../../services/user.service';
+import { AuthService } from '../../services/auth.service';
 
-const AUTH_TOKEN_KEY = 'auth_token';
-const AUTH_USER_KEY = 'auth_user';
 const DEFAULT_USER_NAME = 'Користувач';
 const HEARTBEAT_INTERVAL_MS = 300_000;
 
@@ -33,6 +30,7 @@ export class MainLayoutComponent {
     private readonly serverService = inject(ServerService);
     private readonly serverHealth = inject(ServerHealthService);
     readonly userService = inject(UserService);
+    private readonly authService = inject(AuthService);
 
     readonly navItems = [
         { path: '/watchlist', label: '⭐ Список перегляду', render: true },
@@ -79,8 +77,7 @@ export class MainLayoutComponent {
     }
 
     logout(): void {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(AUTH_USER_KEY);
+        this.authService.logout();
         this.router.navigate(['/login'], { replaceUrl: true });
     }
 }

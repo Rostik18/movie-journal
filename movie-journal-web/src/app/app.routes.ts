@@ -9,6 +9,7 @@ import { UserWatchingListComponent } from './components/user-watching/user-watch
 import { SeedDataFormComponent } from './components/seed-data-form/seed-data-form.component';
 import { UserListComponent } from './components/user-list/user-list.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
+import { authGuard, guestGuard } from './guards/auth.guard';
 
 /**
  * Маршрут `path` та `path/:id` з ОДНИМ записом конфігурації: Angular перевикористовує компонент
@@ -27,10 +28,12 @@ const withOptionalId = (path: string, component: Type<unknown>): Route => ({
 });
 
 export const routes: Routes = [
-    { path: 'login', component: LoginComponent },
+    { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
     {
         path: '',
         component: MainLayoutComponent,
+        // Захищає весь layout і всі дочірні маршрути (також прямі посилання /movies/:id тощо)
+        canActivate: [authGuard],
         children: [
             withOptionalId('watchlist', UserWatchingListComponent),
             withOptionalId('movies', MovieListComponent),
@@ -42,5 +45,6 @@ export const routes: Routes = [
             { path: '', redirectTo: 'watchlist', pathMatch: 'full' }
         ]
     },
-    { path: '**', redirectTo: 'login' }
+    // Невідомий URL: guard вирішить, куди далі (авторизованим — на головну, іншим — на логін)
+    { path: '**', redirectTo: '' }
 ];
