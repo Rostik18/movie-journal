@@ -1,9 +1,9 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
-using MovieJournalBackend.Entities.User;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories.Common;
 using System.Text.RegularExpressions;
@@ -71,16 +71,16 @@ namespace MovieJournalBackend.Repositories.Implementation
                 .Aggregate()
                 .Match(visibilityFilter)
                 .Unwind(x => x.Nationalities)
-                .Group(
-                    x => x,
-                    g => new
-                    {
-                        Nationality = g.Key,
-                        Count = g.LongCount()
-                    })
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Nationalities" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
                 .ToListAsync(ct);
 
-            return result.ToDictionary(x => x.Nationality.ToString(), x => x.Count);
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
         }
 
         public async Task<Dictionary<int, long>> GetCountByBirthYearAsync(int fromYear, int toYear, UserContext user, CancellationToken ct = default)
