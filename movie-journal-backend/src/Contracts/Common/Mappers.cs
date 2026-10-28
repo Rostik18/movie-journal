@@ -69,7 +69,8 @@ namespace MovieJournalBackend.Contracts.Common
             user.Login,
             user.DisplayName,
             user.Roles,
-            user.CreatedAtUtc);
+            user.CreatedAtUtc,
+            user.LastEnterUtc);
 
         public static UserWatchingResponse ToResponse(this Entities.Journal.UserWatching entity, MediaResponse media) => new(
             media,

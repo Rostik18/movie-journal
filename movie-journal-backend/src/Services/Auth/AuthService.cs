@@ -1,6 +1,5 @@
 ﻿using MovieJournalBackend.Contracts.Auth;
 using MovieJournalBackend.Contracts.Common;
-using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.User;
 using MovieJournalBackend.Repositories;
 
@@ -45,6 +44,8 @@ namespace MovieJournalBackend.Services.Auth
             {
                 throw new UnauthorizedAccessException();
             }
+
+            await _usersRepo.UpdateLastEnterAsync(user.Id, ct);
 
             return new LoginResult
             {

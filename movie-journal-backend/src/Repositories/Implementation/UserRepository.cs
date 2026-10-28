@@ -27,6 +27,13 @@ namespace MovieJournalBackend.Repositories.Implementation
         public Task<bool> AnyInRoleAsync(UserRole role, CancellationToken ct = default) =>
             Collection.Find(x => x.Roles.Contains(role)).AnyAsync(ct);
 
+        public async Task UpdateLastEnterAsync(string userId, CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+            var update = Builders<User>.Update.Set(x => x.LastEnterUtc, now);
+            await Collection.UpdateOneAsync(x => x.Id == userId, update, cancellationToken: ct);
+        }
+
         private FilterDefinition<User> CreateFilter(SearchRequest<UserFilter, UserSortField> request)
         {
             var filter = _fBuilder.Empty;
@@ -56,6 +63,12 @@ namespace MovieJournalBackend.Repositories.Implementation
             UserSortField.Name => request.Sort.Direction == SortDirection.Ascending
                 ? _sBuilder.Ascending(x => x.Login)
                 : _sBuilder.Descending(x => x.Login),
+            UserSortField.CreatedAtUtc => request.Sort.Direction == SortDirection.Ascending
+                ? _sBuilder.Ascending(x => x.CreatedAtUtc)
+                : _sBuilder.Descending(x => x.CreatedAtUtc),
+            UserSortField.LastEnterUtc => request.Sort.Direction == SortDirection.Ascending
+                ? _sBuilder.Ascending(x => x.LastEnterUtc)
+                : _sBuilder.Descending(x => x.LastEnterUtc),
             _ => null
         };
     }

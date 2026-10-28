@@ -10,6 +10,7 @@ namespace MovieJournalBackend.Repositories
     {
         Task<Page<User>> SearchAsync(SearchRequest<UserFilter, UserSortField> request, CancellationToken ct = default);
         Task<User?> GetByLoginAsync(string login, CancellationToken ct = default);
+        Task UpdateLastEnterAsync(string userId, CancellationToken ct = default);
         Task<bool> AnyInRoleAsync(UserRole role, CancellationToken ct = default);
     }
 }

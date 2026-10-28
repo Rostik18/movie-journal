@@ -6,6 +6,7 @@ export interface UserResponse {
     displayName: string | null;
     roles: UserRole[];
     createdAtUtc: string;
+    lastEnterUtc: string | null;
 }
 
 export interface LoginRequest {

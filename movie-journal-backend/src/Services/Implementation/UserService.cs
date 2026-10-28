@@ -31,7 +31,7 @@ namespace MovieJournalBackend.Services.Implementation
         {
             user.EnsureAdmin();
 
-            if (user.IsAdmin && user.UserId == userId)
+            if (user.UserId == userId)
                 throw new ApplicationException("Admin cannot delete itself.");
 
             return _userRepository.DeleteAsync(userId, ct);

@@ -11,6 +11,7 @@ namespace MovieJournalBackend.Entities.User
 
         [BsonRepresentation(BsonType.String)]
         public List<UserRole> Roles { get; set; } = [UserRole.User];
+        public DateTime? LastEnterUtc { get; set; }
 
         public required string PasswordHash { get; set; }
     }

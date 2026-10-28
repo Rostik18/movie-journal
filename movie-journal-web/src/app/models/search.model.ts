@@ -37,7 +37,9 @@ export enum MediaSortField {
 }
 
 export enum UserSortField {
-    Name = 'Name'
+    Name = 'Name',
+    CreatedAtUtc = 'CreatedAtUtc',
+    LastEnterUtc = 'LastEnterUtc'
 }
 
 export interface ActorSearchParams {

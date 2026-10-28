@@ -7,6 +7,7 @@ namespace MovieJournalBackend.Contracts.User
         string Login,
         string? DisplayName,
         List<UserRole> Roles,
-        DateTime CreatedAtUtc
+        DateTime CreatedAtUtc,
+        DateTime? LastEnterUtc
     );
 }
