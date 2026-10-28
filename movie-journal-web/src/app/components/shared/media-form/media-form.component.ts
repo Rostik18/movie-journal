@@ -13,7 +13,7 @@ import { CreatorService } from '../../../services/creator.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
 import { CreateMediaRequest, MediaActor, MediaItem, MediaSidebar, Season, UpdateMediaRequest } from '../../../models/media.model';
-import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
 import { CastPickerComponent } from '../cast-picker/cast-picker.component';
 import { EntityPickerComponent } from '../entity-picker/entity-picker.component';
@@ -103,7 +103,7 @@ export class MediaFormComponent implements OnInit {
     /** Повертає збережену на сервері версію після успішного оновлення. */
     readonly mediaUpdated = output<MediaItem>();
 
-    private baseline: Snapshot | null = null;
+    private readonly dirty = createDirtyTracker(() => this.snapshot());
 
     mediaData: CreateMediaRequest = createEmptyMedia();
     genresInput = '';
@@ -152,7 +152,7 @@ export class MediaFormComponent implements OnInit {
         }
 
         // Порожня форма — точка відліку для hasChanges() у режимі створення
-        this.baseline = this.snapshot();
+        this.dirty.markClean();
 
         const title = this.initialTitle().trim();
         if (title) {
@@ -193,7 +193,7 @@ export class MediaFormComponent implements OnInit {
         this.imageError = false;
         // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
         this.typeTouched = true;
-        this.baseline = this.snapshot();
+        this.dirty.markClean();
     }
 
     private snapshot(): Snapshot {
@@ -218,7 +218,7 @@ export class MediaFormComponent implements OnInit {
 
     /** У редагуванні — чи змінилось щось відносно збереженого запису; у створенні завжди true. */
     hasChanges(): boolean {
-        return !this.baseline || hasSnapshotChanges(this.snapshot(), this.baseline);
+        return this.dirty.hasChanges();
     }
 
     get isSeries(): boolean {
@@ -424,10 +424,10 @@ export class MediaFormComponent implements OnInit {
         this.isSubmitting.set(true);
 
         // Колекцію резолвимо (знайти існуючу / створити нову) лише якщо її змінили
-        const collectionChanged = this.snapshot().collection !== this.baseline!.collection;
+        const collectionChanged = this.dirty.changed('collection');
         const collectionId$ = collectionChanged ? this.resolveCollectionId() : of(null);
         // Автора теж резолвимо (знайти існуючого / створити нового) лише якщо його змінили
-        const creatorChanged = this.snapshot().creator !== this.baseline!.creator;
+        const creatorChanged = this.dirty.changed('creator');
         const creatorId$ = creatorChanged ? this.resolveCreatorId() : of(null);
 
         forkJoin([collectionId$, creatorId$]).pipe(
@@ -438,7 +438,7 @@ export class MediaFormComponent implements OnInit {
             next: updated => {
                 this.toastService.show(`Фільм "${updated?.title ?? this.mediaData.title}" оновлено ✅`, 'success', 4000);
                 // Нова точка відліку: форма знову "чиста"
-                this.baseline = this.snapshot();
+                this.dirty.markClean();
                 if (updated?.collection) {
                     this.collectionId.set(updated.collection.id);
                     this.collectionName.set(updated.collection.name);
@@ -460,7 +460,7 @@ export class MediaFormComponent implements OnInit {
     private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null, creatorId: CreatorId | null): UpdateMediaRequest {
         return {
             mediaId,
-            ...diffPayload(this.snapshot(), this.baseline!, {
+            ...this.dirty.diff({
                 title: 'title',
                 type: 'type',
                 description: 'description',
@@ -495,20 +495,21 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
             return false;
         }
-        if (this.baseline) {
-            if (this.baseline.creator.startsWith('id:') && this.snapshot().creator === '') {
+        const baseline = this.dirty.baseline;
+        if (baseline) {
+            if (baseline.creator.startsWith('id:') && this.snapshot().creator === '') {
                 this.toastService.show('Автора не можна прибрати після збереження — оберіть іншого.', 'error');
                 return false;
             }
-            if (this.baseline.collection.startsWith('id:') && this.snapshot().collection === '') {
+            if (baseline.collection.startsWith('id:') && this.snapshot().collection === '') {
                 this.toastService.show('Колекцію не можна прибрати після збереження — оберіть іншу.', 'error');
                 return false;
             }
-            if (releaseYear == null && this.baseline.releaseYear != null) {
+            if (releaseYear == null && baseline.releaseYear != null) {
                 this.toastService.show('Рік випуску не можна очистити після збереження — вкажіть інше значення.', 'error');
                 return false;
             }
-            if (duration == null && this.baseline.duration != null) {
+            if (duration == null && baseline.duration != null) {
                 this.toastService.show('Тривалість не можна очистити після збереження — вкажіть інше значення.', 'error');
                 return false;
             }

@@ -7,7 +7,7 @@ import { Visibility, VisibilityLabels } from '../../../models/enums';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../../../models/collection.model';
-import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { createDirtyTracker } from '../../../utils/form-diff';
 import { parseCommaList } from '../../../utils/form-parse.util';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
@@ -40,7 +40,7 @@ export class CollectionFormComponent implements OnInit {
     readonly collectionUpdated = output<MediaCollectionResponse>();
     readonly isSubmitting = signal(false);
 
-    private baseline: Snapshot | null = null;
+    private readonly dirty = createDirtyTracker(() => this.snapshot());
 
     collectionData: CreateMediaCollectionRequest = {
         name: '',
@@ -70,7 +70,7 @@ export class CollectionFormComponent implements OnInit {
             };
             this.tagsInput = (col.tags ?? []).join(', ');
         }
-        this.baseline = this.snapshot();
+        this.dirty.markClean();
     }
 
     private snapshot(): Snapshot {
@@ -86,10 +86,7 @@ export class CollectionFormComponent implements OnInit {
 
     /** Чи відрізняється форма від початкового стану (у створенні — чи щось введено). */
     hasChanges(): boolean {
-        if (!this.baseline) {
-            return false;
-        }
-        return hasSnapshotChanges(this.snapshot(), this.baseline);
+        return this.dirty.hasChanges();
     }
 
     onPosterUrlChange() {
@@ -133,7 +130,7 @@ export class CollectionFormComponent implements OnInit {
         // Лише змінені поля; незмінені — null (бекенд null-поля не оновлює)
         const request: UpdateMediaCollectionRequest = {
             collectionId: col.id,
-            ...diffPayload(cur, this.baseline!, {
+            ...this.dirty.diff({
                 name: 'name',
                 description: 'description',
                 posterUrl: 'posterUrl',
@@ -149,7 +146,7 @@ export class CollectionFormComponent implements OnInit {
         ).subscribe({
             next: updated => {
                 this.toastService.show(`Колекцію "${updated?.name ?? cur.name}" оновлено ✅`, 'success', 4000);
-                this.baseline = this.snapshot();
+                this.dirty.markClean();
                 this.collectionUpdated.emit(updated);
             },
             error: err => {

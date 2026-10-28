@@ -8,7 +8,7 @@ import { ToastService } from '../../../services/toast.service';
 import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 import { CountryPickerComponent } from '../country-picker/country-picker.component';
-import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl } from '../../../utils/form-parse.util';
 
 const MIN_BIRTH_YEAR = 1800;
@@ -106,7 +106,7 @@ export class ActorFormComponent implements OnInit {
     ];
 
     /** Початковий стан форми. */
-    private baseline: Snapshot = emptySnapshot();
+    private readonly dirty = createDirtyTracker(() => this.snapshot(), emptySnapshot());
 
     ngOnInit(): void {
         const actor = this.actor();
@@ -120,7 +120,7 @@ export class ActorFormComponent implements OnInit {
     }
 
     hasChanges(): boolean {
-        return hasSnapshotChanges(this.snapshot(), this.baseline);
+        return this.dirty.hasChanges();
     }
 
     onPhotoUrlChange(value: string): void {
@@ -197,7 +197,7 @@ export class ActorFormComponent implements OnInit {
         const payload: UpdateActorRequest = {
             actorId: actor.id,
             // Порожній рядок очищає псевдонім; null — «не змінювати»
-            ...diffPayload(this.snapshot(), this.baseline, {
+            ...this.dirty.diff({
                 fullName: 'fullName',
                 alias: 'alias',
                 photoUrl: 'photoUrl',
@@ -241,7 +241,7 @@ export class ActorFormComponent implements OnInit {
         const birth = this.resolveBirthDate();
         if (birth.error) {
             errors.birthDate = birth.error;
-        } else if (this.actor() && birth.value === null && this.baseline.birth !== emptySnapshot().birth) {
+        } else if (this.actor() && birth.value === null && this.dirty.baseline?.birth !== emptySnapshot().birth) {
             errors.birthDate = 'Збережену дату народження не можна видалити — введіть іншу дату.';
         }
 
@@ -320,7 +320,7 @@ export class ActorFormComponent implements OnInit {
             this.birthDay = birth.getUTCDate();
         }
 
-        this.baseline = this.snapshot();
+        this.dirty.markClean();
     }
 
     private resetForm(): void {
@@ -330,7 +330,7 @@ export class ActorFormComponent implements OnInit {
         this.birthDay = null;
         this.imageError.set(false);
         this.errors.set({});
-        this.baseline = emptySnapshot();
+        this.dirty.markClean(); // порожня форма = emptySnapshot()
     }
 }
 

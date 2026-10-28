@@ -60,3 +60,38 @@ export function diffPayload<S extends object, const Spec extends DiffSpec<S>>(
 
     return result as DiffResult<S, Spec>;
 }
+/**
+ * Стан «чисто / змінено» форми редагування: baseline (знімок на момент відкриття або останнього збереження),
+ * dirty-check і побудова payload. Замінює однаковий код baseline / hasChanges / diffPayload у кожній формі.
+ */
+export interface DirtyTracker<S extends object> {
+    /** Знімок на момент останнього markClean(); null, поки форму не ініціалізовано (і не задано `initial`). */
+    readonly baseline: S | null;
+    /** Поточний стан форми стає новою точкою відліку (після завантаження запису або успішного збереження). */
+    markClean(): void;
+    hasChanges(): boolean;
+    /** Чи змінилось поле відносно baseline. */
+    changed(key: keyof S): boolean;
+    /** Payload оновлення: незмінені поля — null (див. diffPayload). `current` — знімок, якщо потрібен не поточний. */
+    diff<const Spec extends DiffSpec<S>>(spec: Spec, current?: S): DiffResult<S, Spec>;
+}
+
+/**
+ * @param snapshot функція, що знімає нормалізований стан форми (викликається ліниво, тож може використовувати поля класу)
+ * @param initial  початковий baseline, якщо форма «чиста» ще до ініціалізації (напр. порожня форма створення)
+ */
+export function createDirtyTracker<S extends object>(snapshot: () => S, initial: S | null = null): DirtyTracker<S> {
+    let baseline: S | null = initial;
+
+    return {
+        get baseline() {
+            return baseline;
+        },
+        markClean: () => {
+            baseline = snapshot();
+        },
+        hasChanges: () => baseline !== null && hasSnapshotChanges(snapshot(), baseline),
+        changed: key => baseline !== null && snapshot()[key] !== baseline[key],
+        diff: (spec, current = snapshot()) => diffPayload(current, baseline ?? current, spec)
+    };
+}

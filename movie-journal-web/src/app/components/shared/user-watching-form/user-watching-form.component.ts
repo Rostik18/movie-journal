@@ -9,7 +9,7 @@ import { MediaType, WatchStatus, WatchStatusLabels } from '../../../models/enums
 import { UserWatchingService } from '../../../services/user-watching.service';
 import { ToastService } from '../../../services/toast.service';
 import { CreateUserWatchingRequest, UpdateUserWatchingRequest, UserWatchingItem, UserWatchingSidebar } from '../../../models/user-watching.model';
-import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { createDirtyTracker } from '../../../utils/form-diff';
 import { CreateMediaRequestEvent, MediaPickerComponent, PickedMedia } from '../media-picker/media-picker.component';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
@@ -61,7 +61,7 @@ export class UserWatchingFormComponent implements OnInit {
     /** Повертає збережену на сервері версію після успішного оновлення. */
     readonly watchingUpdated = output<UserWatchingItem>();
 
-    private baseline: WatchingSnapshot = emptySnapshot();
+    private readonly dirty = createDirtyTracker(() => this.snapshot(), emptySnapshot());
 
     private readonly mediaForm = viewChild(MediaFormComponent);
 
@@ -127,7 +127,7 @@ export class UserWatchingFormComponent implements OnInit {
             currentEpisodeNumber: item.currentEpisodeNumber ?? null
         };
         this.selectedMedia.set({ id: item.media.id, title: item.media.title, type: item.media.type });
-        this.baseline = this.snapshot();
+        this.dirty.markClean();
     }
 
     private snapshot(): WatchingSnapshot {
@@ -148,7 +148,7 @@ export class UserWatchingFormComponent implements OnInit {
             return true;
         }
 
-        return hasSnapshotChanges(this.snapshot(), this.baseline);
+        return this.dirty.hasChanges();
     }
 
     // ====================== Вибір і створення медіа ======================
@@ -271,7 +271,7 @@ export class UserWatchingFormComponent implements OnInit {
         ).subscribe({
             next: updated => {
                 this.toastService.show('Запис у списку оновлено ✅', 'success', 4000);
-                this.baseline = this.snapshot();
+                this.dirty.markClean();
                 this.watchingUpdated.emit(updated);
             },
             error: err => {
@@ -287,7 +287,7 @@ export class UserWatchingFormComponent implements OnInit {
      */
     private buildUpdatePayload(mediaId: string): UpdateUserWatchingRequest | null {
         const cur = this.snapshot();
-        const base = this.baseline;
+        const base = this.dirty.baseline ?? emptySnapshot();
         const isWatching = cur.status === WatchStatus.Watching;
         const showProgress = this.showProgressFields;
 
@@ -309,14 +309,14 @@ export class UserWatchingFormComponent implements OnInit {
 
         return {
             mediaId,
-            ...diffPayload({ ...cur, stoppedAtSeconds: stoppedAt, currentSeasonNumber: season, currentEpisodeNumber: episode }, base, {
+            ...this.dirty.diff({
                 status: 'status',
                 rating: 'rating',
                 notes: 'notes',
                 stoppedAtSeconds: 'stoppedAtSeconds',
                 currentSeasonNumber: 'currentSeasonNumber',
                 currentEpisodeNumber: 'currentEpisodeNumber'
-            })
+            }, { ...cur, stoppedAtSeconds: stoppedAt, currentSeasonNumber: season, currentEpisodeNumber: episode })
         };
     }
 
