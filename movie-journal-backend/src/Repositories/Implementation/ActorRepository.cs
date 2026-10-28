@@ -3,6 +3,7 @@ using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.User;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories.Common;
 using System.Text.RegularExpressions;
@@ -58,6 +59,54 @@ namespace MovieJournalBackend.Repositories.Implementation
 
         public Task<bool> HasPrivateActorsAsync(IEnumerable<string> actorIds, CancellationToken ct = default) =>
             Collection.Find(x => actorIds.Contains(x.Id) && x.Visibility == Visibility.Private).AnyAsync(ct);
+
+        public Task<long> GetCountAsync(SearchRequest<ActorFilter, ActorSortField> request, UserContext user, CancellationToken ct = default) =>
+            Collection.CountDocumentsAsync(CreateFilter(request, user), cancellationToken: ct);
+
+        public async Task<Dictionary<string, long>> GetCountByNationalityAsync(UserContext user, CancellationToken ct = default)
+        {
+            var visibilityFilter = user.BuildVisibilityFilter<Actor>();
+
+            var result = await Collection
+                .Aggregate()
+                .Match(visibilityFilter)
+                .Unwind(x => x.Nationalities)
+                .Group(
+                    x => x,
+                    g => new
+                    {
+                        Nationality = g.Key,
+                        Count = g.LongCount()
+                    })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(x => x.Nationality.ToString(), x => x.Count);
+        }
+
+        public async Task<Dictionary<int, long>> GetCountByBirthYearAsync(int fromYear, int toYear, UserContext user, CancellationToken ct = default)
+        {
+            var visibilityFilter = user.BuildVisibilityFilter<Actor>();
+
+            var filter = Builders<Actor>.Filter.And(
+                visibilityFilter,
+                Builders<Actor>.Filter.Ne(x => x.BirthDate, null),
+                Builders<Actor>.Filter.Gte(x => x.BirthDate, new(fromYear, 1, 1, 0, 0, 0, DateTimeKind.Utc)),
+                Builders<Actor>.Filter.Lt(x => x.BirthDate, new(toYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .Group(
+                    x => x.BirthDate!.Value.Year,
+                    g => new
+                    {
+                        Year = g.Key,
+                        Count = g.LongCount()
+                    })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(x => x.Year, x => x.Count);
+        }
 
         private FilterDefinition<Actor> CreateFilter(SearchRequest<ActorFilter, ActorSortField> request, UserContext user)
         {

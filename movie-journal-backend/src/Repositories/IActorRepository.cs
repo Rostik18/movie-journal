@@ -13,5 +13,10 @@ namespace MovieJournalBackend.Repositories
         Task<List<string>> GetCountryCodesAsync(CancellationToken ct = default);
         Task<bool> ExistsAsync(string fullName, UserContext user, CancellationToken ct = default);
         Task<bool> HasPrivateActorsAsync(IEnumerable<string> actorIds, CancellationToken ct = default);
+
+        Task<long> GetCountAsync(SearchRequest<ActorFilter, ActorSortField> request, UserContext user, CancellationToken ct = default);
+
+        Task<Dictionary<string, long>> GetCountByNationalityAsync(UserContext user, CancellationToken ct = default);
+        Task<Dictionary<int, long>> GetCountByBirthYearAsync(int fromYear, int toYear, UserContext user, CancellationToken ct = default);
     }
 }

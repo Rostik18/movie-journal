@@ -185,7 +185,7 @@ namespace MovieJournalBackend.Services.Implementation
 
                     var creator = parsedItem.Creator is null
                         ? null
-                        : creators.FirstOrDefault(x => x.Name == parsedItem.Creator);
+                        : creators.FirstOrDefault(x => x.Name.Equals(parsedItem.Creator, StringComparison.InvariantCultureIgnoreCase));
 
                     var media = new CreateMediaRequest()
                     {
@@ -193,7 +193,7 @@ namespace MovieJournalBackend.Services.Implementation
                         OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
                         Description = metadata.Description,
                         CreatorId = creator?.Id,
-                        Type = metadata.Type ?? request.Type,
+                        Type = parsedItem.Type ?? metadata.Type ?? MediaType.Video,
                         Visibility = request.Visibility,
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
@@ -202,12 +202,12 @@ namespace MovieJournalBackend.Services.Implementation
                         Links = [parsedItem.Url],
                         CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
                             ? request.CollectionId
-                            : collections.FirstOrDefault(x => x.Name == parsedItem.Name)?.Id
+                            : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Name, StringComparison.InvariantCultureIgnoreCase))?.Id
                     };
 
                     foreach (var cast in parsedItem.Cast)
                     {
-                        var actor = actors.FirstOrDefault(x => x.FullName == cast || x.Alias == cast);
+                        var actor = actors.FirstOrDefault(x => x.FullName.Equals(cast, StringComparison.InvariantCultureIgnoreCase) || x.Alias?.ToLowerInvariant() == cast);
 
                         if (actor is null) continue;
 
@@ -324,7 +324,7 @@ namespace MovieJournalBackend.Services.Implementation
             )
         ];
 
-        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate, string? Collection);
+        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate, string? Collection, MediaType? Type);
         private static UserWatch[] Parse(string text) =>
         [..text
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -358,13 +358,16 @@ namespace MovieJournalBackend.Services.Implementation
                     Year: year,
                     Cast: cast,
                     Creator: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
-                        ? columns[3].Trim()
+                        ? columns[3].Trim().ToLowerInvariant()
                         : null,
                     Rate: columns.Length > 4 && int.TryParse(columns[4], out var rate)
                         ? rate
                         : null,
                     Collection: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
-                        ? columns[5].Trim()
+                        ? columns[5].Trim().ToLowerInvariant()
+                        : null,
+                    Type: columns.Length > 6 && !string.IsNullOrWhiteSpace(columns[6])
+                        ? Enum.TryParse<MediaType>(columns[6], out var type) ? type : null
                         : null
                 );
             })

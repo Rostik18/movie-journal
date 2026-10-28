@@ -6,7 +6,6 @@ namespace MovieJournalBackend.Contracts.Maintenance
     {
         public string? UserId { get; set; }
         public Visibility Visibility { get; set; } = Visibility.Private;
-        public MediaType Type { get; init; } = MediaType.Video;
         public List<string> Tags { get; init; } = [];
         public string? CollectionId { get; set; }
         public string Payload { get; set; } = "";

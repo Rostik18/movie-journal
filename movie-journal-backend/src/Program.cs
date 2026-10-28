@@ -50,6 +50,7 @@ app.MapActorEndpoints();
 app.MapCreatorEndpoints();
 app.MapMediaCollectionEndpoints();
 app.MapMediaEndpoints();
+app.MapStatisticEndpoints();
 app.MapMaintenanceEndpoints();
 app.MapUserEndpoints();
 app.MapUserWatchingEndpoints();
