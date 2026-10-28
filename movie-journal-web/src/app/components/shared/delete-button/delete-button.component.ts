@@ -1,11 +1,9 @@
 import { Component, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-delete-button',
   standalone: true,
-  imports: [CommonModule],
   template: `
     <button 
       type="button" 

@@ -1,6 +1,8 @@
 <div class="toast-container">
-    <div *ngFor="let toast of toastService.toasts()" class="toast-item" [ngClass]="toast.type">
+    @for (toast of toastService.toasts(); track toast.id) {
+    <div class="toast-item" [class]="toast.type">
         <span class="toast-text">{{ toast.text }}</span>
         <button class="toast-close" (click)="toastService.remove(toast.id)">&times;</button>
     </div>
+    }
 </div>

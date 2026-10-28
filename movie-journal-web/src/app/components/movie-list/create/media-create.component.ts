@@ -1,22 +1,21 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MediaFormComponent } from '../../shared/media-form/media-form.component';
 
 @Component({
-    selector: 'app-media-create',
-    standalone: true,
-    imports: [CommonModule, MediaFormComponent],
-    template: `
+  selector: 'app-media-create',
+  standalone: true,
+  imports: [MediaFormComponent],
+  template: `
     <div style="max-width: 700px; margin: 0 auto; padding: 20px;">
       <app-media-form (mediaCreated)="onCreated()"></app-media-form>
     </div>
   `
 })
 export class MediaCreateComponent {
-    private router = inject(Router);
+  private router = inject(Router);
 
-    onCreated() {
-        this.router.navigate(['/movies']);
-    }
+  onCreated() {
+    this.router.navigate(['/movies']);
+  }
 }

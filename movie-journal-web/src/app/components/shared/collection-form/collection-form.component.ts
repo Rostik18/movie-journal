@@ -1,7 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs/operators';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Visibility, VisibilityLabels } from '../../../models/enums';
 import { CollectionService } from '../../../services/collection.service';
@@ -22,7 +21,7 @@ interface Snapshot {
 @Component({
     selector: 'app-collection-form',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [FormsModule],
     templateUrl: './collection-form.component.html',
     styleUrls: ['./collection-form.component.scss']
 })

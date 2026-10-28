@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
@@ -10,7 +9,7 @@ import { MediaCollectionResponse } from '../../models/collection.model';
 @Component({
     selector: 'app-seed-data-form',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [FormsModule],
     templateUrl: './seed-data-form.component.html',
     styleUrls: ['./seed-data-form.component.scss']
 })

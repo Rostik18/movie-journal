@@ -1,10 +1,8 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-view-switcher',
     standalone: true,
-    imports: [CommonModule],
     templateUrl: './view-switcher.component.html',
     styleUrls: ['./view-switcher.component.scss']
 })

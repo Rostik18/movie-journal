@@ -17,7 +17,11 @@
         <button type="submit">Увійти</button>
 
         <!-- Повідомлення про успіх або помилку -->
-        <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-        <p *ngIf="successMessage" class="success">{{ successMessage }}</p>
+        @if (errorMessage) {
+        <p class="error">{{ errorMessage }}</p>
+        }
+        @if (successMessage) {
+        <p class="success">{{ successMessage }}</p>
+        }
     </form>
 </div>
