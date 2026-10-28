@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
 import { MediaFormComponent } from '../media-form/media-form.component';
+import { MediaItem } from '../../../models/media.model';
 import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
 import { MediaType, WatchStatus, WatchStatusLabels } from '../../../models/enums';
 import { UserWatchingService } from '../../../services/user-watching.service';
@@ -174,7 +175,8 @@ export class UserWatchingFormComponent implements OnInit {
         this.newMediaTitle.set('');
     }
 
-    onNewMediaCreated(created: any): void {
+    onNewMediaCreated(created: MediaItem): void {
+        // Захист від некоректної відповіді сервера: без id запис у список не додати
         if (!created?.id) {
             this.toastService.show('Медіа створено, але сервер не повернув його ідентифікатор.', 'error', 6000);
             return;

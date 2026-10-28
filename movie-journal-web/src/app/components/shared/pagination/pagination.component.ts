@@ -29,8 +29,8 @@ export interface PageChange {
                     </button>
                 </div>
 
-                <select class="page-size-select" aria-label="Елементів на сторінці" title="Елементів на сторінці"
-                    (change)="onSizeChange($any($event.target).value)">
+                <select #sizeSelect class="page-size-select" aria-label="Елементів на сторінці" title="Елементів на сторінці"
+                    (change)="onSizeChange(sizeSelect.value)">
                     @for (s of sizeOptions(); track s) {
                         <option [value]="s" [selected]="s === size()">{{ s }}</option>
                     }

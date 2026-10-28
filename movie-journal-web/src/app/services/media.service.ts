@@ -79,7 +79,7 @@ export class MediaService {
         return this.http.put<MediaItem>(this.apiUrl, request);
     }
 
-    deleteMedia(id: string): Observable<any> {
-        return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    deleteMedia(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 }

@@ -95,7 +95,8 @@ export class MediaFormComponent implements OnInit {
     readonly initialUrl = input<string | null>(null);
     readonly initialTitle = input('');
     readonly mediaCreated = output<void>();
-    readonly mediaCreatedWithData = output<any>();
+    /** Створене медіа (з id від сервера) — для вбудованої форми у списку перегляду. */
+    readonly mediaCreatedWithData = output<MediaItem>();
 
     /** Якщо передано фільм — форма працює в режимі редагування. */
     readonly media = input<MediaSidebar | null>(null);
@@ -593,12 +594,12 @@ export class MediaFormComponent implements OnInit {
         );
     }
 
-    private onCreated(created: any): void {
+    private onCreated(created: MediaItem): void {
         const title = this.mediaData.title;
         this.toastService.show(`Медіа "${title}" успішно створено! 🎉`, 'success', 5000);
 
         if (this.embedded()) {
-            this.mediaCreatedWithData.emit(created || this.mediaData);
+            this.mediaCreatedWithData.emit(created);
         } else {
             this.mediaCreated.emit();
         }

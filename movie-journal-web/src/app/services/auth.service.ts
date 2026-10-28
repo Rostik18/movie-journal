@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { LoginResult } from '../models/user.model';
+import { LoginRequest, LoginResult } from '../models/user.model';
 import { AuthStorage } from './auth-storage.service';
 import { UserService } from './user.service';
 
@@ -16,8 +16,8 @@ export class AuthService {
     private authStorage = inject(AuthStorage);
     private userService = inject(UserService);
 
-    login(credentials: { login: string; password: string }): Observable<any> {
-        return this.http.post(this.apiUrl, credentials);
+    login(credentials: LoginRequest): Observable<LoginResult> {
+        return this.http.post<LoginResult>(this.apiUrl, credentials);
     }
 
     /** Зберігає результат успішного входу: токен і поточного користувача. */

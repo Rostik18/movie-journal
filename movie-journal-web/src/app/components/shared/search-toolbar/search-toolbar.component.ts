@@ -81,11 +81,12 @@ export function enumOptions(
             <!-- Єдине текстове поле (query) -->
             <div class="field search-box">
                 <input
+                    #queryInput
                     type="search"
                     [value]="queryText()"
                     [placeholder]="searchPlaceholder()"
                     [attr.aria-label]="searchPlaceholder()"
-                    (input)="onQueryInput($any($event.target).value)"
+                    (input)="onQueryInput(queryInput.value)"
                     (keydown.enter)="emitQuery(queryText())"
                     (keydown.escape)="resetQuery()">
 
@@ -118,8 +119,8 @@ export function enumOptions(
                     } @else if (filter.isSelect) {
                     <label class="field-label" [attr.for]="'filter-' + filter.key">{{ filter.label }}</label>
 
-                    <select class="filter-select" [id]="'filter-' + filter.key"
-                        (change)="onSelectChange(filter, $any($event.target).value)">
+                    <select #filterSelect class="filter-select" [id]="'filter-' + filter.key"
+                        (change)="onSelectChange(filter, filterSelect.value)">
                         <option value="" [selected]="filter.value == null">Усі</option>
                         @for (opt of filter.options; track opt.value) {
                             <option [value]="opt.value" [selected]="filter.value === opt.value">{{ opt.label }}</option>

@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 
 @Component({
-    selector: 'app-delete-button',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-delete-button',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <button 
       type="button" 
       class="btn-delete-icon" 
@@ -22,31 +22,31 @@ import { Observable } from 'rxjs';
       }
     </button>
   `,
-    styleUrls: ['./delete-button.component.scss']
+  styleUrls: ['./delete-button.component.scss']
 })
 export class DeleteButtonComponent {
-    deleteAction = input.required<() => Observable<any>>();
-    deleted = output<void>();
-    isDeleting = signal(false);
+  deleteAction = input.required<() => Observable<unknown>>();
+  deleted = output<void>();
+  isDeleting = signal(false);
 
-    onClick(event: MouseEvent) {
-        event.stopPropagation();
+  onClick(event: MouseEvent) {
+    event.stopPropagation();
 
-        if (!confirm('Ви впевнені, що хочете видалити цей об’єкт?')) {
-            return;
-        }
-
-        this.isDeleting.set(true);
-
-        this.deleteAction()().subscribe({
-            next: () => {
-                this.isDeleting.set(false);
-                this.deleted.emit();
-            },
-            error: (err) => {
-                console.error('Помилка видалення:', err);
-                this.isDeleting.set(false);
-            }
-        });
+    if (!confirm('Ви впевнені, що хочете видалити цей об’єкт?')) {
+      return;
     }
+
+    this.isDeleting.set(true);
+
+    this.deleteAction()().subscribe({
+      next: () => {
+        this.isDeleting.set(false);
+        this.deleted.emit();
+      },
+      error: (err) => {
+        console.error('Помилка видалення:', err);
+        this.isDeleting.set(false);
+      }
+    });
+  }
 }

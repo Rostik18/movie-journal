@@ -64,7 +64,7 @@ export class CollectionService {
         return this.http.put<MediaCollectionResponse>(this.apiUrl, request);
     }
 
-    deleteCollection(id: string): Observable<any> {
-        return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    deleteCollection(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 }

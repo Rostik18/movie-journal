@@ -88,7 +88,7 @@ export class UserWatchingService {
         return this.http.put<UserWatchingItem>(this.baseUrl, request);
     }
 
-    deleteUserWatching(id: string): Observable<any> {
-        return this.http.delete<any>(`${this.baseUrl}/media/${id}`);
+    deleteUserWatching(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/media/${id}`);
     }
 }

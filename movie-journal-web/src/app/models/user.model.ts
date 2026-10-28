@@ -8,6 +8,11 @@ export interface UserResponse {
     createdAtUtc: string;
 }
 
+export interface LoginRequest {
+    login: string;
+    password: string;
+}
+
 export interface LoginResult {
     accessToken: string;
     expiresAtUtc: string;

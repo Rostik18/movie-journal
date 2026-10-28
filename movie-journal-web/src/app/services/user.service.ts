@@ -76,8 +76,8 @@ export class UserService {
     }
 
     // PUT /api/users/password
-    changePassword(request: ChangePasswordRequest): Observable<any> {
-        return this.http.put<any>(`${this.baseUrl}/password`, request);
+    changePassword(request: ChangePasswordRequest): Observable<void> {
+        return this.http.put<void>(`${this.baseUrl}/password`, request);
     }
 
     // DELETE /api/users/{userId}

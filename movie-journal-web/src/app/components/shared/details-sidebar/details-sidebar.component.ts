@@ -27,7 +27,7 @@ export class DetailsSidebarComponent {
     readonly imageUrl = input<string | null | undefined>();
     readonly imageAlt = input('');
     readonly noImageText = input('Немає фото');
-    readonly deleteAction = input<() => Observable<any>>();
+    readonly deleteAction = input<() => Observable<unknown>>();
 
     readonly closed = output<void>();
     readonly editClicked = output<void>();

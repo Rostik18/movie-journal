@@ -73,7 +73,7 @@ export class ActorService {
         return this.http.put<ActorItem>(this.apiUrl, request);
     }
 
-    deleteActor(id: string): Observable<any> {
-        return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    deleteActor(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 }
