@@ -8,6 +8,8 @@ import { ToastService } from '../../../services/toast.service';
 import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 import { CountryPickerComponent } from '../country-picker/country-picker.component';
+import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { isHttpUrl } from '../../../utils/form-parse.util';
 
 const MIN_BIRTH_YEAR = 1800;
 
@@ -118,8 +120,7 @@ export class ActorFormComponent implements OnInit {
     }
 
     hasChanges(): boolean {
-        const current = this.snapshot();
-        return (Object.keys(current) as (keyof Snapshot)[]).some(key => current[key] !== this.baseline[key]);
+        return hasSnapshotChanges(this.snapshot(), this.baseline);
     }
 
     onPhotoUrlChange(value: string): void {
@@ -193,18 +194,18 @@ export class ActorFormComponent implements OnInit {
     }
 
     private update(actor: ActorItem, values: ValidatedValues): void {
-        const base = this.baseline;
-
         const payload: UpdateActorRequest = {
             actorId: actor.id,
-            fullName: values.fullName !== base.fullName ? values.fullName : null,
             // Порожній рядок очищає псевдонім; null — «не змінювати»
-            alias: this.snapshot().alias !== base.alias ? this.snapshot().alias : null,
-            photoUrl: values.photoUrl !== base.photoUrl ? values.photoUrl : null,
-            biography: values.biography !== base.biography ? values.biography : null,
-            visibility: this.actorData.visibility !== base.visibility ? this.actorData.visibility : null,
-            sex: this.actorData.sex !== base.sex ? (this.actorData.sex ?? null) : null,
-            birthDate: this.snapshot().birth !== base.birth ? values.birthDate : null,
+            ...diffPayload(this.snapshot(), this.baseline, {
+                fullName: 'fullName',
+                alias: 'alias',
+                photoUrl: 'photoUrl',
+                biography: 'biography',
+                visibility: 'visibility',
+                sex: { when: 'sex', value: () => this.actorData.sex ?? null },
+                birthDate: { when: 'birth', value: () => values.birthDate }
+            }),
             // Поле не nullable на BE, тому завжди надсилаємо поточний список
             nationalities: [...this.actorData.nationalities]
         };
@@ -233,7 +234,7 @@ export class ActorFormComponent implements OnInit {
         }
 
         const photoUrl = this.photoPreviewUrl;
-        if (photoUrl && !this.isValidUrl(photoUrl)) {
+        if (photoUrl && !isHttpUrl(photoUrl)) {
             errors.photoUrl = 'Некоректне посилання: потрібен http:// або https://';
         }
 
@@ -285,15 +286,6 @@ export class ActorFormComponent implements OnInit {
         }
 
         return { value: date.toISOString() };
-    }
-
-    private isValidUrl(value: string): boolean {
-        try {
-            const { protocol } = new URL(value);
-            return protocol === 'http:' || protocol === 'https:';
-        } catch {
-            return false;
-        }
     }
 
     private snapshot(): Snapshot {

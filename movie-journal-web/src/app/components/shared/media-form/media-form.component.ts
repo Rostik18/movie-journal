@@ -1,37 +1,33 @@
-import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { EMPTY, Observable, Subject, Subscription, forkJoin, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
+import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
 import { MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { CreatorResponse } from '../../../models/creator.model';
 import { MediaService } from '../../../services/media.service';
-import { ActorService } from '../../../services/actor.service';
 import { CollectionService } from '../../../services/collection.service';
 import { CreatorService } from '../../../services/creator.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
-import { CreateMediaRequest, MediaItem, MediaSidebar, UpdateMediaRequest } from '../../../models/media.model';
+import { CreateMediaRequest, MediaActor, MediaItem, MediaSidebar, Season, UpdateMediaRequest } from '../../../models/media.model';
+import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
+import { CastPickerComponent } from '../cast-picker/cast-picker.component';
+import { EntityPickerComponent } from '../entity-picker/entity-picker.component';
+import { SeasonsEditorComponent } from '../seasons-editor/seasons-editor.component';
 
-type ActorId = CreateMediaRequest['cast'][number]['actorId'];
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
 type CreatorId = NonNullable<CreateMediaRequest['creatorId']>;
 
 type MediaMetadata = ReturnType<ServerService['getMetadata']> extends Observable<infer T> ? T : never;
 
-interface ActorSearchItem {
-    id?: ActorId;
-    actorId?: ActorId;
-    fullName: string;
-    photoUrl?: string | null;
-}
-
-const SEARCH_DEBOUNCE_MS = 300;
 const MIN_RELEASE_YEAR = 1888;
 const MAX_RELEASE_YEAR = 2100;
 const MAX_AUTO_TAGS = 10;
+const ENTITY_SEARCH_SIZE = 5;
 
 /** Поля, які можна редагувати; порівнюються з baseline для dirty-check і payload. */
 interface Snapshot {
@@ -70,26 +66,30 @@ const createEmptyMedia = (): CreateMediaRequest => ({
     collectionId: null
 });
 
-const parseCommaList = (value: string): string[] =>
-    [...new Set(value.split(',').map(s => s.trim()).filter(Boolean))];
+/** Ключ вибору в EntityPicker: id існуючої сутності, нова назва або порожньо. */
+const entityKey = (id: string | null, name: string): string => {
+    if (id) {
+        return `id:${id}`;
+    }
+    const trimmed = name.trim();
+    return trimmed ? `new:${trimmed.toLowerCase()}` : '';
+};
 
 @Component({
     selector: 'app-media-form',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, EntityPickerComponent, CastPickerComponent, SeasonsEditorComponent],
     templateUrl: './media-form.component.html',
     styleUrls: ['./media-form.component.scss']
 })
 export class MediaFormComponent implements OnInit {
     private readonly mediaService = inject(MediaService);
-    private readonly actorService = inject(ActorService);
     private readonly collectionService = inject(CollectionService);
     private readonly creatorService = inject(CreatorService);
     private readonly serverService = inject(ServerService);
     private readonly toastService = inject(ToastService);
     private readonly cdr = inject(ChangeDetectorRef);
     private readonly destroyRef = inject(DestroyRef);
-    private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
     readonly embedded = input(false);
     readonly initialUrl = input<string | null>(null);
@@ -127,100 +127,22 @@ export class MediaFormComponent implements OnInit {
     newLinkUrl = '';
     private metadataSub: Subscription | null = null;
 
-    // ---- Актори ----
-    actorSearchQuery = '';
-    readonly actorSearchResults = signal<ActorSearchItem[]>([]);
-    private readonly actorQuery$ = new Subject<string>();
+    // ---- Актори та сезони (окремі компоненти) ----
+    readonly cast = signal<MediaActor[]>([]);
+    readonly seasons = signal<Season[]>([]);
 
-    // ---- Колекції ----
-    collectionSearchQuery = '';
-    readonly collectionSearchResults = signal<MediaCollectionResponse[]>([]);
-    readonly hasSearchedOnce = signal(false);
-    private readonly collectionQuery$ = new Subject<string>();
+    // ---- Колекція та автор: id існуючої сутності або введена назва (нову створюємо при збереженні) ----
+    readonly collectionId = signal<string | null>(null);
+    readonly collectionName = signal('');
+    readonly creatorId = signal<string | null>(null);
+    readonly creatorName = signal('');
+    private readonly creatorPicker = viewChild<EntityPickerComponent<CreatorResponse>>('creatorPicker');
 
-    // ---- Автори (творці) ----
-    creatorSearchQuery = '';
-    readonly creatorSearchResults = signal<CreatorResponse[]>([]);
-    readonly hasSearchedCreatorOnce = signal(false);
-    private readonly creatorQuery$ = new Subject<string>();
+    readonly searchCollections = (query: string): Observable<MediaCollectionResponse[]> =>
+        this.collectionService.searchCollections({ query, size: ENTITY_SEARCH_SIZE }).pipe(map(res => res.items ?? []));
 
-    constructor() {
-        this.actorQuery$.pipe(
-            debounceTime(SEARCH_DEBOUNCE_MS),
-            distinctUntilChanged(),
-            switchMap(query => {
-                if (!query) {
-                    return of<ActorSearchItem[]>([]);
-                }
-                return this.actorService.searchActors({ query, size: 10 }).pipe(
-                    map(res => (res.items ?? []) as ActorSearchItem[]),
-                    catchError(err => {
-                        console.error('Помилка пошуку акторів:', err);
-                        return of<ActorSearchItem[]>([]);
-                    })
-                );
-            }),
-            takeUntilDestroyed()
-        ).subscribe(items => this.actorSearchResults.set(items));
-
-        this.collectionQuery$.pipe(
-            debounceTime(SEARCH_DEBOUNCE_MS),
-            distinctUntilChanged(),
-            switchMap(query => {
-                if (!query) {
-                    return of<MediaCollectionResponse[] | null>(null);
-                }
-                return this.collectionService.searchCollections({ query, size: 5 }).pipe(
-                    map(res => res.items ?? []),
-                    catchError(err => {
-                        console.error('Помилка пошуку колекцій:', err);
-                        return of<MediaCollectionResponse[]>([]);
-                    })
-                );
-            }),
-            takeUntilDestroyed()
-        ).subscribe(items => {
-            if (items === null) {
-                this.collectionSearchResults.set([]);
-                this.hasSearchedOnce.set(false);
-                return;
-            }
-            this.collectionSearchResults.set(items);
-            this.hasSearchedOnce.set(true);
-
-            const query = this.collectionSearchQuery.trim().toLowerCase();
-            this.mediaData.collectionId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
-        });
-
-        this.creatorQuery$.pipe(
-            debounceTime(SEARCH_DEBOUNCE_MS),
-            distinctUntilChanged(),
-            switchMap(query => {
-                if (!query) {
-                    return of<CreatorResponse[] | null>(null);
-                }
-                return this.creatorService.searchCreators({ query, size: 5 }).pipe(
-                    map(res => res.items ?? []),
-                    catchError(err => {
-                        console.error('Помилка пошуку авторів:', err);
-                        return of<CreatorResponse[]>([]);
-                    })
-                );
-            }),
-            takeUntilDestroyed()
-        ).subscribe(items => {
-            if (items === null) {
-                this.creatorSearchResults.set([]);
-                this.hasSearchedCreatorOnce.set(false);
-                return;
-            }
-            this.creatorSearchResults.set(items);
-            this.hasSearchedCreatorOnce.set(true);
-
-            const query = this.creatorSearchQuery.trim().toLowerCase();
-            this.mediaData.creatorId = items.find(c => c.name.toLowerCase() === query)?.id ?? null;
-        });
-    }
+    readonly searchCreators = (query: string): Observable<CreatorResponse[]> =>
+        this.creatorService.searchCreators({ query, size: ENTITY_SEARCH_SIZE }).pipe(map(res => res.items ?? []));
 
     ngOnInit(): void {
         const media = this.media();
@@ -249,48 +171,29 @@ export class MediaFormComponent implements OnInit {
             title: media.title ?? '',
             description: media.description ?? '',
             originalTitle: media.originalTitle ?? '',
-            creatorId: media.creator?.id ?? null,
             type: media.type,
             releaseYear: media.releaseYear ?? null,
             duration: media.duration ?? null,
             posterUrl: media.posterUrl ?? '',
             visibility: media.visibility,
-            links: [...(media.links ?? [])],
-            cast: (media.cast ?? []).map(c => ({
-                actorId: c.id,
-                fullName: c.fullName,
-                characterName: c.characterName ?? ''
-            })),
-            collectionId: media.collection?.id ?? null
+            links: [...(media.links ?? [])]
         };
-        // Ім'я автора приходить разом з медіа — окремий запит не потрібен
-        this.creatorSearchQuery = media.creator?.name ?? '';
-        // Назва колекції приходить разом з медіа — окремий запит не потрібен
-        this.collectionSearchQuery = media.collection?.name ?? '';
+        this.cast.set((media.cast ?? []).map(c => ({
+            actorId: c.id,
+            fullName: c.fullName,
+            characterName: c.characterName ?? ''
+        })));
+        // Імена автора й колекції приходять разом з медіа — окремий запит не потрібен
+        this.creatorId.set(media.creator?.id ?? null);
+        this.creatorName.set(media.creator?.name ?? '');
+        this.collectionId.set(media.collection?.id ?? null);
+        this.collectionName.set(media.collection?.name ?? '');
         this.genresInput = (media.genres ?? []).join(', ');
         this.tagsInput = (media.tags ?? []).join(', ');
         this.imageError = false;
         // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
         this.typeTouched = true;
         this.baseline = this.snapshot();
-    }
-
-    private creatorKey(): string {
-        const id = this.mediaData.creatorId;
-        if (id) {
-            return `id:${id}`;
-        }
-        const name = this.creatorSearchQuery.trim();
-        return name ? `new:${name.toLowerCase()}` : '';
-    }
-
-    private collectionKey(): string {
-        const id = this.mediaData.collectionId;
-        if (id) {
-            return `id:${id}`;
-        }
-        const name = this.collectionSearchQuery.trim();
-        return name ? `new:${name.toLowerCase()}` : '';
     }
 
     private snapshot(): Snapshot {
@@ -303,24 +206,19 @@ export class MediaFormComponent implements OnInit {
             releaseYear: d.releaseYear ?? null,
             duration: d.duration ?? null,
             posterUrl: (d.posterUrl ?? '').trim(),
-            creator: this.creatorKey(),
+            creator: entityKey(this.creatorId(), this.creatorName()),
             visibility: d.visibility,
             genres: parseCommaList(this.genresInput).join('\u0000'),
             tags: parseCommaList(this.tagsInput).join('\u0000'),
             links: d.links.join('\u0000'),
-            cast: d.cast.map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
-            collection: this.collectionKey()
+            cast: this.cast().map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
+            collection: entityKey(this.collectionId(), this.collectionName())
         };
     }
 
     /** У редагуванні — чи змінилось щось відносно збереженого запису; у створенні завжди true. */
     hasChanges(): boolean {
-        if (!this.baseline) {
-            return true;
-        }
-        const current = this.snapshot();
-        const base = this.baseline;
-        return (Object.keys(current) as (keyof Snapshot)[]).some(key => current[key] !== base[key]);
+        return !this.baseline || hasSnapshotChanges(this.snapshot(), this.baseline);
     }
 
     get isSeries(): boolean {
@@ -331,26 +229,6 @@ export class MediaFormComponent implements OnInit {
         if ((event.target as HTMLElement).tagName === 'INPUT') {
             event.preventDefault();
         }
-    }
-
-    @HostListener('document:mousedown', ['$event'])
-    onDocumentMouseDown(event: MouseEvent): void {
-        const target = event.target as Element | null;
-        if (!target) {
-            return;
-        }
-
-        if (this.collectionSearchResults().length > 0 && !this.isInside(target, '.collection-section')) {
-            this.collectionSearchResults.set([]);
-        }
-        if (this.actorSearchResults().length > 0 && !this.isInside(target, '.actor-search-box')) {
-            this.actorSearchResults.set([]);
-        }
-    }
-
-    private isInside(target: Element, selector: string): boolean {
-        const container = target.closest(selector);
-        return !!container && this.host.nativeElement.contains(container);
     }
 
     onTypeChange(type: MediaType): void {
@@ -399,7 +277,7 @@ export class MediaFormComponent implements OnInit {
     }
 
     private addLink(url: string): boolean {
-        if (!this.isValidUrl(url)) {
+        if (!isHttpUrl(url)) {
             this.toastService.show('Некоректне посилання.', 'error', 3000);
             return false;
         }
@@ -409,15 +287,6 @@ export class MediaFormComponent implements OnInit {
         }
         this.mediaData.links.push(url);
         return true;
-    }
-
-    private isValidUrl(value: string): boolean {
-        try {
-            const { protocol } = new URL(value);
-            return protocol === 'http:' || protocol === 'https:';
-        } catch {
-            return false;
-        }
     }
 
     private loadMetadataForUrl(url: string): void {
@@ -463,9 +332,9 @@ export class MediaFormComponent implements OnInit {
             filled.push('постер');
         }
 
-        if (meta.author && !data.creatorId && !this.creatorSearchQuery.trim()) {
-            this.creatorSearchQuery = meta.author.trim();
-            this.onSearchCreators(); // підхопить існуючого автора з таким ім'ям, інакше буде створено нового
+        if (meta.author && !this.creatorId() && !this.creatorName().trim()) {
+            this.creatorName.set(meta.author.trim());
+            this.creatorPicker()?.lookup(); // підхопить існуючого автора з таким ім'ям, інакше буде створено нового
             filled.push('автор');
         }
 
@@ -521,119 +390,6 @@ export class MediaFormComponent implements OnInit {
         return true;
     }
 
-    onSearchActors(): void {
-        const query = this.actorSearchQuery.trim();
-        if (!query) {
-            this.actorSearchResults.set([]);
-        }
-        this.actorQuery$.next(query);
-    }
-
-    addActorToCast(actor: ActorSearchItem): void {
-        const actorId = (actor.id ?? actor.actorId) as ActorId;
-        if (!this.mediaData.cast.some(a => a.actorId === actorId)) {
-            this.mediaData.cast.push({ actorId, fullName: actor.fullName, characterName: '' });
-        }
-        this.actorSearchQuery = '';
-        this.actorSearchResults.set([]);
-        this.actorQuery$.next('');
-    }
-
-    removeActor(index: number): void {
-        this.mediaData.cast.splice(index, 1);
-    }
-
-    onActorEscape(event: Event): void {
-        if (this.actorSearchResults().length > 0) {
-            event.stopPropagation();
-            this.actorSearchResults.set([]);
-        }
-    }
-
-    onSearchCreators(): void {
-        const query = this.creatorSearchQuery.trim();
-
-        this.mediaData.creatorId = null;
-        this.hasSearchedCreatorOnce.set(false);
-        if (!query) {
-            this.creatorSearchResults.set([]);
-        }
-        this.creatorQuery$.next(query);
-    }
-
-    selectCreator(creator: CreatorResponse): void {
-        this.mediaData.creatorId = creator.id;
-        this.creatorSearchQuery = creator.name;
-        this.creatorSearchResults.set([]);
-    }
-
-    clearCreator(): void {
-        this.mediaData.creatorId = null;
-        this.creatorSearchQuery = '';
-        this.creatorSearchResults.set([]);
-        this.hasSearchedCreatorOnce.set(false);
-        this.creatorQuery$.next('');
-    }
-
-    onCreatorEscape(event: Event): void {
-        if (this.creatorSearchResults().length > 0) {
-            event.stopPropagation();
-            this.creatorSearchResults.set([]);
-        }
-    }
-
-    onSearchCollections(): void {
-        const query = this.collectionSearchQuery.trim();
-
-        this.mediaData.collectionId = null;
-        this.hasSearchedOnce.set(false);
-        if (!query) {
-            this.collectionSearchResults.set([]);
-        }
-        this.collectionQuery$.next(query);
-    }
-
-    selectCollection(col: MediaCollectionResponse): void {
-        this.mediaData.collectionId = col.id;
-        this.collectionSearchQuery = col.name;
-        this.collectionSearchResults.set([]);
-    }
-
-    clearCollection(): void {
-        this.mediaData.collectionId = null;
-        this.collectionSearchQuery = '';
-        this.collectionSearchResults.set([]);
-        this.hasSearchedOnce.set(false);
-        this.collectionQuery$.next('');
-    }
-
-    onCollectionEscape(event: Event): void {
-        if (this.collectionSearchResults().length > 0) {
-            event.stopPropagation();
-            this.collectionSearchResults.set([]);
-        }
-    }
-
-    addSeason(): void {
-        this.mediaData.seasons.push({ number: this.mediaData.seasons.length + 1, episodes: [] });
-    }
-
-    removeSeason(index: number): void {
-        this.mediaData.seasons.splice(index, 1);
-        this.mediaData.seasons.forEach((s, i) => (s.number = i + 1));
-    }
-
-    addEpisode(seasonIndex: number): void {
-        const season = this.mediaData.seasons[seasonIndex];
-        season.episodes.push({ number: season.episodes.length + 1, title: '' });
-    }
-
-    removeEpisode(seasonIndex: number, epIndex: number): void {
-        const season = this.mediaData.seasons[seasonIndex];
-        season.episodes.splice(epIndex, 1);
-        season.episodes.forEach((e, i) => (e.number = i + 1));
-    }
-
     submit(): void {
         if (this.isEditMode()) {
             this.update();
@@ -684,12 +440,12 @@ export class MediaFormComponent implements OnInit {
                 // Нова точка відліку: форма знову "чиста"
                 this.baseline = this.snapshot();
                 if (updated?.collection) {
-                    this.mediaData.collectionId = updated.collection.id;
-                    this.collectionSearchQuery = updated.collection.name;
+                    this.collectionId.set(updated.collection.id);
+                    this.collectionName.set(updated.collection.name);
                 }
                 if (updated?.creator) {
-                    this.mediaData.creatorId = updated.creator.id;
-                    this.creatorSearchQuery = updated.creator.name;
+                    this.creatorId.set(updated.creator.id);
+                    this.creatorName.set(updated.creator.name);
                 }
                 this.mediaUpdated.emit(updated);
             },
@@ -702,28 +458,30 @@ export class MediaFormComponent implements OnInit {
 
     /** Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює). */
     private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null, creatorId: CreatorId | null): UpdateMediaRequest {
-        const cur = this.snapshot();
-        const base = this.baseline!;
-        const changed = <K extends keyof Snapshot>(key: K): boolean => cur[key] !== base[key];
-
         return {
             mediaId,
-            title: changed('title') ? cur.title : null,
-            type: changed('type') ? cur.type : null,
-            description: changed('description') ? cur.description : null,
-            originalTitle: changed('originalTitle') ? cur.originalTitle : null,
-            releaseYear: changed('releaseYear') ? cur.releaseYear : null,
-            duration: changed('duration') ? cur.duration : null,
-            posterUrl: changed('posterUrl') ? cur.posterUrl : null,
-            creatorId: changed('creator') ? creatorId : null,
-            visibility: changed('visibility') ? cur.visibility : null,
-            genres: changed('genres') ? parseCommaList(this.genresInput) : null,
-            tags: changed('tags') ? parseCommaList(this.tagsInput) : null,
-            links: changed('links') ? [...this.mediaData.links] : null,
-            cast: changed('cast') ? this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })) : null,
-            seasons: null,
-            collectionId: changed('collection') ? collectionId : null
+            ...diffPayload(this.snapshot(), this.baseline!, {
+                title: 'title',
+                type: 'type',
+                description: 'description',
+                originalTitle: 'originalTitle',
+                releaseYear: 'releaseYear',
+                duration: 'duration',
+                posterUrl: 'posterUrl',
+                visibility: 'visibility',
+                creatorId: { when: 'creator', value: () => creatorId },
+                genres: { when: 'genres', value: () => parseCommaList(this.genresInput) },
+                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput) },
+                links: { when: 'links', value: () => [...this.mediaData.links] },
+                cast: { when: 'cast', value: () => this.castPayload() },
+                collectionId: { when: 'collection', value: () => collectionId }
+            }),
+            seasons: null
         };
+    }
+
+    private castPayload(): MediaActor[] {
+        return this.cast().map(c => ({ ...c, characterName: (c.characterName ?? '').trim() }));
     }
 
     onSubmitStandalone(): void {
@@ -738,11 +496,11 @@ export class MediaFormComponent implements OnInit {
             return false;
         }
         if (this.baseline) {
-            if (this.baseline.creator.startsWith('id:') && this.creatorKey() === '') {
+            if (this.baseline.creator.startsWith('id:') && this.snapshot().creator === '') {
                 this.toastService.show('Автора не можна прибрати після збереження — оберіть іншого.', 'error');
                 return false;
             }
-            if (this.baseline.collection.startsWith('id:') && this.collectionKey() === '') {
+            if (this.baseline.collection.startsWith('id:') && this.snapshot().collection === '') {
                 this.toastService.show('Колекцію не можна прибрати після збереження — оберіть іншу.', 'error');
                 return false;
             }
@@ -763,7 +521,7 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Тривалість має бути більшою за 0 секунд.', 'error');
             return false;
         }
-        if (posterUrl?.trim() && !this.isValidUrl(posterUrl.trim())) {
+        if (posterUrl?.trim() && !isHttpUrl(posterUrl.trim())) {
             this.toastService.show('Некоректне посилання на постер.', 'error');
             return false;
         }
@@ -779,61 +537,56 @@ export class MediaFormComponent implements OnInit {
             creatorId,
             genres: parseCommaList(this.genresInput),
             tags: parseCommaList(this.tagsInput),
-            cast: this.mediaData.cast.map(c => ({ ...c, characterName: (c.characterName ?? '').trim() })),
-            seasons: this.isSeries ? this.mediaData.seasons : [],
+            cast: this.castPayload(),
+            seasons: this.isSeries ? this.seasons() : [],
             collectionId
         };
     }
 
     private resolveCreatorId(): Observable<CreatorId | null> {
-        if (this.mediaData.creatorId) {
-            return of(this.mediaData.creatorId as CreatorId);
-        }
-
-        const name = this.creatorSearchQuery.trim();
-        if (!name) {
-            return of(null);
-        }
-
-        return this.creatorService.searchCreators({ query: name, size: 5 }).pipe(
-            map(res => (res.items ?? []).find(c => c.name.toLowerCase() === name.toLowerCase())),
-            switchMap(existing =>
-                existing
-                    ? of(existing.id as CreatorId)
-                    : this.creatorService
-                        .createCreator({ name, visibility: this.mediaData.visibility })
-                        .pipe(map(created => created.id as CreatorId))
-            ),
-            catchError(err => {
-                console.error('Помилка створення нового автора:', err);
-                this.toastService.show(`Не вдалося створити автора "${name}".`, 'error', 6000);
-                return EMPTY;
-            })
-        );
+        return this.resolveEntityId<CreatorResponse, CreatorId>({
+            selectedId: this.creatorId(),
+            name: this.creatorName(),
+            search: this.searchCreators,
+            create: name => this.creatorService.createCreator({ name, visibility: this.mediaData.visibility }),
+            errorMessage: name => `Не вдалося створити автора "${name}".`
+        });
     }
 
     private resolveCollectionId(): Observable<CollectionId | null> {
-        if (this.mediaData.collectionId) {
-            return of(this.mediaData.collectionId as CollectionId);
+        return this.resolveEntityId<MediaCollectionResponse, CollectionId>({
+            selectedId: this.collectionId(),
+            name: this.collectionName(),
+            search: this.searchCollections,
+            create: name => this.collectionService.createCollection({ name, visibility: this.mediaData.visibility, tags: [] }),
+            errorMessage: name => `Не вдалося створити колекцію "${name}".`
+        });
+    }
+
+    /** Обрана сутність → її id; введена назва → знайти існуючу з такою назвою або створити нову; порожньо → null. */
+    private resolveEntityId<T extends { id: string; name: string }, TId extends string>(options: {
+        selectedId: string | null;
+        name: string;
+        search: (query: string) => Observable<T[]>;
+        create: (name: string) => Observable<T>;
+        errorMessage: (name: string) => string;
+    }): Observable<TId | null> {
+        if (options.selectedId) {
+            return of(options.selectedId as TId);
         }
 
-        const name = this.collectionSearchQuery.trim();
+        const name = options.name.trim();
         if (!name) {
             return of(null);
         }
 
-        return this.collectionService.searchCollections({ query: name, size: 5 }).pipe(
-            map(res => (res.items ?? []).find(c => c.name.toLowerCase() === name.toLowerCase())),
-            switchMap(existing =>
-                existing
-                    ? of(existing.id as CollectionId)
-                    : this.collectionService
-                        .createCollection({ name, visibility: this.mediaData.visibility, tags: [] })
-                        .pipe(map(created => created.id as CollectionId))
-            ),
+        return options.search(name).pipe(
+            map(items => items.find(item => item.name.toLowerCase() === name.toLowerCase())),
+            switchMap(existing => existing ? of(existing) : options.create(name)),
+            map(entity => entity.id as TId),
             catchError(err => {
-                console.error('Помилка створення нової колекції:', err);
-                this.toastService.show(`Не вдалося створити колекцію "${name}".`, 'error', 6000);
+                console.error('Помилка пошуку/створення:', err);
+                this.toastService.show(options.errorMessage(name), 'error', 6000);
                 return EMPTY;
             })
         );
@@ -861,8 +614,11 @@ export class MediaFormComponent implements OnInit {
         this.tagsInput = '';
         this.imageError = false;
         this.newLinkUrl = '';
-        this.actorSearchQuery = '';
-        this.actorSearchResults.set([]);
-        this.clearCollection();
+        this.cast.set([]);
+        this.seasons.set([]);
+        this.creatorId.set(null);
+        this.creatorName.set('');
+        this.collectionId.set(null);
+        this.collectionName.set('');
     }
 }

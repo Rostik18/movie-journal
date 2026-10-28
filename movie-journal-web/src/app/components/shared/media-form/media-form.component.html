@@ -72,82 +72,19 @@
                         (ngModelChange)="onPosterUrlChange()" name="posterUrl" placeholder="https://...">
                 </div>
 
-                <!-- Автор: пошук існуючого або створення нового за іменем при збереженні -->
-                <div class="form-group collection-section">
-                    <label for="creator">Автор / Режисер</label>
-                    <div class="collection-input-wrapper">
-                        <input id="creator" type="text" [(ngModel)]="creatorSearchQuery" (input)="onSearchCreators()"
-                            (keydown.escape)="onCreatorEscape($event)" name="creatorSearchQuery" autocomplete="off"
-                            placeholder="Введіть ім'я існуючого або нового автора...">
-
-                        @if (mediaData.creatorId || creatorSearchQuery) {
-                        <button type="button" class="btn-danger-sm" (click)="clearCreator()"
-                            title="Очистити">&times;</button>
-                        }
-                    </div>
-
-                    @if (creatorSearchResults().length > 0) {
-                    <div class="actor-dropdown-results">
-                        @for (cr of creatorSearchResults(); track cr.id) {
-                        <button type="button" class="actor-dropdown-item" (click)="selectCreator(cr)">
-                            <span>🎬 {{ cr.name }}</span>
-                        </button>
-                        }
-                    </div>
-                    }
-
-                    @if (creatorSearchQuery && !mediaData.creatorId && hasSearchedCreatorOnce()) {
-                    <div class="new-collection-hint">
-                        <span>✨ Такого автора немає в базі. При збереженні буде створено нового:
-                            <strong>"{{ creatorSearchQuery }}"</strong></span>
-                    </div>
-                    }
-
-                    @if (mediaData.creatorId) {
-                    <div class="selected-collection-success">
-                        <span>✅ Обрано існуючого автора</span>
-                    </div>
-                    }
-                </div>
+                <!-- Автор / колекція: пошук існуючого або створення нового за назвою при збереженні -->
+                <app-entity-picker #creatorPicker class="form-group" inputId="creator" label="Автор / Режисер"
+                    placeholder="Введіть ім'я існуючого або нового автора..." icon="🎬"
+                    newHint="Такого автора немає в базі. При збереженні буде створено нового:"
+                    selectedHint="Обрано існуючого автора" [search]="searchCreators" [(query)]="creatorName"
+                    [(selectedId)]="creatorId" />
 
                 <!-- Колекція: у створенні та редагуванні (в редагуванні порожнє поле = не змінювати) -->
-                <div class="form-group collection-section">
-                    <label for="collection">Колекція</label>
-                    <div class="collection-input-wrapper">
-                        <input id="collection" type="text" [(ngModel)]="collectionSearchQuery"
-                            (input)="onSearchCollections()" (keydown.escape)="onCollectionEscape($event)"
-                            name="collectionSearchQuery" autocomplete="off"
-                            [placeholder]="isEditMode() ? 'Оберіть або введіть колекцію...' : 'Введіть назву існуючої або нової колекції...'">
-
-                        @if (mediaData.collectionId || collectionSearchQuery) {
-                        <button type="button" class="btn-danger-sm" (click)="clearCollection()"
-                            title="Очистити">&times;</button>
-                        }
-                    </div>
-
-                    @if (collectionSearchResults().length > 0) {
-                    <div class="actor-dropdown-results">
-                        @for (col of collectionSearchResults(); track col.id) {
-                        <button type="button" class="actor-dropdown-item" (click)="selectCollection(col)">
-                            <span>📁 {{ col.name }}</span>
-                        </button>
-                        }
-                    </div>
-                    }
-
-                    @if (collectionSearchQuery && !mediaData.collectionId && hasSearchedOnce()) {
-                    <div class="new-collection-hint">
-                        <span>✨ Такої колекції немає в базі. При збереженні буде створено нову:
-                            <strong>"{{ collectionSearchQuery }}"</strong></span>
-                    </div>
-                    }
-
-                    @if (mediaData.collectionId) {
-                    <div class="selected-collection-success">
-                        <span>✅ Обрано існуючу колекцію</span>
-                    </div>
-                    }
-                </div>
+                <app-entity-picker class="form-group" inputId="collection" label="Колекція"
+                    [placeholder]="isEditMode() ? 'Оберіть або введіть колекцію...' : 'Введіть назву існуючої або нової колекції...'"
+                    icon="📁" newHint="Такої колекції немає в базі. При збереженні буде створено нову:"
+                    selectedHint="Обрано існуючу колекцію" [search]="searchCollections" [(query)]="collectionName"
+                    [(selectedId)]="collectionId" />
             </div>
 
             <div class="poster-preview-section" title="Прев'ю постера">
@@ -184,77 +121,11 @@
         </div>
 
         <!-- Акторський склад -->
-        <div class="cast-section">
-            <div class="section-header">
-                <h4>Акторський склад (Cast)</h4>
-            </div>
-
-            <div class="form-group actor-search-box">
-                <label for="actorSearch">Знайти та додати актора</label>
-                <input id="actorSearch" type="text" [(ngModel)]="actorSearchQuery" (input)="onSearchActors()"
-                    (keydown.escape)="onActorEscape($event)" name="actorSearchQuery" autocomplete="off"
-                    placeholder="Введіть ім'я актора...">
-
-                @if (actorSearchResults().length > 0) {
-                <div class="actor-dropdown-results">
-                    @for (actor of actorSearchResults(); track actor.id ?? actor.actorId) {
-                    <button type="button" class="actor-dropdown-item" (click)="addActorToCast(actor)">
-                        <img [src]="actor.photoUrl || 'assets/default-avatar.png'" alt="" class="mini-avatar">
-                        <span>{{ actor.fullName }}</span>
-                    </button>
-                    }
-                </div>
-                }
-            </div>
-
-            @if (mediaData.cast.length > 0) {
-            <div class="selected-cast-list">
-                @for (castMember of mediaData.cast; track castMember.actorId; let i = $index) {
-                <div class="cast-row">
-                    <div class="actor-info-col">
-                        <span class="actor-name">{{ castMember.fullName }}</span>
-                    </div>
-                    <div class="character-col">
-                        <input type="text" [(ngModel)]="castMember.characterName"
-                            [name]="'character_' + castMember.actorId" placeholder="Ім'я персонажа (напр. Томас Шелбі)">
-                    </div>
-                    <button type="button" class="btn-danger-sm" (click)="removeActor(i)">&times;</button>
-                </div>
-                }
-            </div>
-            }
-        </div>
+        <app-cast-picker [(cast)]="cast" />
 
         <!-- Сезони (тільки для серіалу, лише при створенні) -->
         @if (isSeries && !isEditMode()) {
-        <div class="seasons-section">
-            <div class="section-header">
-                <h4>Сезони та епізоди</h4>
-                <button type="button" class="btn-sm" (click)="addSeason()">+ Додати сезон</button>
-            </div>
-
-            @for (season of mediaData.seasons; track $index; let sIndex = $index) {
-            <div class="season-box">
-                <div class="season-title-row">
-                    <span>Сезон {{ season.number }}</span>
-                    <button type="button" class="btn-del" (click)="removeSeason(sIndex)">Видалити сезон</button>
-                </div>
-
-                <div class="episodes-list">
-                    @for (ep of season.episodes; track $index; let eIndex = $index) {
-                    <div class="episode-row">
-                        <span>Серія {{ ep.number }}:</span>
-                        <input type="text" [(ngModel)]="ep.title" [name]="'season_' + sIndex + '_ep_' + eIndex"
-                            placeholder="Назва серії">
-                        <button type="button" class="btn-danger-sm"
-                            (click)="removeEpisode(sIndex, eIndex)">&times;</button>
-                    </div>
-                    }
-                    <button type="button" class="btn-xs" (click)="addEpisode(sIndex)">+ Додати серію</button>
-                </div>
-            </div>
-            }
-        </div>
+        <app-seasons-editor [(seasons)]="seasons" />
         }
 
         <!-- Прикріплені посилання -->

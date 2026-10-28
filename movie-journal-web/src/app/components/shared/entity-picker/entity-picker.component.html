@@ -1,0 +1,31 @@
+<label [for]="inputId()">{{ label() }}</label>
+<div class="input-wrapper">
+    <input [id]="inputId()" type="text" [name]="inputId()" autocomplete="off" [ngModel]="query()"
+        (ngModelChange)="onInput($event)" (keydown.escape)="onEscape($event)" [placeholder]="placeholder()">
+
+    @if (selectedId() || query()) {
+    <button type="button" class="btn-danger-sm" (click)="clear()" title="Очистити">&times;</button>
+    }
+</div>
+
+@if (results().length > 0) {
+<div class="dropdown-results">
+    @for (item of results(); track item.id) {
+    <button type="button" class="dropdown-item" (click)="select(item)">
+        <span>{{ icon() }} {{ item.name }}</span>
+    </button>
+    }
+</div>
+}
+
+@if (query() && !selectedId() && hasSearched()) {
+<div class="new-hint">
+    <span>✨ {{ newHint() }} <strong>"{{ query() }}"</strong></span>
+</div>
+}
+
+@if (selectedId()) {
+<div class="selected-hint">
+    <span>✅ {{ selectedHint() }}</span>
+</div>
+}

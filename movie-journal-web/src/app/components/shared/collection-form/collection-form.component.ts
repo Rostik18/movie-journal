@@ -7,6 +7,8 @@ import { Visibility, VisibilityLabels } from '../../../models/enums';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../../../models/collection.model';
+import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { parseCommaList } from '../../../utils/form-parse.util';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
 interface Snapshot {
@@ -16,9 +18,6 @@ interface Snapshot {
     visibility: Visibility;
     tags: string;
 }
-
-const parseTags = (value: string): string[] =>
-    [...new Set(value.split(',').map(s => s.trim()).filter(Boolean))];
 
 @Component({
     selector: 'app-collection-form',
@@ -81,7 +80,7 @@ export class CollectionFormComponent implements OnInit {
             description: (d.description ?? '').trim(),
             posterUrl: (d.posterUrl ?? '').trim(),
             visibility: d.visibility,
-            tags: parseTags(this.tagsInput).join('\u0000')
+            tags: parseCommaList(this.tagsInput).join('\u0000')
         };
     }
 
@@ -90,9 +89,7 @@ export class CollectionFormComponent implements OnInit {
         if (!this.baseline) {
             return false;
         }
-        const current = this.snapshot();
-        const base = this.baseline;
-        return (Object.keys(current) as (keyof Snapshot)[]).some(key => current[key] !== base[key]);
+        return hasSnapshotChanges(this.snapshot(), this.baseline);
     }
 
     onPosterUrlChange() {
@@ -110,9 +107,7 @@ export class CollectionFormComponent implements OnInit {
             return;
         }
 
-        this.collectionData.tags = this.tagsInput
-            ? this.tagsInput.split(',').map(s => s.trim()).filter(Boolean)
-            : [];
+        this.collectionData.tags = parseCommaList(this.tagsInput);
 
         this.toastService.show(`Створення колекції "${this.collectionData.name}" запущено у фоні...`, 'info', 4000);
 
@@ -135,15 +130,16 @@ export class CollectionFormComponent implements OnInit {
         }
 
         const cur = this.snapshot();
-        const base = this.baseline!;
         // Лише змінені поля; незмінені — null (бекенд null-поля не оновлює)
         const request: UpdateMediaCollectionRequest = {
             collectionId: col.id,
-            name: cur.name !== base.name ? cur.name : null,
-            description: cur.description !== base.description ? cur.description : null,
-            posterUrl: cur.posterUrl !== base.posterUrl ? cur.posterUrl : null,
-            visibility: cur.visibility !== base.visibility ? cur.visibility : null,
-            tags: cur.tags !== base.tags ? parseTags(this.tagsInput) : null
+            ...diffPayload(cur, this.baseline!, {
+                name: 'name',
+                description: 'description',
+                posterUrl: 'posterUrl',
+                visibility: 'visibility',
+                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput) }
+            })
         };
 
         this.isSubmitting.set(true);

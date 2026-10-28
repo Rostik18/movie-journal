@@ -6,47 +6,12 @@
     <div class="form-group">
         <label>Фільм / Серіал</label>
         <div class="selected-success">
-            <span>🎬 <strong>{{ selectedMediaTitle }}</strong></span>
+            <span>🎬 <strong>{{ selectedMedia()?.title }}</strong></span>
         </div>
     </div>
     } @else if (!isCreatingNewMedia()) {
-    <div class="form-group media-search">
-        <label for="mediaSearch">Фільм / Серіал *</label>
-        <div class="search-input-wrapper">
-            <input id="mediaSearch" type="text" autocomplete="off" [ngModel]="mediaSearchQuery"
-                (ngModelChange)="onMediaQueryChange($event)"
-                placeholder="Введіть назву фільму або вставте посилання (URL)...">
-
-            @if (formData.mediaId || mediaSearchQuery) {
-            <button type="button" class="btn-danger-sm" (click)="clearMedia()" title="Очистити">&times;</button>
-            }
-        </div>
-
-        @if (mediaSearchResults().length > 0 && !formData.mediaId) {
-        <div class="dropdown-results">
-            @for (media of mediaSearchResults(); track media.id) {
-            <div class="dropdown-item" (click)="selectMedia(media)">
-                <span>🎬 {{ media.title }} ({{ media.releaseYear }})</span>
-            </div>
-            }
-        </div>
-        }
-
-        @if (mediaSearchQuery && !formData.mediaId && hasSearched() && mediaSearchResults().length === 0) {
-        <div class="new-media-prompt">
-            <span>✨ Фільм не знайдено в базі.</span>
-            <button type="button" class="btn-create-inline" (click)="startCreateNew()">
-                Створити новий фільм
-            </button>
-        </div>
-        }
-
-        @if (formData.mediaId) {
-        <div class="selected-success">
-            <span>✅ Обрано фільм: <strong>{{ selectedMediaTitle }}</strong></span>
-        </div>
-        }
-    </div>
+    <app-media-picker class="form-group" [(query)]="mediaSearchQuery" [(selected)]="selectedMedia"
+        (createNew)="startCreateNew($event)" />
     } @else {
     <!-- 2. Вбудована форма створення нового медіа -->
     <div class="inline-creation-section">

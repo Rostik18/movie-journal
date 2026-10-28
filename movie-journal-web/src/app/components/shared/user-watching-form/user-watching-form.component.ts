@@ -1,24 +1,16 @@
 import { Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Observable, Subject, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 
 import { MediaFormComponent } from '../media-form/media-form.component';
 import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
 import { MediaType, WatchStatus, WatchStatusLabels } from '../../../models/enums';
 import { UserWatchingService } from '../../../services/user-watching.service';
-import { MediaService } from '../../../services/media.service';
 import { ToastService } from '../../../services/toast.service';
-import { MediaItem } from '../../../models/media.model';
 import { CreateUserWatchingRequest, UpdateUserWatchingRequest, UserWatchingItem, UserWatchingSidebar } from '../../../models/user-watching.model';
-
-type SearchOutcome =
-    | { kind: 'empty' }
-    | { kind: 'url'; url: string }
-    | { kind: 'items'; query: string; items: MediaItem[] };
-
-const SEARCH_DEBOUNCE_MS = 300;
+import { diffPayload, hasSnapshotChanges } from '../../../utils/form-diff';
+import { CreateMediaRequestEvent, MediaPickerComponent, PickedMedia } from '../media-picker/media-picker.component';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
 interface WatchingSnapshot {
@@ -52,13 +44,12 @@ const createEmptyWatching = (): CreateUserWatchingRequest => ({
 @Component({
     selector: 'app-user-watching-form',
     standalone: true,
-    imports: [FormsModule, MediaFormComponent, RatingStarsComponent],
+    imports: [FormsModule, MediaFormComponent, MediaPickerComponent, RatingStarsComponent],
     templateUrl: './user-watching-form.component.html',
     styleUrls: ['./user-watching-form.component.scss']
 })
 export class UserWatchingFormComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
-    private readonly mediaService = inject(MediaService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
 
@@ -84,12 +75,10 @@ export class UserWatchingFormComponent implements OnInit {
         label: WatchStatusLabels[type]
     }));
 
-    // ---- Пошук / вибір медіа ----
-    mediaSearchQuery = '';
-    selectedMediaTitle = '';
-    readonly mediaSearchResults = signal<MediaItem[]>([]);
-    readonly hasSearched = signal(false);
-    private readonly mediaQuery$ = new Subject<string>();
+    // ---- Вибір існуючого медіа (MediaPicker) ----
+    /** Текст пошуку живе тут, щоб пережити перемикання на форму створення нового медіа. */
+    readonly mediaSearchQuery = signal('');
+    readonly selectedMedia = signal<PickedMedia | null>(null);
 
     // ---- Створення нового медіа (вбудована форма) ----
     readonly isCreatingNewMedia = signal(false);
@@ -101,8 +90,6 @@ export class UserWatchingFormComponent implements OnInit {
     readonly isBusy = computed(
         () => this.isSavingWatching() || (this.mediaForm()?.isSubmitting() ?? false)
     );
-
-    selectedMediaType: MediaType | null = null;
 
     // Геттер та сеттер для конвертації хвилин у секунди та навпаки
     get stoppedAtMinutes(): number | null {
@@ -121,35 +108,7 @@ export class UserWatchingFormComponent implements OnInit {
     get showProgressFields(): boolean {
         return this.isCreatingNewMedia()
             ? (this.mediaForm()?.isSeries ?? false)
-            : !!this.formData.mediaId && this.selectedMediaType === MediaType.Series;
-    }
-
-    constructor() {
-        this.mediaQuery$.pipe(
-            debounceTime(SEARCH_DEBOUNCE_MS),
-            distinctUntilChanged(),
-            switchMap((query): Observable<SearchOutcome> => {
-                if (!query) {
-                    return of<SearchOutcome>({ kind: 'empty' });
-                }
-                if (this.isUrl(query)) {
-                    return of<SearchOutcome>({ kind: 'url', url: query });
-                }
-                return this.mediaService.searchMedia({ query, size: 5 }).pipe(
-                    map((res): SearchOutcome => ({
-                        kind: 'items',
-                        query,
-                        items: (res.items ?? []) as MediaItem[]
-                    })),
-                    catchError(err => {
-                        console.error('Помилка пошуку медіа:', err);
-                        this.toastService.show('Не вдалося виконати пошук.', 'error', 4000);
-                        return of<SearchOutcome>({ kind: 'empty' });
-                    })
-                );
-            }),
-            takeUntilDestroyed()
-        ).subscribe(outcome => this.applySearchOutcome(outcome));
+            : this.selectedMedia()?.type === MediaType.Series;
     }
 
     ngOnInit(): void {
@@ -167,8 +126,7 @@ export class UserWatchingFormComponent implements OnInit {
             currentSeasonNumber: item.currentSeasonNumber ?? null,
             currentEpisodeNumber: item.currentEpisodeNumber ?? null
         };
-        this.selectedMediaTitle = item.media.title;
-        this.selectedMediaType = item.media.type;
+        this.selectedMedia.set({ id: item.media.id, title: item.media.title, type: item.media.type });
         this.baseline = this.snapshot();
     }
 
@@ -186,89 +144,23 @@ export class UserWatchingFormComponent implements OnInit {
 
     /** Чи відрізняється форма від початкового стану (у створенні — чи щось введено). */
     hasChanges(): boolean {
-        if (!this.isEditMode() && (this.formData.mediaId || this.mediaSearchQuery.trim() || this.isCreatingNewMedia())) {
+        if (!this.isEditMode() && (this.selectedMedia() || this.mediaSearchQuery().trim() || this.isCreatingNewMedia())) {
             return true;
         }
 
-        const current = this.snapshot();
-        return (Object.keys(current) as (keyof WatchingSnapshot)[]).some(key => current[key] !== this.baseline[key]);
+        return hasSnapshotChanges(this.snapshot(), this.baseline);
     }
 
-    // ====================== Пошук медіа ======================
-    onMediaQueryChange(value: string): void {
-        this.mediaSearchQuery = value;
-        const query = value.trim();
-
-        this.formData.mediaId = '';
-        this.selectedMediaTitle = '';
-        this.selectedMediaType = null;
-        this.hasSearched.set(false);
-        if (!query) {
-            this.mediaSearchResults.set([]);
-        }
-        this.mediaQuery$.next(query);
-    }
-
-    selectMedia(media: MediaItem): void {
-        this.formData.mediaId = media.id;
-        this.mediaSearchQuery = media.title;
-        this.selectedMediaTitle = media.title;
-        this.selectedMediaType = media.type;
-        this.mediaSearchResults.set([]);
-    }
-
+    // ====================== Вибір і створення медіа ======================
     clearMedia(): void {
-        this.formData.mediaId = '';
-        this.mediaSearchQuery = '';
-        this.selectedMediaTitle = '';
-        this.selectedMediaType = null;
-        this.mediaSearchResults.set([]);
-        this.hasSearched.set(false);
-        this.mediaQuery$.next('');
+        this.selectedMedia.set(null);
+        this.mediaSearchQuery.set('');
     }
 
-    private applySearchOutcome(outcome: SearchOutcome): void {
-        switch (outcome.kind) {
-            case 'empty':
-                this.mediaSearchResults.set([]);
-                this.hasSearched.set(false);
-                break;
-
-            case 'url':
-                this.mediaSearchResults.set([]);
-                this.startCreateNew(outcome.url);
-                break;
-
-            case 'items': {
-                this.mediaSearchResults.set(outcome.items);
-                this.hasSearched.set(true);
-
-                const query = outcome.query.toLowerCase();
-                const exactMatch = outcome.items.find(m => m.title.toLowerCase() === query);
-                if (exactMatch) {
-                    this.formData.mediaId = exactMatch.id;
-                    this.selectedMediaTitle = exactMatch.title;
-                    this.selectedMediaType = exactMatch.type;
-                }
-                break;
-            }
-        }
-    }
-
-    private isUrl(text: string): boolean {
-        try {
-            const { protocol } = new URL(text);
-            return protocol === 'http:' || protocol === 'https:';
-        } catch {
-            return false;
-        }
-    }
-
-    // ====================== Створення нового медіа ======================
-    startCreateNew(url: string | null = null): void {
-        this.newMediaUrl.set(url);
-        this.newMediaTitle.set(url ? '' : this.mediaSearchQuery.trim());
-        this.formData.mediaId = '';
+    startCreateNew(request: CreateMediaRequestEvent): void {
+        this.newMediaUrl.set(request.url);
+        this.newMediaTitle.set(request.url ? '' : request.title);
+        this.selectedMedia.set(null);
         this.isCreatingNewMedia.set(true);
     }
 
@@ -288,10 +180,13 @@ export class UserWatchingFormComponent implements OnInit {
             return;
         }
 
-        this.formData.mediaId = created.id;
-        this.selectedMediaTitle = created.title ?? this.mediaForm()?.mediaData.title ?? '';
-        this.selectedMediaType = created.type ?? this.mediaForm()?.mediaData.type ?? null;
-        this.mediaSearchQuery = this.selectedMediaTitle;
+        const title: string = created.title ?? this.mediaForm()?.mediaData.title ?? '';
+        this.selectedMedia.set({
+            id: created.id,
+            title,
+            type: created.type ?? this.mediaForm()?.mediaData.type ?? null
+        });
+        this.mediaSearchQuery.set(title);
         this.newMediaUrl.set(null);
         this.newMediaTitle.set('');
         this.isCreatingNewMedia.set(false);
@@ -315,7 +210,7 @@ export class UserWatchingFormComponent implements OnInit {
             return;
         }
 
-        if (!this.formData.mediaId) {
+        if (!this.selectedMedia()) {
             this.toastService.show('Будь ласка, оберіть фільм або введіть URL / створіть новий.', 'error');
             return;
         }
@@ -323,6 +218,11 @@ export class UserWatchingFormComponent implements OnInit {
     }
 
     private saveToWatchlist(): void {
+        const media = this.selectedMedia();
+        if (!media) {
+            return;
+        }
+
         this.isSavingWatching.set(true);
 
         // Очищаємо stoppedAtSeconds якщо статус не Watching
@@ -330,9 +230,11 @@ export class UserWatchingFormComponent implements OnInit {
             this.formData.stoppedAtSeconds = null;
         }
 
-        const payload = this.showProgressFields
-            ? this.formData
-            : { ...this.formData, currentSeasonNumber: null, currentEpisodeNumber: null };
+        const payload: CreateUserWatchingRequest = {
+            ...this.formData,
+            mediaId: media.id,
+            ...(this.showProgressFields ? {} : { currentSeasonNumber: null, currentEpisodeNumber: null })
+        };
 
         this.userWatchingService.createOrUpdateWatchlist(payload).pipe(
             finalize(() => this.isSavingWatching.set(false)),
@@ -400,18 +302,21 @@ export class UserWatchingFormComponent implements OnInit {
             return null;
         }
 
-        const stoppedChanged = isWatching && cur.stoppedAtSeconds !== base.stoppedAtSeconds;
-        const seasonChanged = showProgress && cur.currentSeasonNumber !== base.currentSeasonNumber;
-        const episodeChanged = showProgress && cur.currentEpisodeNumber !== base.currentEpisodeNumber;
+        // Час зупинки та прогрес актуальні лише для статусу «Дивлюсь» / серіалу — інакше не надсилаємо
+        const stoppedAt = isWatching ? cur.stoppedAtSeconds : base.stoppedAtSeconds;
+        const season = showProgress ? cur.currentSeasonNumber : base.currentSeasonNumber;
+        const episode = showProgress ? cur.currentEpisodeNumber : base.currentEpisodeNumber;
 
         return {
             mediaId,
-            status: cur.status !== base.status ? cur.status : null,
-            rating: cur.rating !== base.rating ? cur.rating : null,
-            notes: cur.notes !== base.notes ? cur.notes : null,
-            stoppedAtSeconds: stoppedChanged ? cur.stoppedAtSeconds : null,
-            currentSeasonNumber: seasonChanged ? cur.currentSeasonNumber : null,
-            currentEpisodeNumber: episodeChanged ? cur.currentEpisodeNumber : null
+            ...diffPayload({ ...cur, stoppedAtSeconds: stoppedAt, currentSeasonNumber: season, currentEpisodeNumber: episode }, base, {
+                status: 'status',
+                rating: 'rating',
+                notes: 'notes',
+                stoppedAtSeconds: 'stoppedAtSeconds',
+                currentSeasonNumber: 'currentSeasonNumber',
+                currentEpisodeNumber: 'currentEpisodeNumber'
+            })
         };
     }
 

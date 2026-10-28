@@ -1,0 +1,38 @@
+<div class="section-header">
+    <h4>Акторський склад (Cast)</h4>
+</div>
+
+<div class="form-group actor-search-box">
+    <label for="actorSearch">Знайти та додати актора</label>
+    <input id="actorSearch" type="text" [ngModel]="searchQuery" (ngModelChange)="onSearch($event)"
+        (keydown.escape)="onEscape($event)" name="actorSearchQuery" autocomplete="off"
+        placeholder="Введіть ім'я актора...">
+
+    @if (results().length > 0) {
+    <div class="dropdown-results">
+        @for (actor of results(); track actor.id) {
+        <button type="button" class="dropdown-item" (click)="add(actor)">
+            <img [src]="actor.photoUrl || 'assets/default-avatar.png'" alt="" class="mini-avatar">
+            <span>{{ actor.fullName }}</span>
+        </button>
+        }
+    </div>
+    }
+</div>
+
+@if (cast().length > 0) {
+<div class="selected-cast-list">
+    @for (member of cast(); track member.actorId; let i = $index) {
+    <div class="cast-row">
+        <div class="actor-info-col">
+            <span class="actor-name">{{ member.fullName }}</span>
+        </div>
+        <div class="character-col">
+            <input type="text" [ngModel]="member.characterName" (ngModelChange)="setCharacterName(i, $event)"
+                [name]="'character_' + member.actorId" placeholder="Ім'я персонажа (напр. Томас Шелбі)">
+        </div>
+        <button type="button" class="btn-danger-sm" (click)="remove(i)">&times;</button>
+    </div>
+    }
+</div>
+}

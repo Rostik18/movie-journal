@@ -1,0 +1,34 @@
+<label for="mediaSearch">Фільм / Серіал *</label>
+<div class="search-input-wrapper">
+    <input id="mediaSearch" type="text" name="mediaSearch" autocomplete="off" [ngModel]="query()"
+        (ngModelChange)="onInput($event)" placeholder="Введіть назву фільму або вставте посилання (URL)...">
+
+    @if (selected() || query()) {
+    <button type="button" class="btn-danger-sm" (click)="clear()" title="Очистити">&times;</button>
+    }
+</div>
+
+@if (results().length > 0 && !selected()) {
+<div class="dropdown-results">
+    @for (media of results(); track media.id) {
+    <div class="dropdown-item" (click)="select(media)">
+        <span>🎬 {{ media.title }} ({{ media.releaseYear }})</span>
+    </div>
+    }
+</div>
+}
+
+@if (query() && !selected() && hasSearched() && results().length === 0) {
+<div class="new-media-prompt">
+    <span>✨ Фільм не знайдено в базі.</span>
+    <button type="button" class="btn-create-inline" (click)="startCreate()">
+        Створити новий фільм
+    </button>
+</div>
+}
+
+@if (selected(); as picked) {
+<div class="selected-success">
+    <span>✅ Обрано фільм: <strong>{{ picked.title }}</strong></span>
+</div>
+}
