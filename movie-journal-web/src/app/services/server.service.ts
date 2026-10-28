@@ -17,11 +17,9 @@ export interface MetadataResponse {
 export interface SeedUserWatchRequest {
     userId?: string | null;
     visibility: Visibility;
-    status: WatchStatus;
-    type: MediaType;
     tags: string[];
-    payload: string;
     collectionId?: string | null;
+    payload: string;
 }
 
 export interface SeedActorsRequest {

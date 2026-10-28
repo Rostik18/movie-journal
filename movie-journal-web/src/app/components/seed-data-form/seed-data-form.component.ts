@@ -24,8 +24,6 @@ export class SeedDataFormComponent implements OnInit {
     // Моделі для форми
     payloadText = signal('');
     selectedVisibility = signal<Visibility>(Visibility.Private);
-    selectedStatus = signal<WatchStatus>(WatchStatus.Watched);
-    selectedType = signal<MediaType>(MediaType.Video);
     tagsInput = signal('');
     selectedCollectionId = signal<string | null>(null);
 
@@ -202,8 +200,6 @@ export class SeedDataFormComponent implements OnInit {
             const request: SeedUserWatchRequest = {
                 userId: null,
                 visibility: this.selectedVisibility(),
-                status: this.selectedStatus(),
-                type: this.selectedType(),
                 tags: tags,
                 collectionId: collectionIdVal ? collectionIdVal : null,
                 payload: text
