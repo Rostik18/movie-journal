@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -28,6 +29,8 @@ export class DeleteButtonComponent {
   deleted = output<void>();
   isDeleting = signal(false);
 
+  private readonly destroyRef = inject(DestroyRef);
+
   onClick(event: MouseEvent) {
     event.stopPropagation();
 
@@ -37,7 +40,7 @@ export class DeleteButtonComponent {
 
     this.isDeleting.set(true);
 
-    this.deleteAction()().subscribe({
+    this.deleteAction()().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isDeleting.set(false);
         this.deleted.emit();

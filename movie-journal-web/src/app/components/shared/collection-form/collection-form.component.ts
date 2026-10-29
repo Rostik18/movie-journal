@@ -107,7 +107,9 @@ export class CollectionFormComponent implements OnInit {
 
         this.toastService.show(`Створення колекції "${payload.name}" запущено у фоні...`, 'info', 4000);
 
-        this.collectionService.createCollection(payload).subscribe({
+        this.collectionService.createCollection(payload).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
             next: () => {
                 this.toastService.show(`Колекцію "${payload.name}" успішно створено! 🎉`, 'success', 5000);
                 this.collectionCreated.emit();

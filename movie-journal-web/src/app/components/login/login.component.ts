@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -26,6 +27,7 @@ export class LoginComponent {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private authService = inject(AuthService);
+    private destroyRef = inject(DestroyRef);
 
     /** Адреса, з якої користувача перекинуло на логін; приймаємо лише внутрішні шляхи (захист від open redirect). */
     private safeReturnUrl(): string {
@@ -34,7 +36,9 @@ export class LoginComponent {
     }
 
     onSubmit() {
-        this.authService.login({ login: this.login(), password: this.password() }).subscribe({
+        this.authService.login({ login: this.login(), password: this.password() }).pipe(
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
             next: (response: LoginResult) => {
                 console.log('Успішний вхід:', response);
 

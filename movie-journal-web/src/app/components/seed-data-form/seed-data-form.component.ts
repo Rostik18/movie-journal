@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, output, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
@@ -18,6 +19,7 @@ export class SeedDataFormComponent implements OnInit {
     private serverService = inject(ServerService);
     private collectionService = inject(CollectionService);
     private toastService = inject(ToastService);
+    private destroyRef = inject(DestroyRef);
 
     seedMode = signal<'userWatch' | 'actors' | 'creators' | 'collections'>('actors');
 
@@ -59,7 +61,7 @@ export class SeedDataFormComponent implements OnInit {
     }
 
     loadCollections(): void {
-        this.collectionService.searchCollections({ size: 100 }).subscribe({
+        this.collectionService.searchCollections({ size: 100 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (res) => {
                 this.collections.set(res.items ?? []);
             },
@@ -91,7 +93,7 @@ export class SeedDataFormComponent implements OnInit {
                 payload: text
             };
 
-            this.serverService.seedActorsData(request).subscribe({
+            this.serverService.seedActorsData(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: (response) => {
                     this.loading.set(false);
 
@@ -124,7 +126,7 @@ export class SeedDataFormComponent implements OnInit {
                 payload: text
             };
 
-            this.serverService.seedCreatorsData(request).subscribe({
+            this.serverService.seedCreatorsData(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: (response) => {
                     this.loading.set(false);
 
@@ -162,7 +164,7 @@ export class SeedDataFormComponent implements OnInit {
                 payload: text
             };
 
-            this.serverService.seedCollectionsData(request).subscribe({
+            this.serverService.seedCollectionsData(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: (response) => {
                     this.loading.set(false);
 
@@ -205,7 +207,7 @@ export class SeedDataFormComponent implements OnInit {
                 payload: text
             };
 
-            this.serverService.seedUserWatchData(request).subscribe({
+            this.serverService.seedUserWatchData(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                 next: (response) => {
                     this.loading.set(false);
 
@@ -262,7 +264,7 @@ export class SeedDataFormComponent implements OnInit {
         }
 
         this.loading.set(true);
-        this.serverService.clearDatabase().subscribe({
+        this.serverService.clearDatabase().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (response) => {
                 this.loading.set(false);
                 this.toastService.show(response.message || 'Базу даних успішно очищено!', 'success', 4000);
