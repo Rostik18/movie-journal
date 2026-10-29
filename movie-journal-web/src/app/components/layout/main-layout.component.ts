@@ -35,12 +35,12 @@ export class MainLayoutComponent {
 
     readonly navItems = [
         { path: '/watchlist', label: '⭐ Список перегляду', render: true },
-        { path: '/movies', label: 'Список фільмів', render: true },
-        { path: '/actors', label: 'Актори', render: true },
-        { path: '/collections', label: 'Колекції', render: true },
-        { path: '/users', label: 'Користувачі', render: this.userService.isAdmin() },
+        { path: '/movies', label: '🎞️ Каталог фільмів', render: true },
+        { path: '/actors', label: '🎭 Актори', render: true },
+        { path: '/collections', label: '🗂️ Колекції', render: true },
+        { path: '/users', label: '👥 Користувачі', render: this.userService.isAdmin() },
         { path: '/statistics', label: '📊 Статистика', render: this.userService.isAdmin() },
-        { path: '/seed-data', label: 'Імпорт даних', render: this.userService.isAdmin() }
+        { path: '/seed-data', label: '📥 Імпорт даних', render: this.userService.isAdmin() }
     ];
 
     readonly serverStatus = this.serverHealth.status;
