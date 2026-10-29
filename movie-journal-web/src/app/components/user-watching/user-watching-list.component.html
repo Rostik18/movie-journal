@@ -185,9 +185,15 @@
             </p>
             }
 
+            @if (item.media.description) {
+            <p class="detail-row"><strong>Опис:</strong> {{ item.media.description }}</p>
+            }
+
             @if (item.media.creator) {
             <p class="detail-row">
-                <strong>Автор / Режисер:</strong> {{ item.media.creator.name }}
+                <strong>Автор:</strong>
+                <a class="detail-link" [routerLink]="['/creators', item.media.creator.id]"> {{ item.media.creator.name
+                    }}</a>
             </p>
             }
 
@@ -249,13 +255,6 @@
                     </a>
                     }
                 </div>
-            </div>
-            }
-
-            @if (item.media.description) {
-            <div class="description-section">
-                <h4>Опис</h4>
-                <p>{{ item.media.description }}</p>
             </div>
             }
 

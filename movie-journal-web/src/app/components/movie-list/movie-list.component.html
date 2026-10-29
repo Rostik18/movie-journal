@@ -185,13 +185,21 @@
             @if (mov.type != null) {
             <p class="detail-row"><strong>Тип:</strong> {{ typeLabel(mov.type) }}</p>
             }
+
+            @if (mov.description) {
+            <p class="detail-row"><strong>Опис:</strong> {{ mov.description }}</p>
+            }
+
             @if (mov.creator) {
-            <p class="detail-row"><strong>Автор:</strong> {{ mov.creator.name }}</p>
+            <p class="detail-row">
+                <strong>Автор:</strong>
+                <a class="detail-link" [routerLink]="['/creators', mov.creator.id]"> {{ mov.creator.name }}</a>
+            </p>
             }
             @if (mov.collection; as collection) {
             <p class="detail-row">
                 <strong>Колекція:</strong>
-                <a class="detail-link" [routerLink]="['/collections', collection.id]">{{ collection.name }}</a>
+                <a class="detail-link" [routerLink]="['/collections', collection.id]"> {{ collection.name }}</a>
             </p>
             }
             @if (mov.duration) {
@@ -254,13 +262,6 @@
                     <span class="genre-tag">{{ genre }}</span>
                     }
                 </div>
-            </div>
-            }
-
-            @if (mov.description) {
-            <div class="description-section">
-                <h4>Опис</h4>
-                <p>{{ mov.description }}</p>
             </div>
             }
 

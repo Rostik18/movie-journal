@@ -145,10 +145,10 @@
                 <strong>Видимість:</strong> {{ visibilityLabels[actor.visibility] }}
             </p>
             }
-            <div class="description-section">
-                <h4>Біографія</h4>
-                <p>{{ actor.biography || 'Біографія відсутня.' }}</p>
-            </div>
+
+            @if (actor.biography) {
+            <p class="detail-row"><strong>Біографія:</strong> {{ actor.biography || 'Біографія відсутня.' }}</p>
+            }
 
             <!-- Фільми, у яких знімався актор (приходять разом з актором) -->
             <app-media-link-list [movies]="actor.media" />

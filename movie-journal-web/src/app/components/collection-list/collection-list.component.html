@@ -131,10 +131,7 @@
             }
 
             @if (col.description) {
-            <div class="description-section">
-                <h4>Опис</h4>
-                <p>{{ col.description }}</p>
-            </div>
+            <p class="detail-row"><strong>Опис:</strong> {{ col.description }}</p>
             }
 
             @if (col.tags?.length) {

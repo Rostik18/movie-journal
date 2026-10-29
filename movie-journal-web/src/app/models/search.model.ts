@@ -18,6 +18,12 @@ export enum MediaCollectionSortField {
     Name = 'Name'
 }
 
+export enum CreatorSortField {
+    Name = 'Name',
+    CreatedAt = 'CreatedAt',
+    UpdatedAt = 'UpdatedAt'
+}
+
 export enum UserWatchingSortField {
     Title = 'Title',
     Status = 'Status',
@@ -54,6 +60,16 @@ export interface ActorSearchParams {
     Sex?: Sex | null;
     /** ISO alpha-3 код країни. */
     nationality?: string;
+}
+
+export interface CreatorSearchParams {
+    query?: string;
+    hasPhoto?: boolean;
+    visibility?: Visibility;
+    sortBy?: CreatorSortField;
+    sort?: SortDirection;
+    offset?: number;
+    size?: number;
 }
 
 export interface CollectionSearchParams {

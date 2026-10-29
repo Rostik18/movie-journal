@@ -1,7 +1,6 @@
 ﻿using MongoDB.Driver;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Creator;
-using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Creator;
 using MovieJournalBackend.Extensions;
 using MovieJournalBackend.Repositories.Common;
@@ -61,6 +60,10 @@ namespace MovieJournalBackend.Repositories.Implementation
                 filter = request.Filter.HasPhoto.Value
                     ? _fBuilder.And(filter, _fBuilder.Ne(x => x.ImageUrl, null), _fBuilder.Ne(x => x.ImageUrl, ""))
                     : _fBuilder.And(filter, _fBuilder.Eq(x => x.ImageUrl, null));
+            }
+            if (request.Filter.Visibility.HasValue)
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Visibility, request.Filter.Visibility.Value));
             }
 
             return filter;

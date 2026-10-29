@@ -56,6 +56,7 @@ export class MainLayoutComponent {
         { path: '/movies', icon: '🎞️', label: 'Каталог фільмів', render: true },
         { path: '/actors', icon: '🎭', label: 'Актори', render: true },
         { path: '/collections', icon: '🗂️', label: 'Колекції', render: true },
+        { path: '/creators', icon: '🎬', label: 'Творці', render: true },
         { path: '/users', icon: '👥', label: 'Користувачі', render: this.userService.isAdmin() },
         { path: '/statistics', icon: '📊', label: 'Статистика', render: this.userService.isAdmin() },
         { path: '/seed-data', icon: '📥', label: 'Імпорт даних', render: this.userService.isAdmin() }

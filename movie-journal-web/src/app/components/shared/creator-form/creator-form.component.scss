@@ -1,0 +1,75 @@
+.creator-form-card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+
+    h3 {
+        margin-top: 0;
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+
+    .image-preview-section {
+        margin-bottom: 15px;
+
+        .preview-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #475569;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .preview-container {
+            width: 96px;
+            height: 96px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f8fafc;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .preview-error {
+                padding: 4px;
+                text-align: center;
+                background: #fee2e2;
+                color: #991b1b;
+                font-size: 0.65rem;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    }
+
+    .form-actions {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+
+        .btn-submit {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:hover {
+                background: #2563eb;
+            }
+        }
+    }
+}

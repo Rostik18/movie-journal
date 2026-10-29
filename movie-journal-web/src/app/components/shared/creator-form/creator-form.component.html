@@ -1,0 +1,63 @@
+<div class="creator-form-card">
+    <h3>{{ isEditMode() ? 'Редагувати творця' : 'Додати нового творця' }}</h3>
+
+    <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label for="creatorName">Назва / ім'я *</label>
+            <input id="creatorName" type="text" [(ngModel)]="name" name="name" required autocomplete="off"
+                placeholder="Наприклад: Christopher Nolan або Pixar">
+        </div>
+
+        <div class="form-group">
+            <label for="creatorDescription">Опис</label>
+            <textarea id="creatorDescription" [(ngModel)]="description" name="description" rows="3"
+                placeholder="Режисер, студія, коротка біографія..."></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label for="creatorImageUrl">Зображення (URL)</label>
+                <input id="creatorImageUrl" type="url" [(ngModel)]="imageUrl" (ngModelChange)="onImageUrlChange()"
+                    name="imageUrl" placeholder="https://..." autocomplete="off">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="creatorVisibility">Видимість</label>
+                <select id="creatorVisibility" [(ngModel)]="visibility" name="visibility">
+                    @for (opt of visibilityOptions; track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }}</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!-- Прев'ю зображення -->
+        @if (imageUrl().trim()) {
+        <div class="image-preview-section">
+            <span class="preview-label">Прев'ю:</span>
+            <div class="preview-container">
+                @if (!imageError()) {
+                <img [src]="imageUrl().trim()" alt="" (error)="imageError.set(true)" />
+                } @else {
+                <div class="preview-error"><span>⚠️ Помилка завантаження</span></div>
+                }
+            </div>
+        </div>
+        }
+
+        <div class="form-group">
+            <label for="creatorWebsite">Сайт</label>
+            <input id="creatorWebsite" type="url" [(ngModel)]="websiteUrl" name="websiteUrl"
+                placeholder="https://example.com" autocomplete="off">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting() || (isEditMode() && !hasChanges())">
+                @if (isEditMode()) {
+                {{ isSubmitting() ? 'Збереження…' : 'Зберегти зміни' }}
+                } @else {
+                {{ isSubmitting() ? 'Створення…' : 'Створити творця' }}
+                }
+            </button>
+        </div>
+    </form>
+</div>

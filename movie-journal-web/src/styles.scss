@@ -677,8 +677,7 @@ $text-body: #334155;
     }
 
     .genres-section,
-    .tags-section,
-    .description-section {
+    .tags-section {
         margin-top: 16px;
 
         h4 {
@@ -969,7 +968,8 @@ textarea[aria-invalid="true"] {
 
 /* Стилі списку акторів у бічному меню деталей */
 .actors-section {
-    margin-top: 16px;
+    margin-top: 0px;
+    margin-bottom: 12px;
 
     h4 {
         margin: 0 0 10px 0;

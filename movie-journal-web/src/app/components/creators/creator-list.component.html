@@ -1,0 +1,142 @@
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Творці (режисери / студії)</h2>
+
+        <app-add-button label="Додати творця" (clicked)="modal.openCreate()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
+            <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
+        </div>
+    </header>
+
+    <!-- Універсальна панель пошуку, фільтрів та сортування -->
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук творців за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="creatorSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Ascending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
+
+    @if (list.showInitialLoading()) {
+    <div class="list-state loading">Завантаження творців...</div>
+    } @else if (list.showError()) {
+    <div class="list-state error">
+        <p>Не вдалося завантажити творців.</p>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
+    </div>
+    } @else if (list.showEmpty()) {
+    <div class="list-state">
+        @if (list.hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
+        } @else {
+        <p><strong>Творців ще немає.</strong></p>
+        <p>Натисніть «Додати творця», щоб створити першого.</p>
+        }
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    @if (viewMode() === 'grid') {
+    <!-- РЕЖИМ 1: Плитки -->
+    <div class="cards-grid">
+        @for (creator of creators(); track creator.id) {
+        <app-grid-card [imageUrl]="creator.imageUrl" [imageAlt]="creator.name" [title]="creator.name"
+            noImageText="Немає фото" [visibility]="creator.visibility" (cardClick)="details.open(creator.id)">
+
+            @if (creator.description) {
+            <p class="card-excerpt text-clamp-2">{{ creator.description }}</p>
+            }
+        </app-grid-card>
+        }
+    </div>
+    } @else {
+    <!-- РЕЖИМ 2: Таблиця -->
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Фото</th>
+                    <th>Назва</th>
+                    <th>Опис</th>
+                    <th>Сайт</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (creator of creators(); track creator.id) {
+                <tr class="clickable-row" tabindex="0" (click)="details.open(creator.id)"
+                    (keydown.enter)="details.open(creator.id)">
+                    <td class="table-poster-cell">
+                        @if (creator.imageUrl) {
+                        <img [src]="creator.imageUrl" [alt]="creator.name" class="table-poster">
+                        } @else {
+                        <div class="table-no-poster">—</div>
+                        }
+                    </td>
+                    <td><strong>{{ creator.name }}</strong></td>
+                    <td><span class="text-clamp-2">{{ creator.description || '—' }}</span></td>
+                    <td>
+                        @if (creator.websiteUrl) {
+                        <a [href]="creator.websiteUrl" target="_blank" rel="noopener noreferrer"
+                            (click)="$event.stopPropagation()">{{ creator.websiteUrl }}</a>
+                        } @else {
+                        —
+                        }
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+
+    @if (list.totalCount() > 10) {
+    <div class="pagination-bottom">
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
+    </div>
+    }
+    }
+
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ ТВОРЦЯ -->
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="modal.editing() ? 'Редагувати творця' : 'Додати нового творця'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
+
+            <app-creator-form [creator]="modal.editing()" (creatorCreated)="onCreatorCreated()"
+                (creatorUpdated)="onCreatorUpdated($event)" />
+        </div>
+    </div>
+    }
+
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ТВОРЦЯ -->
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedCreator()?.name ?? ''"
+        [imageUrl]="selectedCreator()?.imageUrl" [imageAlt]="selectedCreator()?.name ?? ''" noImageText="Немає фото"
+        [deleteAction]="selectedDeleteCallback()" (closed)="details.close()" (editClicked)="onEditCreator()"
+        (deleted)="onSidebarCreatorDeleted()">
+
+        @if (selectedCreator(); as creator) {
+        <div class="sidebar-details-info">
+            @if (creator.visibility) {
+            <p class="detail-row"><strong>Видимість:</strong> {{ visibilityLabels[creator.visibility] }}</p>
+            }
+
+            @if (creator.websiteUrl) {
+            <p class="detail-row"><strong>Сайт:</strong>
+                <a [href]="creator.websiteUrl" target="_blank" rel="noopener noreferrer"> {{ creator.websiteUrl }}</a>
+            </p>
+            }
+
+            @if (creator.description) {
+            <p class="detail-row"><strong>Опис:</strong> {{ creator.description }}</p>
+            }
+
+            <!-- Фільми творця (приходять разом із творцем) -->
+            <app-media-link-list [movies]="creator.media" />
+        </div>
+        }
+    </app-details-sidebar>
+</div>

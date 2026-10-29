@@ -4,6 +4,7 @@ import { LoginComponent } from './components/login/login.component';
 import { MainLayoutComponent } from './components/layout/main-layout.component';
 import { MovieListComponent } from './components/movie-list/movie-list.component';
 import { ActorListComponent } from './components/actors/actor-list.component';
+import { CreatorListComponent } from './components/creators/creator-list.component';
 import { CollectionListComponent } from './components/collection-list/collection-list.component';
 import { UserWatchingListComponent } from './components/user-watching/user-watching-list.component';
 import { SeedDataFormComponent } from './components/seed-data-form/seed-data-form.component';
@@ -40,6 +41,7 @@ export const routes: Routes = [
             withOptionalId('movies', MovieListComponent),
             withOptionalId('actors', ActorListComponent),
             withOptionalId('collections', CollectionListComponent),
+            withOptionalId('creators', CreatorListComponent),
             { path: 'users', component: UserListComponent },
             { path: 'profile', component: UserProfileComponent },
             { path: 'seed-data', component: SeedDataFormComponent, canActivate: [adminGuard] },
