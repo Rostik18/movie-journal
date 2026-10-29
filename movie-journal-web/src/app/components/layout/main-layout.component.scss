@@ -3,12 +3,14 @@ $sidebar-bg: #34495e;
 $accent: #3498db;
 $danger: #e74c3c;
 $danger-dark: #c0392b;
+$sidebar-width: 240px;
+$sidebar-width-collapsed: 64px;
 
 // Кольори індикатора статусу сервера
 $status-colors: (
-    green: #2ecc71,
-    yellow: #f1c40f,
-    red: #e74c3c
+    'green': #2ecc71,
+    'yellow': #f1c40f,
+    'red': #e74c3c
 );
 
 .app-layout {
@@ -97,12 +99,56 @@ $status-colors: (
 }
 
 .app-sidebar {
-    width: 240px;
+    width: $sidebar-width;
     flex-shrink: 0;
     background-color: $sidebar-bg;
-    padding: 20px 0;
+    padding: 12px 0 0;
+    display: flex;
+    flex-direction: column;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    overflow-x: hidden;
     overflow-y: auto;
+    transition: width 0.2s ease;
+
+    .sidebar-toggle,
+    nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        white-space: nowrap;
+    }
+
+    .sidebar-toggle {
+        width: 100%;
+        margin-top: auto; // притискає кнопку до низу меню
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: #bdc3c7;
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+
+        &:hover {
+            background-color: $header-bg;
+            color: #fff;
+        }
+
+        &:focus-visible {
+            outline: 2px solid white;
+            outline-offset: -2px;
+        }
+    }
+
+    // Іконка має сталу ширину, щоб при згортанні пункти не «стрибали»
+    .nav-icon {
+        flex: 0 0 24px;
+        text-align: center;
+        font-size: 1.1rem;
+    }
 
     nav {
         display: flex;
@@ -110,7 +156,6 @@ $status-colors: (
         gap: 5px;
 
         a {
-            padding: 12px 20px;
             color: #ecf0f1;
             text-decoration: none;
             transition: background 0.2s;
@@ -128,6 +173,21 @@ $status-colors: (
                 background-color: $accent;
                 font-weight: bold;
             }
+        }
+    }
+
+    &.collapsed {
+        width: $sidebar-width-collapsed;
+
+        .sidebar-toggle,
+        nav a {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .nav-text {
+            display: none;
         }
     }
 }

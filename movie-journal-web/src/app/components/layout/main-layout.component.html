@@ -29,16 +29,27 @@
 
     <div class="app-body">
         <!-- 2. Бічне меню -->
-        <aside class="app-sidebar">
-            <nav aria-label="Головна навігація">
+        <aside class="app-sidebar" [class.collapsed]="isSidebarCollapsed()">
+            <nav id="main-nav" aria-label="Головна навігація">
                 @for (item of navItems; track item.path) {
                 @if (item.render) {
-                <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
-                    {{ item.label }}
+                <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page"
+                    [attr.aria-label]="isSidebarCollapsed() ? item.label : null"
+                    [title]="isSidebarCollapsed() ? item.label : ''">
+                    <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                    <span class="nav-text">{{ item.label }}</span>
                 </a>
                 }
                 }
             </nav>
+
+            <button type="button" class="sidebar-toggle" (click)="toggleSidebar()"
+                [attr.aria-expanded]="!isSidebarCollapsed()" aria-controls="main-nav"
+                [attr.aria-label]="isSidebarCollapsed() ? 'Розгорнути меню' : 'Згорнути меню'"
+                [title]="isSidebarCollapsed() ? 'Розгорнути меню' : 'Згорнути меню'">
+                <span class="nav-icon" aria-hidden="true">{{ isSidebarCollapsed() ? '»' : '«' }}</span>
+                <span class="nav-text">Згорнути</span>
+            </button>
         </aside>
 
         <!-- 3. Основний простір для сторінок -->
