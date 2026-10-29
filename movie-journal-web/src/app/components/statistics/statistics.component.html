@@ -1,0 +1,101 @@
+<div class="stats-page">
+    <h3>Статистика</h3>
+
+    <!-- Таби: поки лише «Актори»; нові розділи додаються в масив tabs -->
+    <div class="stats-tabs" role="tablist">
+        @for (tab of tabs; track tab.id) {
+        <button type="button" class="tab-btn" role="tab" [class.active]="activeTab() === tab.id"
+            [attr.aria-selected]="activeTab() === tab.id" (click)="selectTab(tab.id)">
+            {{ tab.label }}
+        </button>
+        }
+    </div>
+
+    @if (loading() && !actors()) {
+    <div class="stats-state">Завантаження статистики...</div>
+    } @else if (hasError() && !actors()) {
+    <div class="stats-state error">
+        <p>Не вдалося завантажити статистику.</p>
+        <button type="button" class="btn-secondary" (click)="load()">Спробувати знову</button>
+    </div>
+    } @else if (isEmpty()) {
+    <div class="stats-state">Акторів ще немає — статистика порожня.</div>
+    } @else if (activeTab() === 'actors') {
+
+    <!-- Загальні числа -->
+    <section class="kpi-grid" aria-label="Загальна кількість акторів">
+        <div class="kpi-card total">
+            <span class="kpi-value">{{ total() }}</span>
+            <span class="kpi-label">Всього акторів</span>
+        </div>
+        @for (item of gender(); track item.key) {
+        <div class="kpi-card" [class]="item.key">
+            <span class="kpi-value">{{ item.count }}</span>
+            <span class="kpi-label">{{ item.label }} · {{ item.share.toFixed(1) }}%</span>
+        </div>
+        }
+    </section>
+
+    <!-- Розподіл за статтю однією смугою -->
+    <section class="stats-section">
+        <h4>Розподіл за статтю</h4>
+        <div class="gender-bar" role="img"
+            [attr.aria-label]="'Чоловіки ' + gender()[0].share.toFixed(1) + '%, жінки ' + gender()[1].share.toFixed(1) + '%'">
+            @for (item of gender(); track item.key) {
+            @if (item.count > 0) {
+            <div class="gender-segment" [class]="item.key" [style.flex-grow]="item.count"
+                [title]="item.label + ': ' + item.count">
+                {{ item.share >= 8 ? item.share.toFixed(0) + '%' : '' }}
+            </div>
+            }
+            }
+        </div>
+    </section>
+
+    <!-- Громадянство -->
+    <section class="stats-section">
+        <h4>Громадянство <span class="muted">({{ nationalitiesCount() }})</span></h4>
+        @if (nationalities().length === 0) {
+        <p class="muted">Країни не вказані.</p>
+        } @else {
+        <ul class="bar-list">
+            @for (item of nationalities(); track item.key) {
+            <li class="bar-row">
+                <span class="bar-label"><span class="flag" aria-hidden="true">{{ item.flag }}</span> {{ item.label
+                    }}</span>
+                <span class="bar-track">
+                    <span class="bar-fill" [style.width.%]="item.size"></span>
+                </span>
+                <span class="bar-value">{{ item.count }} <span class="muted">· {{ item.share.toFixed(1)
+                        }}%</span></span>
+            </li>
+            }
+        </ul>
+        @if (canToggleNationalities()) {
+        <button type="button" class="btn-secondary toggle-btn" (click)="toggleNationalities()">
+            {{ showAllNationalities() ? 'Показати менше' : 'Показати всі (' + nationalitiesCount() + ')' }}
+        </button>
+        }
+        <p class="hint">У актора може бути до 3 громадянств, тому сума може перевищувати загальну кількість.</p>
+        }
+    </section>
+
+    <!-- Вік -->
+    <section class="stats-section">
+        <h4>Вік <span class="muted">(групи по 5 років)</span></h4>
+        @if (ageBars().length === 0) {
+        <p class="muted">Дати народження не вказані.</p>
+        } @else {
+        <div class="age-chart">
+            @for (item of ageBars(); track item.key) {
+            <div class="age-col" [title]="item.label + ' р.: ' + item.count + ' (' + item.share.toFixed(1) + '%)'">
+                <span class="age-count">{{ item.count || '' }}</span>
+                <span class="age-bar" [style.height.%]="item.size"></span>
+                <span class="age-label">{{ item.label }}</span>
+            </div>
+            }
+        </div>
+        }
+    </section>
+    }
+</div>

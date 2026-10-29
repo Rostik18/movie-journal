@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthService } from '../services/auth.service';
 import { AuthStorage } from '../services/auth-storage.service';
+import { UserService } from '../services/user.service';
 
 /** Пускає лише авторизованих; інакше — на /login із запам'ятованою адресою (returnUrl). */
 export const authGuard: CanActivateFn = (_route, state) => {
@@ -23,4 +24,10 @@ export const authGuard: CanActivateFn = (_route, state) => {
 export const guestGuard: CanActivateFn = () => {
     const router = inject(Router);
     return inject(AuthStorage).hasValidToken() ? router.createUrlTree(['/']) : true;
+};
+
+/** Для розділів лише для адміна: решту повертає на головну (меню такі пункти вже приховує). */
+export const adminGuard: CanActivateFn = () => {
+    const router = inject(Router);
+    return inject(UserService).isAdmin() ? true : router.createUrlTree(['/']);
 };

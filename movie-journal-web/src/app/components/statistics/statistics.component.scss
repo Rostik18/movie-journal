@@ -1,0 +1,250 @@
+.stats-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 960px;
+
+    h3 {
+        margin: 0;
+        color: #1e293b;
+    }
+
+    h4 {
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+        color: #1e293b;
+    }
+}
+
+.muted {
+    color: #64748b;
+    font-weight: 400;
+}
+
+.hint {
+    margin: 8px 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Таби — той самий вигляд, що й у seed-data-form */
+.stats-tabs {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    gap: 4px;
+
+    .tab-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #1e293b;
+        }
+
+        &.active {
+            background: #ffffff;
+            color: #0ea5e9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
+    }
+}
+
+.stats-state {
+    padding: 40px 16px;
+    text-align: center;
+    color: #64748b;
+
+    &.error {
+        color: #b91c1c;
+    }
+}
+
+/* Картки з числами */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+}
+
+.kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #94a3b8;
+    border-radius: 8px;
+
+    .kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.1;
+    }
+
+    .kpi-label {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+
+    &.total {
+        border-left-color: #0ea5e9;
+    }
+
+    &.male {
+        border-left-color: #3b82f6;
+    }
+
+    &.female {
+        border-left-color: #ec4899;
+    }
+}
+
+.stats-section {
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+/* Стать */
+.gender-bar {
+    display: flex;
+    height: 28px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f1f5f9;
+
+    .gender-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-basis: 0;
+        min-width: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #fff;
+
+        &.male {
+            background: #3b82f6;
+        }
+
+        &.female {
+            background: #ec4899;
+        }
+
+        &.unspecified {
+            background: #94a3b8;
+        }
+    }
+}
+
+/* Громадянство */
+.bar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bar-row {
+    display: grid;
+    grid-template-columns: minmax(130px, 220px) 1fr minmax(90px, auto);
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #334155;
+
+    .bar-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bar-track {
+        height: 12px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        display: block;
+        height: 100%;
+        min-width: 3px;
+        background: #0ea5e9;
+        border-radius: 6px;
+    }
+
+    .bar-value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+    }
+}
+
+.toggle-btn {
+    margin-top: 10px;
+}
+
+/* Вік: стовпчикова діаграма */
+.age-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 220px;
+    padding-top: 8px;
+    overflow-x: auto;
+
+    .age-col {
+        flex: 1 0 44px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .age-count {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #334155;
+        min-height: 1em;
+    }
+
+    .age-bar {
+        display: block;
+        width: 70%;
+        min-height: 2px;
+        background: #0ea5e9;
+        border-radius: 4px 4px 0 0;
+        /* висота задається у відсотках від контейнера мінус підписи */
+        max-height: calc(100% - 44px);
+    }
+
+    .age-label {
+        font-size: 0.7rem;
+        color: #64748b;
+        white-space: nowrap;
+    }
+}

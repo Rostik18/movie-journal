@@ -39,7 +39,8 @@ export class MainLayoutComponent {
         { path: '/actors', label: 'Актори', render: true },
         { path: '/collections', label: 'Колекції', render: true },
         { path: '/users', label: 'Користувачі', render: this.userService.isAdmin() },
-        { path: '/seed-data', label: 'Seed Data', render: this.userService.isAdmin() }
+        { path: '/statistics', label: '📊 Статистика', render: this.userService.isAdmin() },
+        { path: '/seed-data', label: 'Імпорт даних', render: this.userService.isAdmin() }
     ];
 
     readonly serverStatus = this.serverHealth.status;

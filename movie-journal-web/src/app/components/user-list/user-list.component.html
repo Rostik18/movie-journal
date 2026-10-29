@@ -45,6 +45,7 @@
                     <th>Відображуване ім'я</th>
                     <th>Ролі</th>
                     <th>Дата створення</th>
+                    <th>Останній вхід</th>
                     <th class="col-actions">Дії</th>
                 </tr>
             </thead>
@@ -61,6 +62,7 @@
                         </div>
                     </td>
                     <td>{{ user.createdAtUtc | date:'dd.MM.yyyy HH:mm' }}</td>
+                    <td>{{ user.lastEnterUtc ? (user.lastEnterUtc | date:'dd.MM.yyyy HH:mm') : '—' }}</td>
                     <td class="col-actions">
                         <button type="button" class="btn-danger-sm" [disabled]="!canDelete(user)"
                             [title]="canDelete(user) ? 'Видалити користувача' : 'Не можна видалити власний акаунт'"

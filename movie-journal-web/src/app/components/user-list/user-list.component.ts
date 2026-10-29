@@ -73,9 +73,10 @@ export class UserListComponent implements OnInit {
     // ---------- Панель пошуку ----------
     private readonly roleOptions = enumOptions(UserRole, UserRoleLabels);
 
-    // Бекенд підтримує сортування лише за іменем (UserSortField.Name)
     readonly userSortFields: SortFieldOption[] = enumOptions(UserSortField, {
-        [UserSortField.Name]: 'Іменем'
+        [UserSortField.Name]: 'Іменем',
+        [UserSortField.CreatedAtUtc]: 'Датою створення',
+        [UserSortField.LastEnterUtc]: 'Останнім входом'
     });
 
     // computed, а не масив у шаблоні: інакше новий масив на кожен цикл change detection
@@ -120,7 +121,6 @@ export class UserListComponent implements OnInit {
                 this.totalCount.set(result.total);
             } else {
                 this.hasError.set(true);
-                this.toastService.show('Не вдалося завантажити користувачів.', 'error', 4000);
             }
             this.loading.set(false);
         });

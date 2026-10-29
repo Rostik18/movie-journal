@@ -9,7 +9,8 @@ import { UserWatchingListComponent } from './components/user-watching/user-watch
 import { SeedDataFormComponent } from './components/seed-data-form/seed-data-form.component';
 import { UserListComponent } from './components/user-list/user-list.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
-import { authGuard, guestGuard } from './guards/auth.guard';
+import { StatisticsComponent } from './components/statistics/statistics.component';
+import { adminGuard, authGuard, guestGuard } from './guards/auth.guard';
 
 /**
  * Маршрут `path` та `path/:id` з ОДНИМ записом конфігурації: Angular перевикористовує компонент
@@ -41,7 +42,8 @@ export const routes: Routes = [
             withOptionalId('collections', CollectionListComponent),
             { path: 'users', component: UserListComponent },
             { path: 'profile', component: UserProfileComponent },
-            { path: 'seed-data', component: SeedDataFormComponent },
+            { path: 'seed-data', component: SeedDataFormComponent, canActivate: [adminGuard] },
+            { path: 'statistics', component: StatisticsComponent, canActivate: [adminGuard] },
             { path: '', redirectTo: 'watchlist', pathMatch: 'full' }
         ]
     },
