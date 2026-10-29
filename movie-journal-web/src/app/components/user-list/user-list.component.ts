@@ -1,4 +1,4 @@
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, of } from 'rxjs';
@@ -37,7 +37,8 @@ const DEFAULT_PAGE_SIZE = 20;
         SearchToolbarComponent
     ],
     templateUrl: './user-list.component.html',
-    styleUrls: ['./user-list.component.scss']
+    styleUrls: ['./user-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserListComponent implements OnInit {
     private readonly userService = inject(UserService);

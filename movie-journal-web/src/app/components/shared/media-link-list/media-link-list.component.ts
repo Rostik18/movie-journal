@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { MediaTypeLabels } from '../../../models/enums';
@@ -45,7 +45,8 @@ import { MediaResponseSlim } from '../../../models/media.model';
             </div>
             }
         </div>
-    `
+    `,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MediaLinkListComponent {
     readonly movies = input<MediaResponseSlim[]>([]);

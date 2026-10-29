@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -20,7 +20,8 @@ import { Observable } from 'rxjs';
       }
     </button>
   `,
-  styleUrls: ['./delete-button.component.scss']
+  styleUrls: ['./delete-button.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DeleteButtonComponent {
   deleteAction = input.required<() => Observable<unknown>>();

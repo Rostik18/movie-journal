@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, model, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, model, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subject, of } from 'rxjs';
@@ -40,7 +40,8 @@ type SearchOutcome =
     standalone: true,
     imports: [FormsModule],
     templateUrl: './media-picker.component.html',
-    styleUrls: ['./media-picker.component.scss']
+    styleUrls: ['./media-picker.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MediaPickerComponent implements OnInit {
     private readonly mediaService = inject(MediaService);

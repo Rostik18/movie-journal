@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MediaFormComponent } from '../../shared/media-form/media-form.component';
 
@@ -10,7 +10,8 @@ import { MediaFormComponent } from '../../shared/media-form/media-form.component
     <div style="max-width: 700px; margin: 0 auto; padding: 20px;">
       <app-media-form (mediaCreated)="onCreated()"></app-media-form>
     </div>
-  `
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MediaCreateComponent {
   private router = inject(Router);

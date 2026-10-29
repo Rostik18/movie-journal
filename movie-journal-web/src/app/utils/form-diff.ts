@@ -1,3 +1,5 @@
+import { signal, untracked } from '@angular/core';
+
 /**
  * Спільна «лише змінене» логіка форм редагування.
  *
@@ -81,17 +83,22 @@ export interface DirtyTracker<S extends object> {
  * @param initial  початковий baseline, якщо форма «чиста» ще до ініціалізації (напр. порожня форма створення)
  */
 export function createDirtyTracker<S extends object>(snapshot: () => S, initial: S | null = null): DirtyTracker<S> {
-    let baseline: S | null = initial;
+    // Baseline — сигнал: hasChanges()/changed() у шаблоні OnPush-компонента перераховуються разом зі зміною знімка
+    const baseline = signal<S | null>(initial);
 
     return {
         get baseline() {
-            return baseline;
+            return baseline();
         },
-        markClean: () => {
-            baseline = snapshot();
+        markClean: () => baseline.set(untracked(snapshot)),
+        hasChanges: () => {
+            const base = baseline();
+            return base !== null && hasSnapshotChanges(snapshot(), base);
         },
-        hasChanges: () => baseline !== null && hasSnapshotChanges(snapshot(), baseline),
-        changed: key => baseline !== null && snapshot()[key] !== baseline[key],
-        diff: (spec, current = snapshot()) => diffPayload(current, baseline ?? current, spec)
+        changed: key => {
+            const base = baseline();
+            return base !== null && snapshot()[key] !== base[key];
+        },
+        diff: (spec, current = untracked(snapshot)) => diffPayload(current, untracked(baseline) ?? current, spec)
     };
 }

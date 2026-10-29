@@ -1,11 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ToastService } from '../../../services/toast.service';
 
 @Component({
     selector: 'app-toast',
     standalone: true,
     templateUrl: './toast.component.html',
-    styleUrls: ['./toast.component.scss']
+    styleUrls: ['./toast.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ToastComponent {
     toastService = inject(ToastService);

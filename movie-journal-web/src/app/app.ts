@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -7,6 +7,7 @@ import { RouterOutlet } from '@angular/router';
   imports: [RouterOutlet],
   template: `<router-outlet></router-outlet>`,
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class App {
   protected readonly title = signal('movie-journal');

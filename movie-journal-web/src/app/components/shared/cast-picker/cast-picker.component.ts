@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, inject, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, model, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -22,7 +22,8 @@ interface ActorSearchItem {
     standalone: true,
     imports: [FormsModule],
     templateUrl: './cast-picker.component.html',
-    styleUrls: ['./cast-picker.component.scss']
+    styleUrls: ['./cast-picker.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CastPickerComponent {
     private readonly actorService = inject(ActorService);
@@ -31,7 +32,7 @@ export class CastPickerComponent {
     /** Обраний склад; змінюється лише імутабельно (нові масиви), тож працює як двостороння прив'язка. */
     readonly cast = model<MediaActor[]>([]);
 
-    searchQuery = '';
+    readonly searchQuery = signal('');
     readonly results = signal<ActorSearchItem[]>([]);
     private readonly query$ = new Subject<string>();
 
@@ -56,7 +57,7 @@ export class CastPickerComponent {
     }
 
     onSearch(value: string): void {
-        this.searchQuery = value;
+        this.searchQuery.set(value);
         const query = value.trim();
         if (!query) {
             this.results.set([]);
@@ -68,7 +69,7 @@ export class CastPickerComponent {
         if (!this.cast().some(member => member.actorId === actor.id)) {
             this.cast.update(list => [...list, { actorId: actor.id, fullName: actor.fullName, characterName: '' }]);
         }
-        this.searchQuery = '';
+        this.searchQuery.set('');
         this.results.set([]);
         this.query$.next('');
     }

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActorService } from '../../services/actor.service';
@@ -36,7 +36,8 @@ import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
         SearchToolbarComponent
     ],
     templateUrl: './actor-list.component.html',
-    styleUrls: ['./actor-list.component.scss']
+    styleUrls: ['./actor-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ActorListComponent implements OnInit {
     private readonly actorService = inject(ActorService);

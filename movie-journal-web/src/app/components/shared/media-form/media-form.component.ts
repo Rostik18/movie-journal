@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
@@ -49,23 +49,6 @@ interface Snapshot {
     collection: string;
 }
 
-const createEmptyMedia = (): CreateMediaRequest => ({
-    title: '',
-    originalTitle: '',
-    creatorId: null,
-    type: MediaType.Movie,
-    releaseYear: null,
-    duration: null,
-    posterUrl: '',
-    visibility: Visibility.Public,
-    genres: [],
-    tags: [],
-    cast: [],
-    links: [],
-    seasons: [],
-    collectionId: null
-});
-
 /** Ключ вибору в EntityPicker: id існуючої сутності, нова назва або порожньо. */
 const entityKey = (id: string | null, name: string): string => {
     if (id) {
@@ -80,7 +63,8 @@ const entityKey = (id: string | null, name: string): string => {
     standalone: true,
     imports: [FormsModule, EntityPickerComponent, CastPickerComponent, SeasonsEditorComponent],
     templateUrl: './media-form.component.html',
-    styleUrls: ['./media-form.component.scss']
+    styleUrls: ['./media-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MediaFormComponent implements OnInit {
     private readonly mediaService = inject(MediaService);
@@ -88,7 +72,6 @@ export class MediaFormComponent implements OnInit {
     private readonly creatorService = inject(CreatorService);
     private readonly serverService = inject(ServerService);
     private readonly toastService = inject(ToastService);
-    private readonly cdr = inject(ChangeDetectorRef);
     private readonly destroyRef = inject(DestroyRef);
 
     readonly embedded = input(false);
@@ -106,10 +89,20 @@ export class MediaFormComponent implements OnInit {
 
     private readonly dirty = createDirtyTracker(() => this.snapshot());
 
-    mediaData: CreateMediaRequest = createEmptyMedia();
-    genresInput = '';
-    tagsInput = '';
-    imageError = false;
+    // ---- Поля форми (signals; у шаблоні — двосторонній [(ngModel)] на сигнал) ----
+    readonly title = signal('');
+    readonly originalTitle = signal('');
+    readonly description = signal('');
+    readonly type = signal<MediaType>(MediaType.Movie);
+    readonly releaseYear = signal<number | null>(null);
+    readonly duration = signal<number | null>(null);
+    readonly posterUrl = signal('');
+    readonly visibility = signal<Visibility>(Visibility.Public);
+    readonly links = signal<string[]>([]);
+    readonly genresInput = signal('');
+    readonly tagsInput = signal('');
+    readonly imageError = signal(false);
+    readonly isSeries = computed(() => this.type() === MediaType.Series);
     readonly isSubmitting = signal(false);
 
     private typeTouched = false;
@@ -125,7 +118,7 @@ export class MediaFormComponent implements OnInit {
     }));
 
     // ---- Посилання (Name та Type приховані) ----
-    newLinkUrl = '';
+    readonly newLinkUrl = signal('');
     private metadataSub: Subscription | null = null;
 
     // ---- Актори та сезони (окремі компоненти) ----
@@ -157,7 +150,7 @@ export class MediaFormComponent implements OnInit {
 
         const title = this.initialTitle().trim();
         if (title) {
-            this.mediaData.title = title;
+            this.title.set(title);
         }
 
         const url = this.initialUrl();
@@ -167,18 +160,15 @@ export class MediaFormComponent implements OnInit {
     }
 
     private populateFrom(media: MediaSidebar): void {
-        this.mediaData = {
-            ...createEmptyMedia(),
-            title: media.title ?? '',
-            description: media.description ?? '',
-            originalTitle: media.originalTitle ?? '',
-            type: media.type,
-            releaseYear: media.releaseYear ?? null,
-            duration: media.duration ?? null,
-            posterUrl: media.posterUrl ?? '',
-            visibility: media.visibility,
-            links: [...(media.links ?? [])]
-        };
+        this.title.set(media.title ?? '');
+        this.description.set(media.description ?? '');
+        this.originalTitle.set(media.originalTitle ?? '');
+        this.type.set(media.type);
+        this.releaseYear.set(media.releaseYear ?? null);
+        this.duration.set(media.duration ?? null);
+        this.posterUrl.set(media.posterUrl ?? '');
+        this.visibility.set(media.visibility);
+        this.links.set([...(media.links ?? [])]);
         this.cast.set((media.cast ?? []).map(c => ({
             actorId: c.id,
             fullName: c.fullName,
@@ -189,29 +179,28 @@ export class MediaFormComponent implements OnInit {
         this.creatorName.set(media.creator?.name ?? '');
         this.collectionId.set(media.collection?.id ?? null);
         this.collectionName.set(media.collection?.name ?? '');
-        this.genresInput = (media.genres ?? []).join(', ');
-        this.tagsInput = (media.tags ?? []).join(', ');
-        this.imageError = false;
+        this.genresInput.set((media.genres ?? []).join(', '));
+        this.tagsInput.set((media.tags ?? []).join(', '));
+        this.imageError.set(false);
         // Автозаповнення з метаданих не повинно перезаписувати тип існуючого запису
         this.typeTouched = true;
         this.dirty.markClean();
     }
 
     private snapshot(): Snapshot {
-        const d = this.mediaData;
         return {
-            title: d.title.trim(),
-            type: d.type,
-            description: (d.description ?? '').trim(),
-            originalTitle: (d.originalTitle ?? '').trim(),
-            releaseYear: d.releaseYear ?? null,
-            duration: d.duration ?? null,
-            posterUrl: (d.posterUrl ?? '').trim(),
+            title: this.title().trim(),
+            type: this.type(),
+            description: this.description().trim(),
+            originalTitle: this.originalTitle().trim(),
+            releaseYear: this.releaseYear() ?? null,
+            duration: this.duration() ?? null,
+            posterUrl: this.posterUrl().trim(),
             creator: entityKey(this.creatorId(), this.creatorName()),
-            visibility: d.visibility,
-            genres: parseCommaList(this.genresInput).join('\u0000'),
-            tags: parseCommaList(this.tagsInput).join('\u0000'),
-            links: d.links.join('\u0000'),
+            visibility: this.visibility(),
+            genres: parseCommaList(this.genresInput()).join('\u0000'),
+            tags: parseCommaList(this.tagsInput()).join('\u0000'),
+            links: this.links().join('\u0000'),
             cast: this.cast().map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
             collection: entityKey(this.collectionId(), this.collectionName())
         };
@@ -222,10 +211,6 @@ export class MediaFormComponent implements OnInit {
         return this.dirty.hasChanges();
     }
 
-    get isSeries(): boolean {
-        return this.mediaData.type === MediaType.Series;
-    }
-
     onFormEnter(event: Event): void {
         if ((event.target as HTMLElement).tagName === 'INPUT') {
             event.preventDefault();
@@ -233,12 +218,12 @@ export class MediaFormComponent implements OnInit {
     }
 
     onTypeChange(type: MediaType): void {
-        this.mediaData.type = type;
+        this.type.set(type);
         this.typeTouched = true;
     }
 
     onPosterUrlChange(): void {
-        this.imageError = false;
+        this.imageError.set(false);
     }
 
     initFromUrl(url: string): void {
@@ -247,7 +232,7 @@ export class MediaFormComponent implements OnInit {
             return;
         }
 
-        const isFirstLink = this.mediaData.links.length === 0;
+        const isFirstLink = this.links().length === 0;
         if (this.addLink(trimmed) && isFirstLink) {
             this.loadMetadataForUrl(trimmed);
         }
@@ -256,17 +241,17 @@ export class MediaFormComponent implements OnInit {
     onLinkCommit(event?: Event): void {
         event?.preventDefault();
 
-        const url = this.newLinkUrl.trim();
+        const url = this.newLinkUrl().trim();
         if (!url) {
             return;
         }
 
-        const isFirstLink = this.mediaData.links.length === 0;
+        const isFirstLink = this.links().length === 0;
         if (!this.addLink(url)) {
             return;
         }
 
-        this.newLinkUrl = '';
+        this.newLinkUrl.set('');
 
         if (isFirstLink) {
             this.loadMetadataForUrl(url);
@@ -274,7 +259,7 @@ export class MediaFormComponent implements OnInit {
     }
 
     removeLink(index: number): void {
-        this.mediaData.links.splice(index, 1);
+        this.links.update(list => list.filter((_, i) => i !== index));
     }
 
     private addLink(url: string): boolean {
@@ -282,11 +267,11 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Некоректне посилання.', 'error', 3000);
             return false;
         }
-        if (this.mediaData.links.some(l => l === url)) {
+        if (this.links().includes(url)) {
             this.toastService.show('Це посилання вже додано.', 'info', 3000);
             return false;
         }
-        this.mediaData.links.push(url);
+        this.links.update(list => [...list, url]);
         return true;
     }
 
@@ -303,8 +288,6 @@ export class MediaFormComponent implements OnInit {
                 }
 
                 const filled = this.applyMetadata(meta);
-                this.cdr.markForCheck();
-
                 if (filled.length > 0) {
                     this.toastService.show(`Метадані завантажено. Заповнено: ${filled.join(', ')} ✨`, 'success', 4000);
                 } else {
@@ -320,16 +303,14 @@ export class MediaFormComponent implements OnInit {
 
     private applyMetadata(meta: MediaMetadata): string[] {
         const filled: string[] = [];
-        const data = this.mediaData;
-
-        if (meta.title && !data.title?.trim()) {
-            data.title = meta.title.trim();
+        if (meta.title && !this.title().trim()) {
+            this.title.set(meta.title.trim());
             filled.push('назва');
         }
 
-        if (meta.image && !data.posterUrl?.trim()) {
-            data.posterUrl = meta.image;
-            this.imageError = false;
+        if (meta.image && !this.posterUrl().trim()) {
+            this.posterUrl.set(meta.image);
+            this.imageError.set(false);
             filled.push('постер');
         }
 
@@ -340,17 +321,17 @@ export class MediaFormComponent implements OnInit {
         }
 
         if (meta.durationSeconds && meta.durationSeconds > 0) {
-            data.duration = meta.durationSeconds;
+            this.duration.set(meta.durationSeconds);
             filled.push('тривалість');
         }
 
         if (
             meta.mediaType != null &&
             !this.typeTouched &&
-            data.type !== meta.mediaType &&
+            this.type() !== meta.mediaType &&
             this.mediaTypeOptions.some(o => o.value === meta.mediaType)
         ) {
-            data.type = meta.mediaType;
+            this.type.set(meta.mediaType);
             filled.push('тип');
         }
 
@@ -366,7 +347,7 @@ export class MediaFormComponent implements OnInit {
             return false;
         }
 
-        const existing = parseCommaList(this.tagsInput);
+        const existing = parseCommaList(this.tagsInput());
         const seen = new Set(existing.map(t => t.toLowerCase()));
         const added: string[] = [];
 
@@ -387,7 +368,7 @@ export class MediaFormComponent implements OnInit {
             return false;
         }
 
-        this.tagsInput = [...existing, ...added].join(', ');
+        this.tagsInput.set([...existing, ...added].join(', '));
         return true;
     }
 
@@ -411,7 +392,7 @@ export class MediaFormComponent implements OnInit {
             next: created => this.onCreated(created),
             error: err => {
                 console.error('Помилка створення медіа:', err);
-                this.toastService.show(`Не вдалося створити медіа "${this.mediaData.title}".`, 'error', 6000);
+                this.toastService.show(`Не вдалося створити медіа "${this.title()}".`, 'error', 6000);
             }
         });
     }
@@ -437,7 +418,7 @@ export class MediaFormComponent implements OnInit {
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: updated => {
-                this.toastService.show(`Фільм "${updated?.title ?? this.mediaData.title}" оновлено ✅`, 'success', 4000);
+                this.toastService.show(`Фільм "${updated?.title ?? this.title()}" оновлено ✅`, 'success', 4000);
                 // Нова точка відліку: форма знову "чиста"
                 this.dirty.markClean();
                 if (updated?.collection) {
@@ -452,7 +433,7 @@ export class MediaFormComponent implements OnInit {
             },
             error: err => {
                 console.error('Помилка оновлення медіа:', err);
-                this.toastService.show(`Не вдалося оновити "${this.mediaData.title}".`, 'error', 6000);
+                this.toastService.show(`Не вдалося оновити "${this.title()}".`, 'error', 6000);
             }
         });
     }
@@ -471,9 +452,9 @@ export class MediaFormComponent implements OnInit {
                 posterUrl: 'posterUrl',
                 visibility: 'visibility',
                 creatorId: { when: 'creator', value: () => creatorId },
-                genres: { when: 'genres', value: () => parseCommaList(this.genresInput) },
-                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput) },
-                links: { when: 'links', value: () => [...this.mediaData.links] },
+                genres: { when: 'genres', value: () => parseCommaList(this.genresInput()) },
+                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput()) },
+                links: { when: 'links', value: () => [...this.links()] },
                 cast: { when: 'cast', value: () => this.castPayload() },
                 collectionId: { when: 'collection', value: () => collectionId }
             }),
@@ -490,7 +471,10 @@ export class MediaFormComponent implements OnInit {
     }
 
     private validate(): boolean {
-        const { title, releaseYear, duration, posterUrl } = this.mediaData;
+        const title = this.title();
+        const releaseYear = this.releaseYear();
+        const duration = this.duration();
+        const posterUrl = this.posterUrl();
 
         if (!title.trim()) {
             this.toastService.show('Будь ласка, введіть назву медіа.', 'error');
@@ -523,7 +507,7 @@ export class MediaFormComponent implements OnInit {
             this.toastService.show('Тривалість має бути більшою за 0 секунд.', 'error');
             return false;
         }
-        if (posterUrl?.trim() && !isHttpUrl(posterUrl.trim())) {
+        if (posterUrl.trim() && !isHttpUrl(posterUrl.trim())) {
             this.toastService.show('Некоректне посилання на постер.', 'error');
             return false;
         }
@@ -532,15 +516,20 @@ export class MediaFormComponent implements OnInit {
 
     private buildPayload(collectionId: CollectionId | null, creatorId: CreatorId | null): CreateMediaRequest {
         return {
-            ...this.mediaData,
-            title: this.mediaData.title.trim(),
-            originalTitle: (this.mediaData.originalTitle ?? '').trim(),
-            posterUrl: (this.mediaData.posterUrl ?? '').trim(),
+            title: this.title().trim(),
+            originalTitle: this.originalTitle().trim(),
+            description: this.description(),
+            type: this.type(),
+            releaseYear: this.releaseYear(),
+            duration: this.duration(),
+            posterUrl: this.posterUrl().trim(),
+            visibility: this.visibility(),
+            links: [...this.links()],
             creatorId,
-            genres: parseCommaList(this.genresInput),
-            tags: parseCommaList(this.tagsInput),
+            genres: parseCommaList(this.genresInput()),
+            tags: parseCommaList(this.tagsInput()),
             cast: this.castPayload(),
-            seasons: this.isSeries ? this.seasons() : [],
+            seasons: this.isSeries() ? this.seasons() : [],
             collectionId
         };
     }
@@ -550,7 +539,7 @@ export class MediaFormComponent implements OnInit {
             selectedId: this.creatorId(),
             name: this.creatorName(),
             search: this.searchCreators,
-            create: name => this.creatorService.createCreator({ name, visibility: this.mediaData.visibility }),
+            create: name => this.creatorService.createCreator({ name, visibility: this.visibility() }),
             errorMessage: name => `Не вдалося створити автора "${name}".`
         });
     }
@@ -560,7 +549,7 @@ export class MediaFormComponent implements OnInit {
             selectedId: this.collectionId(),
             name: this.collectionName(),
             search: this.searchCollections,
-            create: name => this.collectionService.createCollection({ name, visibility: this.mediaData.visibility, tags: [] }),
+            create: name => this.collectionService.createCollection({ name, visibility: this.visibility(), tags: [] }),
             errorMessage: name => `Не вдалося створити колекцію "${name}".`
         });
     }
@@ -595,7 +584,7 @@ export class MediaFormComponent implements OnInit {
     }
 
     private onCreated(created: MediaItem): void {
-        const title = this.mediaData.title;
+        const title = this.title();
         this.toastService.show(`Медіа "${title}" успішно створено! 🎉`, 'success', 5000);
 
         if (this.embedded()) {
@@ -610,12 +599,20 @@ export class MediaFormComponent implements OnInit {
         this.metadataSub?.unsubscribe();
         this.metadataSub = null;
 
-        this.mediaData = createEmptyMedia();
+        this.title.set('');
+        this.originalTitle.set('');
+        this.description.set('');
+        this.type.set(MediaType.Movie);
+        this.releaseYear.set(null);
+        this.duration.set(null);
+        this.posterUrl.set('');
+        this.visibility.set(Visibility.Public);
+        this.links.set([]);
         this.typeTouched = false;
-        this.genresInput = '';
-        this.tagsInput = '';
-        this.imageError = false;
-        this.newLinkUrl = '';
+        this.genresInput.set('');
+        this.tagsInput.set('');
+        this.imageError.set(false);
+        this.newLinkUrl.set('');
         this.cast.set([]);
         this.seasons.set([]);
         this.creatorId.set(null);

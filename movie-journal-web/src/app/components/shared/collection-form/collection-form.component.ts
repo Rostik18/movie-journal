@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +23,8 @@ interface Snapshot {
     standalone: true,
     imports: [FormsModule],
     templateUrl: './collection-form.component.html',
-    styleUrls: ['./collection-form.component.scss']
+    styleUrls: ['./collection-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CollectionFormComponent implements OnInit {
     private collectionService = inject(CollectionService);
@@ -41,16 +42,13 @@ export class CollectionFormComponent implements OnInit {
 
     private readonly dirty = createDirtyTracker(() => this.snapshot());
 
-    collectionData: CreateMediaCollectionRequest = {
-        name: '',
-        description: '',
-        posterUrl: '',
-        tags: [],
-        visibility: Visibility.Public
-    };
-
-    tagsInput = '';
-    imageError = false;
+    // ---- Поля форми (signals) ----
+    readonly name = signal('');
+    readonly description = signal('');
+    readonly posterUrl = signal('');
+    readonly visibility = signal<Visibility>(Visibility.Public);
+    readonly tagsInput = signal('');
+    readonly imageError = signal(false);
 
     visibilityOptions = [
         { value: Visibility.Public, label: VisibilityLabels[Visibility.Public] },
@@ -60,26 +58,22 @@ export class CollectionFormComponent implements OnInit {
     ngOnInit(): void {
         const col = this.collection();
         if (col) {
-            this.collectionData = {
-                name: col.name ?? '',
-                description: col.description ?? '',
-                posterUrl: col.posterUrl ?? '',
-                tags: [...(col.tags ?? [])],
-                visibility: col.visibility
-            };
-            this.tagsInput = (col.tags ?? []).join(', ');
+            this.name.set(col.name ?? '');
+            this.description.set(col.description ?? '');
+            this.posterUrl.set(col.posterUrl ?? '');
+            this.visibility.set(col.visibility);
+            this.tagsInput.set((col.tags ?? []).join(', '));
         }
         this.dirty.markClean();
     }
 
     private snapshot(): Snapshot {
-        const d = this.collectionData;
         return {
-            name: d.name.trim(),
-            description: (d.description ?? '').trim(),
-            posterUrl: (d.posterUrl ?? '').trim(),
-            visibility: d.visibility,
-            tags: parseCommaList(this.tagsInput).join('\u0000')
+            name: this.name().trim(),
+            description: this.description().trim(),
+            posterUrl: this.posterUrl().trim(),
+            visibility: this.visibility(),
+            tags: parseCommaList(this.tagsInput()).join('\u0000')
         };
     }
 
@@ -89,11 +83,11 @@ export class CollectionFormComponent implements OnInit {
     }
 
     onPosterUrlChange() {
-        this.imageError = false;
+        this.imageError.set(false);
     }
 
     onSubmit() {
-        if (!this.collectionData.name.trim()) {
+        if (!this.name().trim()) {
             this.toastService.show("Будь ласка, введіть назву колекції.", 'error');
             return;
         }
@@ -103,13 +97,19 @@ export class CollectionFormComponent implements OnInit {
             return;
         }
 
-        this.collectionData.tags = parseCommaList(this.tagsInput);
+        const payload: CreateMediaCollectionRequest = {
+            name: this.name(),
+            description: this.description(),
+            posterUrl: this.posterUrl(),
+            visibility: this.visibility(),
+            tags: parseCommaList(this.tagsInput())
+        };
 
-        this.toastService.show(`Створення колекції "${this.collectionData.name}" запущено у фоні...`, 'info', 4000);
+        this.toastService.show(`Створення колекції "${payload.name}" запущено у фоні...`, 'info', 4000);
 
-        this.collectionService.createCollection(this.collectionData).subscribe({
+        this.collectionService.createCollection(payload).subscribe({
             next: () => {
-                this.toastService.show(`Колекцію "${this.collectionData.name}" успішно створено! 🎉`, 'success', 5000);
+                this.toastService.show(`Колекцію "${payload.name}" успішно створено! 🎉`, 'success', 5000);
                 this.collectionCreated.emit();
             },
             error: (err) => {
@@ -134,7 +134,7 @@ export class CollectionFormComponent implements OnInit {
                 description: 'description',
                 posterUrl: 'posterUrl',
                 visibility: 'visibility',
-                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput) }
+                tags: { when: 'tags', value: () => parseCommaList(this.tagsInput()) }
             })
         };
 

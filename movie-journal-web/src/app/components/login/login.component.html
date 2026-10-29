@@ -4,24 +4,23 @@
 
         <div class="form-group">
             <label for="login">Логін:</label>
-            <input type="text" id="login" [(ngModel)]="loginData.login" name="login" required
-                placeholder="Введіть логін">
+            <input type="text" id="login" [(ngModel)]="login" name="login" required placeholder="Введіть логін">
         </div>
 
         <div class="form-group">
             <label for="password">Пароль:</label>
-            <input type="password" id="password" [(ngModel)]="loginData.password" name="password" required
+            <input type="password" id="password" [(ngModel)]="password" name="password" required
                 placeholder="Введіть пароль">
         </div>
 
         <button type="submit">Увійти</button>
 
         <!-- Повідомлення про успіх або помилку -->
-        @if (errorMessage) {
-        <p class="error">{{ errorMessage }}</p>
+        @if (errorMessage()) {
+        <p class="error">{{ errorMessage() }}</p>
         }
-        @if (successMessage) {
-        <p class="success">{{ successMessage }}</p>
+        @if (successMessage()) {
+        <p class="success">{{ successMessage() }}</p>
         }
     </form>
 </div>

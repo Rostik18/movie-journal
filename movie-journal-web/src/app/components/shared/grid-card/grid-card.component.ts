@@ -1,4 +1,4 @@
-import { Component, computed, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output } from '@angular/core';
 import { Visibility } from '../../../models/enums';
 
 /** Кліки по цих елементах усередині картки не вважаються кліком по самій картці. */
@@ -9,6 +9,7 @@ const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea';
     standalone: true,
     templateUrl: './grid-card.component.html',
     styleUrls: ['./grid-card.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class GridCardComponent {
     readonly imageUrl = input<string | null | undefined>();

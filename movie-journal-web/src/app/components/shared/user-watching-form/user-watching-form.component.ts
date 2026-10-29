@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -32,22 +32,13 @@ const emptySnapshot = (): WatchingSnapshot => ({
     currentEpisodeNumber: null
 });
 
-const createEmptyWatching = (): CreateUserWatchingRequest => ({
-    mediaId: '',
-    status: WatchStatus.Watching,
-    rating: null,
-    notes: '',
-    stoppedAtSeconds: null,
-    currentSeasonNumber: null,
-    currentEpisodeNumber: null
-});
-
 @Component({
     selector: 'app-user-watching-form',
     standalone: true,
     imports: [FormsModule, MediaFormComponent, MediaPickerComponent, RatingStarsComponent],
     templateUrl: './user-watching-form.component.html',
-    styleUrls: ['./user-watching-form.component.scss']
+    styleUrls: ['./user-watching-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserWatchingFormComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
@@ -66,7 +57,13 @@ export class UserWatchingFormComponent implements OnInit {
 
     private readonly mediaForm = viewChild(MediaFormComponent);
 
-    formData: CreateUserWatchingRequest = createEmptyWatching();
+    // ---- Поля форми (signals) ----
+    readonly status = signal(WatchStatus.Watching);
+    readonly rating = signal<number | null>(null);
+    readonly notes = signal('');
+    readonly stoppedAtSeconds = signal<number | null>(null);
+    readonly currentSeasonNumber = signal<number | null>(null);
+    readonly currentEpisodeNumber = signal<number | null>(null);
 
     // Робимо WatchStatus доступним у шаблоні
     readonly WatchStatus = WatchStatus;
@@ -92,25 +89,22 @@ export class UserWatchingFormComponent implements OnInit {
         () => this.isSavingWatching() || (this.mediaForm()?.isSubmitting() ?? false)
     );
 
-    // Геттер та сеттер для конвертації хвилин у секунди та навпаки
-    get stoppedAtMinutes(): number | null {
-        return this.formData.stoppedAtSeconds != null
-            ? Math.round(this.formData.stoppedAtSeconds / 60)
-            : null;
-    }
+    /** Час зупинки у хвилинах (у формі) ↔ секунди (у даних). */
+    readonly stoppedAtMinutes = computed(() => {
+        const seconds = this.stoppedAtSeconds();
+        return seconds != null ? Math.round(seconds / 60) : null;
+    });
 
-    set stoppedAtMinutes(value: number | null) {
-        this.formData.stoppedAtSeconds = value != null && !isNaN(value)
-            ? Math.round(value * 60)
-            : null;
+    setStoppedAtMinutes(value: number | null): void {
+        this.stoppedAtSeconds.set(value != null && !isNaN(value) ? Math.round(value * 60) : null);
     }
 
     // чи показувати сезон/епізод
-    get showProgressFields(): boolean {
-        return this.isCreatingNewMedia()
-            ? (this.mediaForm()?.isSeries ?? false)
-            : this.selectedMedia()?.type === MediaType.Series;
-    }
+    readonly showProgressFields = computed(() =>
+        this.isCreatingNewMedia()
+            ? (this.mediaForm()?.isSeries() ?? false)
+            : this.selectedMedia()?.type === MediaType.Series
+    );
 
     ngOnInit(): void {
         const item = this.watching();
@@ -118,28 +112,24 @@ export class UserWatchingFormComponent implements OnInit {
             return;
         }
 
-        this.formData = {
-            mediaId: item.media.id,
-            status: item.status,
-            rating: item.rating ?? null,
-            notes: item.notes ?? '',
-            stoppedAtSeconds: item.stoppedAtSeconds ?? null,
-            currentSeasonNumber: item.currentSeasonNumber ?? null,
-            currentEpisodeNumber: item.currentEpisodeNumber ?? null
-        };
+        this.status.set(item.status);
+        this.rating.set(item.rating ?? null);
+        this.notes.set(item.notes ?? '');
+        this.stoppedAtSeconds.set(item.stoppedAtSeconds ?? null);
+        this.currentSeasonNumber.set(item.currentSeasonNumber ?? null);
+        this.currentEpisodeNumber.set(item.currentEpisodeNumber ?? null);
         this.selectedMedia.set({ id: item.media.id, title: item.media.title, type: item.media.type });
         this.dirty.markClean();
     }
 
     private snapshot(): WatchingSnapshot {
-        const d = this.formData;
         return {
-            status: d.status,
-            rating: d.rating ?? null,
-            notes: (d.notes ?? '').trim(),
-            stoppedAtSeconds: d.stoppedAtSeconds ?? null,
-            currentSeasonNumber: d.currentSeasonNumber ?? null,
-            currentEpisodeNumber: d.currentEpisodeNumber ?? null
+            status: this.status(),
+            rating: this.rating() ?? null,
+            notes: this.notes().trim(),
+            stoppedAtSeconds: this.stoppedAtSeconds() ?? null,
+            currentSeasonNumber: this.currentSeasonNumber() ?? null,
+            currentEpisodeNumber: this.currentEpisodeNumber() ?? null
         };
     }
 
@@ -182,11 +172,11 @@ export class UserWatchingFormComponent implements OnInit {
             return;
         }
 
-        const title: string = created.title ?? this.mediaForm()?.mediaData.title ?? '';
+        const title: string = created.title ?? this.mediaForm()?.title() ?? '';
         this.selectedMedia.set({
             id: created.id,
             title,
-            type: created.type ?? this.mediaForm()?.mediaData.type ?? null
+            type: created.type ?? this.mediaForm()?.type() ?? null
         });
         this.mediaSearchQuery.set(title);
         this.newMediaUrl.set(null);
@@ -228,14 +218,17 @@ export class UserWatchingFormComponent implements OnInit {
         this.isSavingWatching.set(true);
 
         // Очищаємо stoppedAtSeconds якщо статус не Watching
-        if (this.formData.status !== WatchStatus.Watching) {
-            this.formData.stoppedAtSeconds = null;
-        }
+        const isWatching = this.status() === WatchStatus.Watching;
+        const showProgress = this.showProgressFields();
 
         const payload: CreateUserWatchingRequest = {
-            ...this.formData,
             mediaId: media.id,
-            ...(this.showProgressFields ? {} : { currentSeasonNumber: null, currentEpisodeNumber: null })
+            status: this.status(),
+            rating: this.rating(),
+            notes: this.notes(),
+            stoppedAtSeconds: isWatching ? this.stoppedAtSeconds() : null,
+            currentSeasonNumber: showProgress ? this.currentSeasonNumber() : null,
+            currentEpisodeNumber: showProgress ? this.currentEpisodeNumber() : null
         };
 
         this.userWatchingService.createOrUpdateWatchlist(payload).pipe(
@@ -291,7 +284,7 @@ export class UserWatchingFormComponent implements OnInit {
         const cur = this.snapshot();
         const base = this.dirty.baseline ?? emptySnapshot();
         const isWatching = cur.status === WatchStatus.Watching;
-        const showProgress = this.showProgressFields;
+        const showProgress = this.showProgressFields();
 
         if (isWatching && cur.stoppedAtSeconds == null && base.stoppedAtSeconds != null) {
             this.toastService.show('Час зупинки не можна очистити після збереження — вкажіть інше значення.', 'error');
@@ -323,7 +316,13 @@ export class UserWatchingFormComponent implements OnInit {
     }
 
     private resetForm(): void {
-        this.formData = createEmptyWatching();
+        const empty = emptySnapshot();
+        this.status.set(empty.status);
+        this.rating.set(empty.rating);
+        this.notes.set(empty.notes);
+        this.stoppedAtSeconds.set(empty.stoppedAtSeconds);
+        this.currentSeasonNumber.set(empty.currentSeasonNumber);
+        this.currentEpisodeNumber.set(empty.currentEpisodeNumber);
         this.clearMedia();
     }
 }

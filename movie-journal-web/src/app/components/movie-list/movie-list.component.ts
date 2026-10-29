@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
@@ -44,7 +44,8 @@ interface WatchState {
         SearchToolbarComponent
     ],
     templateUrl: './movie-list.component.html',
-    styleUrls: ['./movie-list.component.scss']
+    styleUrls: ['./movie-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MovieListComponent implements OnInit {
     private readonly mediaService = inject(MediaService);

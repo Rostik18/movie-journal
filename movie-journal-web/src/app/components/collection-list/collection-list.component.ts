@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CollectionService } from '../../services/collection.service';
 import { ToastService } from '../../services/toast.service';
 import { CollectionSidebar, MediaCollectionResponse } from '../../models/collection.model';
@@ -36,7 +36,8 @@ import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
         SearchToolbarComponent
     ],
     templateUrl: './collection-list.component.html',
-    styleUrls: ['./collection-list.component.scss']
+    styleUrls: ['./collection-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CollectionListComponent implements OnInit {
     private readonly collectionService = inject(CollectionService);

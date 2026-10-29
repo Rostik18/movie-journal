@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,19 +10,18 @@ import { UserService } from '../../services/user.service';
     standalone: true,
     imports: [FormsModule], // Потрібно для роботи з формою [(ngModel)]
     templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss']
+    styleUrls: ['./login.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent {
     userService = inject(UserService);
 
     // Змінні для збереження даних з інпутів
-    loginData = {
-        login: '',
-        password: ''
-    };
+    readonly login = signal('');
+    readonly password = signal('');
 
-    errorMessage = '';
-    successMessage = '';
+    readonly errorMessage = signal('');
+    readonly successMessage = signal('');
 
     private router = inject(Router);
     private route = inject(ActivatedRoute);
@@ -35,19 +34,19 @@ export class LoginComponent {
     }
 
     onSubmit() {
-        this.authService.login(this.loginData).subscribe({
+        this.authService.login({ login: this.login(), password: this.password() }).subscribe({
             next: (response: LoginResult) => {
                 console.log('Успішний вхід:', response);
 
                 this.authService.startSession(response);
 
-                this.successMessage = 'Успішна авторизація!';
-                this.errorMessage = '';
+                this.successMessage.set('Успішна авторизація!');
+                this.errorMessage.set('');
                 this.router.navigateByUrl(this.safeReturnUrl());
             },
             error: (err) => {
                 console.error('Помилка входу:', err);
-                this.errorMessage = 'Помилка логіну або пароля. Спробуйте ще раз.';
+                this.errorMessage.set('Помилка логіну або пароля. Спробуйте ще раз.');
             }
         });
     }

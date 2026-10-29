@@ -29,7 +29,7 @@
     <div class="form-row">
         <div class="form-group">
             <label for="status">Статус перегляду</label>
-            <select id="status" [(ngModel)]="formData.status">
+            <select id="status" [(ngModel)]="status">
                 @for (opt of statusOptions; track opt.value) {
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
@@ -37,36 +37,35 @@
         </div>
         <div class="form-group">
             <label>Рейтинг</label>
-            <app-rating-stars [initialRating]="formData.rating ?? null" (ratingChange)="formData.rating = $event" />
+            <app-rating-stars [initialRating]="rating()" (ratingChange)="rating.set($event)" />
         </div>
     </div>
 
     <!-- Поле для введення зупинки у хвилинах (тільки для статусу Watching) -->
-    @if (formData.status === WatchStatus.Watching) {
+    @if (status() === WatchStatus.Watching) {
     <div class="form-group">
         <label for="stoppedAtMinutes">Зупинено на (хвилини)</label>
-        <input id="stoppedAtMinutes" type="number" min="0" [ngModel]="stoppedAtMinutes"
-            (ngModelChange)="stoppedAtMinutes = $event" placeholder="Наприклад: 45">
+        <input id="stoppedAtMinutes" type="number" min="0" [ngModel]="stoppedAtMinutes()"
+            (ngModelChange)="setStoppedAtMinutes($event)" placeholder="Наприклад: 45">
     </div>
     }
 
-    @if (showProgressFields) {
+    @if (showProgressFields()) {
     <div class="form-row">
         <div class="form-group">
             <label for="currentSeason">Поточний сезон</label>
-            <input id="currentSeason" type="number" min="1" [(ngModel)]="formData.currentSeasonNumber" placeholder="1">
+            <input id="currentSeason" type="number" min="1" [(ngModel)]="currentSeasonNumber" placeholder="1">
         </div>
         <div class="form-group">
             <label for="currentEpisode">Поточний епізод</label>
-            <input id="currentEpisode" type="number" min="1" [(ngModel)]="formData.currentEpisodeNumber"
-                placeholder="5">
+            <input id="currentEpisode" type="number" min="1" [(ngModel)]="currentEpisodeNumber" placeholder="5">
         </div>
     </div>
     }
 
     <div class="form-group">
         <label for="notes">Notes</label>
-        <textarea id="notes" [(ngModel)]="formData.notes" placeholder="Ваші враження..."></textarea>
+        <textarea id="notes" [(ngModel)]="notes" placeholder="Ваші враження..."></textarea>
     </div>
 
     <!-- Єдина кнопка збереження для всієї форми -->

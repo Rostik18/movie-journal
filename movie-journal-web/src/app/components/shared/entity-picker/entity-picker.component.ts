@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, inject, input, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, input, model, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subject, of } from 'rxjs';
@@ -17,7 +17,8 @@ const SEARCH_DEBOUNCE_MS = 300;
     standalone: true,
     imports: [FormsModule],
     templateUrl: './entity-picker.component.html',
-    styleUrls: ['./entity-picker.component.scss']
+    styleUrls: ['./entity-picker.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EntityPickerComponent<T extends { id: string; name: string }> {
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);

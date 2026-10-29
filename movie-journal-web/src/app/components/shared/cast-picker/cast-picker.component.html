@@ -4,7 +4,7 @@
 
 <div class="form-group actor-search-box">
     <label for="actorSearch">Знайти та додати актора</label>
-    <input id="actorSearch" type="text" [ngModel]="searchQuery" (ngModelChange)="onSearch($event)"
+    <input id="actorSearch" type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearch($event)"
         (keydown.escape)="onEscape($event)" name="actorSearchQuery" autocomplete="off"
         placeholder="Введіть ім'я актора...">
 

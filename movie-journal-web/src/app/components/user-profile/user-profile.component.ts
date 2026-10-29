@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -11,7 +11,8 @@ import { UserResponse, UpdateUserRequest, ChangePasswordRequest } from '../../mo
     standalone: true,
     imports: [ReactiveFormsModule],
     templateUrl: './user-profile.component.html',
-    styleUrls: ['./user-profile.component.scss']
+    styleUrls: ['./user-profile.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserProfileComponent implements OnInit {
     private readonly userService = inject(UserService);

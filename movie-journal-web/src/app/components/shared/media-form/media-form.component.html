@@ -23,18 +23,18 @@
         <div class="form-row cols-title">
             <div class="form-group">
                 <label for="title">Назва *</label>
-                <input id="title" type="text" [(ngModel)]="mediaData.title" name="title" required
+                <input id="title" type="text" [(ngModel)]="title" name="title" required
                     placeholder="Наприклад: Ла-Ла Ленд">
             </div>
             <div class="form-group">
                 <label for="originalTitle">Оригінальна назва</label>
-                <input id="originalTitle" type="text" [(ngModel)]="mediaData.originalTitle" name="originalTitle"
+                <input id="originalTitle" type="text" [(ngModel)]="originalTitle" name="originalTitle"
                     placeholder="La La Land">
             </div>
             <div class="form-group">
                 <label for="releaseYear">Рік випуску</label>
-                <input id="releaseYear" type="number" [(ngModel)]="mediaData.releaseYear" name="releaseYear" min="1888"
-                    max="2100" placeholder="2024">
+                <input id="releaseYear" type="number" [(ngModel)]="releaseYear" name="releaseYear" min="1888" max="2100"
+                    placeholder="2024">
             </div>
         </div>
 
@@ -42,7 +42,7 @@
         <div class="form-row cols-equal">
             <div class="form-group">
                 <label for="visibility">Видимість</label>
-                <select id="visibility" [(ngModel)]="mediaData.visibility" name="visibility">
+                <select id="visibility" [(ngModel)]="visibility" name="visibility">
                     @for (opt of visibilityOptions; track opt.value) {
                     <option [ngValue]="opt.value">{{ opt.label }}</option>
                     }
@@ -50,7 +50,7 @@
             </div>
             <div class="form-group">
                 <label for="type">Тип</label>
-                <select id="type" [ngModel]="mediaData.type" (ngModelChange)="onTypeChange($event)" name="type">
+                <select id="type" [ngModel]="type()" (ngModelChange)="onTypeChange($event)" name="type">
                     @for (opt of mediaTypeOptions; track opt.value) {
                     <option [ngValue]="opt.value">{{ opt.label }}</option>
                     }
@@ -58,8 +58,7 @@
             </div>
             <div class="form-group">
                 <label for="duration">Тривалість (сек)</label>
-                <input id="duration" type="number" [(ngModel)]="mediaData.duration" name="duration" min="1"
-                    placeholder="120">
+                <input id="duration" type="number" [(ngModel)]="duration" name="duration" min="1" placeholder="120">
             </div>
         </div>
 
@@ -68,8 +67,8 @@
             <div class="poster-fields">
                 <div class="form-group">
                     <label for="posterUrl">Посилання на постер (URL)</label>
-                    <input id="posterUrl" type="url" [(ngModel)]="mediaData.posterUrl"
-                        (ngModelChange)="onPosterUrlChange()" name="posterUrl" placeholder="https://...">
+                    <input id="posterUrl" type="url" [(ngModel)]="posterUrl" (ngModelChange)="onPosterUrlChange()"
+                        name="posterUrl" placeholder="https://...">
                 </div>
 
                 <!-- Автор / колекція: пошук існуючого або створення нового за назвою при збереженні -->
@@ -89,10 +88,10 @@
 
             <div class="poster-preview-section" title="Прев'ю постера">
                 <div class="preview-container">
-                    @if (!mediaData.posterUrl) {
+                    @if (!posterUrl()) {
                     <div class="preview-placeholder">Постер</div>
-                    } @else if (!imageError) {
-                    <img [src]="mediaData.posterUrl" alt="Прев'ю постера" (error)="imageError = true" />
+                    } @else if (!imageError()) {
+                    <img [src]="posterUrl()" alt="Прев'ю постера" (error)="imageError.set(true)" />
                     } @else {
                     <div class="preview-error"><span>⚠️ Помилка завантаження</span></div>
                     }
@@ -116,7 +115,7 @@
         <!-- Опис -->
         <div class="form-group">
             <label for="description">Опис</label>
-            <textarea id="description" name="description" [(ngModel)]="mediaData.description" rows="3"
+            <textarea id="description" name="description" [(ngModel)]="description" rows="3"
                 placeholder="Короткий опис..."></textarea>
         </div>
 
@@ -124,18 +123,18 @@
         <app-cast-picker [(cast)]="cast" />
 
         <!-- Сезони (тільки для серіалу, лише при створенні) -->
-        @if (isSeries && !isEditMode()) {
+        @if (isSeries() && !isEditMode()) {
         <app-seasons-editor [(seasons)]="seasons" />
         }
 
         <!-- Прикріплені посилання -->
-        @if (mediaData.links.length > 0) {
+        @if (links().length > 0) {
         <div class="bottom-links-list-section">
             <div class="section-header">
-                <h4>Прикріплені посилання ({{ mediaData.links.length }})</h4>
+                <h4>Прикріплені посилання ({{ links().length }})</h4>
             </div>
             <div class="selected-links-list">
-                @for (link of mediaData.links; track link; let i = $index) {
+                @for (link of links(); track link; let i = $index) {
                 <div class="link-row">
                     <a [href]="link" target="_blank" rel="noopener noreferrer" class="link-url">{{ link }}</a>
                     <button type="button" class="btn-danger-sm" (click)="removeLink(i)">&times;</button>

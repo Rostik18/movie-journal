@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, computed, inject, input, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { COUNTRIES, MAX_NATIONALITIES, countryFlag, countryName } from '../../../utils/country.util';
@@ -14,7 +14,8 @@ const MAX_VISIBLE_MATCHES = 50;
     standalone: true,
     imports: [FormsModule],
     templateUrl: './country-picker.component.html',
-    styleUrls: ['./country-picker.component.scss']
+    styleUrls: ['./country-picker.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CountryPickerComponent {
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);

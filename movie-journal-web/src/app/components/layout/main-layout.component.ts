@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, HostListener } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { EMPTY, timer } from 'rxjs';
@@ -23,7 +23,8 @@ const STATUS_LABELS: Record<ServerHealth, string> = {
     standalone: true,
     imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent],
     templateUrl: './main-layout.component.html',
-    styleUrls: ['./main-layout.component.scss']
+    styleUrls: ['./main-layout.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MainLayoutComponent {
     private readonly router = inject(Router);

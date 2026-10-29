@@ -1,4 +1,4 @@
-import { Component, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { Season } from '../../../models/media.model';
@@ -9,7 +9,8 @@ import { Season } from '../../../models/media.model';
     standalone: true,
     imports: [FormsModule],
     templateUrl: './seasons-editor.component.html',
-    styleUrls: ['./seasons-editor.component.scss']
+    styleUrls: ['./seasons-editor.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SeasonsEditorComponent {
     readonly seasons = model<Season[]>([]);

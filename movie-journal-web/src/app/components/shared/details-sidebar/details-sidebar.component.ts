@@ -1,6 +1,4 @@
-import {
-    Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, input, linkedSignal, output, untracked, viewChild
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, input, linkedSignal, output, untracked, viewChild } from '@angular/core';
 import { DeleteButtonComponent } from '../delete-button/delete-button.component';
 import { Observable } from 'rxjs';
 import { UserService } from '../../../services/user.service';
@@ -15,7 +13,8 @@ let nextSidebarId = 0;
     standalone: true,
     imports: [DeleteButtonComponent],
     templateUrl: './details-sidebar.component.html',
-    styleUrls: ['./details-sidebar.component.scss']
+    styleUrls: ['./details-sidebar.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DetailsSidebarComponent {
     private readonly injector = inject(Injector);

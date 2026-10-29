@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, output, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -20,7 +20,8 @@ type FormErrors = Partial<Record<FieldName, string>>;
     standalone: true,
     imports: [FormsModule],
     templateUrl: './user-form.component.html',
-    styleUrls: ['./user-form.component.scss']
+    styleUrls: ['./user-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserFormComponent {
     private readonly userService = inject(UserService);
@@ -33,10 +34,10 @@ export class UserFormComponent {
     /** Користувач натиснув «Скасувати». */
     readonly cancelled = output<void>();
 
-    login = '';
-    displayName = '';
-    password = '';
-    confirmPassword = '';
+    readonly login = signal('');
+    readonly displayName = signal('');
+    readonly password = signal('');
+    readonly confirmPassword = signal('');
 
     readonly roles = signal<UserRole[]>([UserRole.User]);
     readonly showPassword = signal(false);
@@ -112,20 +113,21 @@ export class UserFormComponent {
     private validate(): CreateUserRequest | null {
         const errors: FormErrors = {};
 
-        const login = this.login.trim();
+        const login = this.login().trim();
         if (!login) {
             errors.login = 'Введіть логін.';
         } else if (/\s/.test(login)) {
             errors.login = 'Логін не може містити пробіли.';
         }
 
-        if (!this.password) {
+        const password = this.password();
+        if (!password) {
             errors.password = 'Введіть пароль.';
-        } else if (this.password.length < MIN_PASSWORD_LENGTH) {
+        } else if (password.length < MIN_PASSWORD_LENGTH) {
             errors.password = `Пароль має містити щонайменше ${MIN_PASSWORD_LENGTH} символів.`;
         }
 
-        if (this.password && this.confirmPassword !== this.password) {
+        if (password && this.confirmPassword() !== password) {
             errors.confirmPassword = 'Паролі не збігаються.';
         }
 
@@ -140,17 +142,17 @@ export class UserFormComponent {
 
         return {
             login,
-            displayName: this.displayName.trim() || null,
+            displayName: this.displayName().trim() || null,
             roles: this.roles(),
-            password: this.password
+            password
         };
     }
 
     private resetForm(): void {
-        this.login = '';
-        this.displayName = '';
-        this.password = '';
-        this.confirmPassword = '';
+        this.login.set('');
+        this.displayName.set('');
+        this.password.set('');
+        this.confirmPassword.set('');
         this.roles.set([UserRole.User]);
         this.showPassword.set(false);
         this.errors.set({});

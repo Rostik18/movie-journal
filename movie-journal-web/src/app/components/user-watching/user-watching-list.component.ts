@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
@@ -39,7 +39,8 @@ import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
         DatePipe
     ],
     templateUrl: './user-watching-list.component.html',
-    styleUrls: ['./user-watching-list.component.scss']
+    styleUrls: ['./user-watching-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserWatchingListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);

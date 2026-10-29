@@ -5,7 +5,7 @@
     <div class="form-row">
         <div class="form-group col-wide">
             <label for="fullName">Повне ім'я *</label>
-            <input type="text" id="fullName" name="fullName" [(ngModel)]="actorData.fullName"
+            <input type="text" id="fullName" name="fullName" [(ngModel)]="fullName"
                 (ngModelChange)="clearError('fullName')" placeholder="Наприклад: Ryan Gosling" required
                 autocomplete="off" [attr.aria-invalid]="errors().fullName ? true : null"
                 [attr.aria-describedby]="errors().fullName ? 'fullName-error' : null">
@@ -16,7 +16,7 @@
 
         <div class="form-group">
             <label for="alias">Псевдонім</label>
-            <input type="text" id="alias" name="alias" [(ngModel)]="actorData.alias" autocomplete="off"
+            <input type="text" id="alias" name="alias" [(ngModel)]="alias" autocomplete="off"
                 placeholder="Наприклад: The Rock">
         </div>
     </div>
@@ -25,7 +25,7 @@
     <div class="form-row">
         <div class="form-group">
             <label for="sex">Стать</label>
-            <select id="sex" name="sex" [(ngModel)]="actorData.sex">
+            <select id="sex" name="sex" [(ngModel)]="sex">
                 @for (opt of sexOptions; track opt.value) {
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
@@ -34,7 +34,7 @@
 
         <div class="form-group">
             <label for="visibility">Видимість</label>
-            <select id="visibility" name="visibility" [(ngModel)]="actorData.visibility">
+            <select id="visibility" name="visibility" [(ngModel)]="visibility">
                 @for (opt of visibilityOptions; track opt.value) {
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
@@ -47,7 +47,7 @@
         <div class="photo-fields">
             <div class="form-group">
                 <label for="photoUrl">Посилання на фото (URL)</label>
-                <input type="url" id="photoUrl" name="photoUrl" [ngModel]="actorData.photoUrl"
+                <input type="url" id="photoUrl" name="photoUrl" [ngModel]="photoUrl()"
                     (ngModelChange)="onPhotoUrlChange($event)" placeholder="https://example.com/photo.jpg"
                     autocomplete="off" [attr.aria-invalid]="errors().photoUrl ? true : null"
                     [attr.aria-describedby]="errors().photoUrl ? 'photoUrl-error' : null">
@@ -77,15 +77,15 @@
 
             <div class="form-group">
                 <label for="nationality">Громадянство (до 3 країн)</label>
-                <app-country-picker inputId="nationality" [value]="actorData.nationalities"
-                    (valueChange)="actorData.nationalities = $event" />
+                <app-country-picker inputId="nationality" [value]="nationalities()"
+                    (valueChange)="nationalities.set($event)" />
             </div>
         </div>
 
         <div class="preview-box" aria-label="Попередній перегляд фото">
-            @if (photoPreviewUrl) {
+            @if (photoPreviewUrl()) {
             @if (!imageError()) {
-            <img [src]="photoPreviewUrl" alt="Прев'ю фото актора" class="preview-img" (error)="imageError.set(true)">
+            <img [src]="photoPreviewUrl()" alt="Прев'ю фото актора" class="preview-img" (error)="imageError.set(true)">
             } @else {
             <div class="preview-message error">⚠️ Не вдалося завантажити фото</div>
             }
@@ -98,7 +98,7 @@
     <!-- Біографія -->
     <div class="form-group">
         <label for="biography">Біографія</label>
-        <textarea id="biography" name="biography" [(ngModel)]="actorData.biography" rows="3"
+        <textarea id="biography" name="biography" [(ngModel)]="biography" rows="3"
             placeholder="Коротка біографія актора..."></textarea>
     </div>
 

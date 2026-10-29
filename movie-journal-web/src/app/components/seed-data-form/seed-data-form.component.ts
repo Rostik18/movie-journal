@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
@@ -11,7 +11,8 @@ import { MediaCollectionResponse } from '../../models/collection.model';
     standalone: true,
     imports: [FormsModule],
     templateUrl: './seed-data-form.component.html',
-    styleUrls: ['./seed-data-form.component.scss']
+    styleUrls: ['./seed-data-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SeedDataFormComponent implements OnInit {
     private serverService = inject(ServerService);

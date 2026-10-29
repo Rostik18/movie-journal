@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -41,23 +41,13 @@ const emptySnapshot = (): Snapshot => ({
     nationalities: ''
 });
 
-const createEmptyActor = (): CreateActorRequest => ({
-    fullName: '',
-    alias: '',
-    birthDate: null,
-    biography: '',
-    photoUrl: '',
-    visibility: Visibility.Public,
-    sex: null,
-    nationalities: []
-});
-
 @Component({
     selector: 'app-actor-form',
     standalone: true,
     imports: [FormsModule, CountryPickerComponent],
     templateUrl: './actor-form.component.html',
-    styleUrls: ['./actor-form.component.scss']
+    styleUrls: ['./actor-form.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ActorFormComponent implements OnInit {
     private readonly actorService = inject(ActorService);
@@ -77,11 +67,17 @@ export class ActorFormComponent implements OnInit {
     /** Користувач натиснув «Скасувати». */
     readonly cancelled = output<void>();
 
-    actorData: CreateActorRequest = createEmptyActor();
-
-    birthYear: number | null = null;
-    birthMonth: number | null = null;
-    birthDay: number | null = null;
+    // ---- Поля форми (signals) ----
+    readonly fullName = signal('');
+    readonly alias = signal('');
+    readonly biography = signal('');
+    readonly photoUrl = signal('');
+    readonly visibility = signal<Visibility>(Visibility.Public);
+    readonly sex = signal<Sex | null>(null);
+    readonly nationalities = signal<string[]>([]);
+    readonly birthYear = signal<number | null>(null);
+    readonly birthMonth = signal<number | null>(null);
+    readonly birthDay = signal<number | null>(null);
 
     readonly imageError = signal(false);
     readonly isSubmitting = signal(false);
@@ -115,16 +111,14 @@ export class ActorFormComponent implements OnInit {
         }
     }
 
-    get photoPreviewUrl(): string {
-        return (this.actorData.photoUrl ?? '').trim();
-    }
+    readonly photoPreviewUrl = computed(() => this.photoUrl().trim());
 
     hasChanges(): boolean {
         return this.dirty.hasChanges();
     }
 
     onPhotoUrlChange(value: string): void {
-        this.actorData.photoUrl = value;
+        this.photoUrl.set(value);
         this.imageError.set(false);
         this.clearError('photoUrl');
     }
@@ -167,14 +161,14 @@ export class ActorFormComponent implements OnInit {
 
     private create(values: ValidatedValues): void {
         const payload: CreateActorRequest = {
-            ...this.actorData,
             fullName: values.fullName,
             alias: this.snapshot().alias || null,
             photoUrl: values.photoUrl,
             biography: values.biography,
             birthDate: values.birthDate,
-            sex: this.actorData.sex ?? null,
-            nationalities: [...this.actorData.nationalities]
+            visibility: this.visibility(),
+            sex: this.sex(),
+            nationalities: [...this.nationalities()]
         };
 
         this.actorService.createActor(payload).pipe(
@@ -203,11 +197,11 @@ export class ActorFormComponent implements OnInit {
                 photoUrl: 'photoUrl',
                 biography: 'biography',
                 visibility: 'visibility',
-                sex: { when: 'sex', value: () => this.actorData.sex ?? null },
+                sex: { when: 'sex', value: () => this.sex() },
                 birthDate: { when: 'birth', value: () => values.birthDate }
             }),
             // Поле не nullable на BE, тому завжди надсилаємо поточний список
-            nationalities: [...this.actorData.nationalities]
+            nationalities: [...this.nationalities()]
         };
 
         this.actorService.updateActor(payload).pipe(
@@ -228,12 +222,12 @@ export class ActorFormComponent implements OnInit {
     private validate(): ValidatedValues | null {
         const errors: FormErrors = {};
 
-        const fullName = this.actorData.fullName.trim();
+        const fullName = this.fullName().trim();
         if (!fullName) {
             errors.fullName = "Введіть повне ім'я актора.";
         }
 
-        const photoUrl = this.photoPreviewUrl;
+        const photoUrl = this.photoPreviewUrl();
         if (photoUrl && !isHttpUrl(photoUrl)) {
             errors.photoUrl = 'Некоректне посилання: потрібен http:// або https://';
         }
@@ -253,13 +247,15 @@ export class ActorFormComponent implements OnInit {
         return {
             fullName,
             photoUrl,
-            biography: (this.actorData.biography ?? '').trim(),
+            biography: this.biography().trim(),
             birthDate: birth.value
         };
     }
 
     private resolveBirthDate(): { value: string | null; error?: string } {
-        const { birthYear: y, birthMonth: m, birthDay: d } = this;
+        const y = this.birthYear();
+        const m = this.birthMonth();
+        const d = this.birthDay();
 
         if (!y && !m && !d) {
             return { value: null };
@@ -290,44 +286,47 @@ export class ActorFormComponent implements OnInit {
 
     private snapshot(): Snapshot {
         return {
-            fullName: this.actorData.fullName.trim(),
-            alias: (this.actorData.alias ?? '').trim(),
-            photoUrl: this.photoPreviewUrl,
-            biography: (this.actorData.biography ?? '').trim(),
-            visibility: this.actorData.visibility ?? Visibility.Public,
-            sex: this.actorData.sex ?? null,
-            birth: `${this.birthYear ?? ''}-${this.birthMonth ?? ''}-${this.birthDay ?? ''}`,
-            nationalities: this.actorData.nationalities.join(',')
+            fullName: this.fullName().trim(),
+            alias: this.alias().trim(),
+            photoUrl: this.photoPreviewUrl(),
+            biography: this.biography().trim(),
+            visibility: this.visibility(),
+            sex: this.sex(),
+            birth: `${this.birthYear() ?? ''}-${this.birthMonth() ?? ''}-${this.birthDay() ?? ''}`,
+            nationalities: this.nationalities().join(',')
         };
     }
 
     private populateFrom(actor: ActorItem): void {
-        this.actorData = {
-            fullName: actor.fullName ?? '',
-            alias: actor.alias ?? '',
-            birthDate: actor.birthDate ?? null,
-            biography: actor.biography ?? '',
-            photoUrl: actor.photoUrl ?? '',
-            visibility: actor.visibility ?? Visibility.Public,
-            sex: actor.sex ?? null,
-            nationalities: [...(actor.nationalities ?? [])]
-        };
+        this.fullName.set(actor.fullName ?? '');
+        this.alias.set(actor.alias ?? '');
+        this.biography.set(actor.biography ?? '');
+        this.photoUrl.set(actor.photoUrl ?? '');
+        this.visibility.set(actor.visibility ?? Visibility.Public);
+        this.sex.set(actor.sex ?? null);
+        this.nationalities.set([...(actor.nationalities ?? [])]);
 
         const birth = actor.birthDate ? new Date(actor.birthDate) : null;
         if (birth && !Number.isNaN(birth.getTime())) {
-            this.birthYear = birth.getUTCFullYear();
-            this.birthMonth = birth.getUTCMonth() + 1;
-            this.birthDay = birth.getUTCDate();
+            this.birthYear.set(birth.getUTCFullYear());
+            this.birthMonth.set(birth.getUTCMonth() + 1);
+            this.birthDay.set(birth.getUTCDate());
         }
 
         this.dirty.markClean();
     }
 
     private resetForm(): void {
-        this.actorData = createEmptyActor();
-        this.birthYear = null;
-        this.birthMonth = null;
-        this.birthDay = null;
+        this.fullName.set('');
+        this.alias.set('');
+        this.biography.set('');
+        this.photoUrl.set('');
+        this.visibility.set(Visibility.Public);
+        this.sex.set(null);
+        this.nationalities.set([]);
+        this.birthYear.set(null);
+        this.birthMonth.set(null);
+        this.birthDay.set(null);
         this.imageError.set(false);
         this.errors.set({});
         this.dirty.markClean(); // порожня форма = emptySnapshot()

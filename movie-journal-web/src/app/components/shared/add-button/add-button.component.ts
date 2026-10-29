@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-add-button',
@@ -9,7 +9,8 @@ import { Component, input, output } from '@angular/core';
       <span class="btn-text">{{ label() }}</span>
     </button>
   `,
-  styleUrls: ['./add-button.component.scss']
+  styleUrls: ['./add-button.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AddButtonComponent {
   // Сигнальний вхід для тексту кнопки (можна перевикористовувати для фільмів, акторів тощо)

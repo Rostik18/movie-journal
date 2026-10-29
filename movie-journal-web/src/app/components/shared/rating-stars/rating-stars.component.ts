@@ -1,4 +1,4 @@
-import { Component, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, linkedSignal, output, signal } from '@angular/core';
 
 @Component({
   selector: 'app-rating-stars',
@@ -20,7 +20,8 @@ import { Component, input, linkedSignal, output, signal } from '@angular/core';
       }
     </div>
   `,
-  styleUrls: ['./rating-stars.component.scss']
+  styleUrls: ['./rating-stars.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RatingStarsComponent {
   // Початкове (або серверне) значення. При зміні входу оцінка синхронізується з ним.
