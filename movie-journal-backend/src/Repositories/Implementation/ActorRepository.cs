@@ -54,7 +54,7 @@ namespace MovieJournalBackend.Repositories.Implementation
         }
 
         public Task<List<string>> GetCountryCodesAsync(CancellationToken ct = default) => Collection
-            .Distinct<string>("Nationalities", FilterDefinition<Actor>.Empty, cancellationToken: ct)
+            .Distinct<string>("Nationalities", Builders<Actor>.Filter.Type("Nationalities", BsonType.Array), cancellationToken: ct)
             .ToListAsync(ct);
 
         public Task<bool> HasPrivateActorsAsync(IEnumerable<string> actorIds, CancellationToken ct = default) =>

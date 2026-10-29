@@ -42,7 +42,7 @@ namespace MovieJournalBackend.Services.Implementation
                              : item.PhotoUrl,
                         Biography = item.Biography,
                         Sex = item.Sex,
-                        Nationalities = item.Nationalities
+                        Nationalities = item.Nationalities ?? []
                     }, new(userId!, [UserRole.Admin]), ct);
                 }
                 catch (Exception ex)
