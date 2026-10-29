@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ActorItem, ActorSidebar, UpdateActorRequest } from '../models/actor.model';
 import { PageResponse } from '../models/shared.model';
@@ -65,12 +65,12 @@ export class ActorService {
         return this.http.get<ActorItem>(`${this.apiUrl}/${id}`);
     }
 
-    createActor(request: CreateActorRequest): Observable<ActorItem> {
-        return this.http.post<ActorItem>(`${this.apiUrl}`, request);
+    createActor(request: CreateActorRequest, context?: HttpContext): Observable<ActorItem> {
+        return this.http.post<ActorItem>(`${this.apiUrl}`, request, { context });
     }
 
-    updateActor(request: UpdateActorRequest): Observable<ActorItem> {
-        return this.http.put<ActorItem>(this.apiUrl, request);
+    updateActor(request: UpdateActorRequest, context?: HttpContext): Observable<ActorItem> {
+        return this.http.put<ActorItem>(this.apiUrl, request, { context });
     }
 
     deleteActor(id: string): Observable<void> {

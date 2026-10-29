@@ -9,6 +9,7 @@ import { SortDirection, UserSearchParams, UserSortField } from '../../models/sea
 import { UserRole, UserRoleLabels } from '../../models/enums';
 import { PageResponse } from '../../models/shared.model';
 import { ToastService } from '../../services/toast.service';
+import { skipErrorToast } from '../../interceptors/http-error.interceptor';
 import { UserService } from '../../services/user.service';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { UserFormComponent } from '../shared/user-form/user-form.component';
@@ -107,8 +108,7 @@ export class UserListComponent implements OnInit {
                         const total = (!Array.isArray(response) && response?.totalCount) || items.length;
                         return { ok: true as const, items, total };
                     }),
-                    catchError(err => {
-                        console.error('Помилка завантаження користувачів:', err);
+                    catchError(() => {
                         return of({ ok: false as const });
                     })
                 )
@@ -242,7 +242,7 @@ export class UserListComponent implements OnInit {
 
         this.isDeleting.set(true);
 
-        this.userService.deleteUser(user.id).pipe(
+        this.userService.deleteUser(user.id, skipErrorToast()).pipe(
             finalize(() => this.isDeleting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -258,8 +258,7 @@ export class UserListComponent implements OnInit {
                     this.updateParams({ offset: Math.max(0, offset - size) });
                 }
             },
-            error: err => {
-                console.error('Помилка видалення користувача:', err);
+            error: () => {
                 this.toastService.show(`Не вдалося видалити користувача "${user.login}".`, 'error', 5000);
             }
         });

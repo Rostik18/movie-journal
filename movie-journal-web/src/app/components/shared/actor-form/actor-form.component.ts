@@ -8,6 +8,7 @@ import { ToastService } from '../../../services/toast.service';
 import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 import { CountryPickerComponent } from '../country-picker/country-picker.component';
+import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl } from '../../../utils/form-parse.util';
 
@@ -171,7 +172,7 @@ export class ActorFormComponent implements OnInit {
             nationalities: [...this.nationalities()]
         };
 
-        this.actorService.createActor(payload).pipe(
+        this.actorService.createActor(payload, skipErrorToast()).pipe(
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -180,8 +181,7 @@ export class ActorFormComponent implements OnInit {
                 this.actorCreated.emit();
                 this.resetForm();
             },
-            error: err => {
-                console.error('Помилка створення актора:', err);
+            error: () => {
                 this.toastService.show(`Не вдалося створити актора "${values.fullName}".`, 'error', 6000);
             }
         });
@@ -204,7 +204,7 @@ export class ActorFormComponent implements OnInit {
             nationalities: [...this.nationalities()]
         };
 
-        this.actorService.updateActor(payload).pipe(
+        this.actorService.updateActor(payload, skipErrorToast()).pipe(
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -212,8 +212,7 @@ export class ActorFormComponent implements OnInit {
                 this.toastService.show(`Зміни для "${updated.fullName}" збережено ✅`, 'success', 4000);
                 this.actorUpdated.emit(updated);
             },
-            error: err => {
-                console.error('Помилка оновлення актора:', err);
+            error: () => {
                 this.toastService.show(`Не вдалося зберегти зміни для "${actor.fullName}".`, 'error', 6000);
             }
         });

@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
+import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { UserService } from '../../../services/user.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserRole, UserRoleLabels } from '../../../models/enums';
@@ -82,7 +83,7 @@ export class UserFormComponent {
 
         this.isSubmitting.set(true);
 
-        this.userService.createUser(request).pipe(
+        this.userService.createUser(request, skipErrorToast()).pipe(
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -91,9 +92,6 @@ export class UserFormComponent {
                 this.resetForm();
             },
             error: (err: unknown) => {
-                // Пароль у логи не потрапляє: виводимо лише відповідь сервера
-                console.error('Помилка створення користувача:', err instanceof HttpErrorResponse ? err.error : err);
-
                 if (err instanceof HttpErrorResponse && err.status === 409) {
                     this.errors.update(current => ({ ...current, login: 'Користувач з таким логіном уже існує.' }));
                     return;

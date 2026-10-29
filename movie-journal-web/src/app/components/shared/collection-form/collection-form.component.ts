@@ -114,10 +114,7 @@ export class CollectionFormComponent implements OnInit {
                 this.toastService.show(`Колекцію "${payload.name}" успішно створено! 🎉`, 'success', 5000);
                 this.collectionCreated.emit();
             },
-            error: (err) => {
-                console.error('Помилка створення колекції:', err);
-                this.toastService.show(`Не вдалося створити колекцію.`, 'error', 6000);
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 
@@ -150,10 +147,7 @@ export class CollectionFormComponent implements OnInit {
                 this.dirty.markClean();
                 this.collectionUpdated.emit(updated);
             },
-            error: err => {
-                console.error('Помилка оновлення колекції:', err);
-                this.toastService.show('Не вдалося оновити колекцію.', 'error', 6000);
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 }

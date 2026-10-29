@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Visibility, WatchStatus, MediaType } from '../models/enums';
@@ -121,9 +121,9 @@ export class ServerService {
         return this.http.get(`${this.apiUrl}/status`);
     }
 
-    getMetadata(url: string): Observable<MetadataResponse> {
+    getMetadata(url: string, context?: HttpContext): Observable<MetadataResponse> {
         const params = new HttpParams().set('url', url);
-        return this.http.get<MetadataResponse>(`${this.apiUrl}/metadata`, { params });
+        return this.http.get<MetadataResponse>(`${this.apiUrl}/metadata`, { params, context });
     }
 
     seedUserWatchData(request: SeedUserWatchRequest): Observable<SeedUserWatchResponse> {

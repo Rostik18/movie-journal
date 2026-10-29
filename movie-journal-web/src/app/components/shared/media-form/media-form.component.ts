@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpContext } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
@@ -13,6 +14,7 @@ import { CreatorService } from '../../../services/creator.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
 import { CreateMediaRequest, MediaActor, MediaItem, MediaSidebar, Season, UpdateMediaRequest } from '../../../models/media.model';
+import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
 import { CastPickerComponent } from '../cast-picker/cast-picker.component';
@@ -132,11 +134,11 @@ export class MediaFormComponent implements OnInit {
     readonly creatorName = signal('');
     private readonly creatorPicker = viewChild<EntityPickerComponent<CreatorResponse>>('creatorPicker');
 
-    readonly searchCollections = (query: string): Observable<MediaCollectionResponse[]> =>
-        this.collectionService.searchCollections({ query, size: ENTITY_SEARCH_SIZE }).pipe(map(res => res.items ?? []));
+    readonly searchCollections = (query: string, context?: HttpContext): Observable<MediaCollectionResponse[]> =>
+        this.collectionService.searchCollections({ query, size: ENTITY_SEARCH_SIZE }, context).pipe(map(res => res.items ?? []));
 
-    readonly searchCreators = (query: string): Observable<CreatorResponse[]> =>
-        this.creatorService.searchCreators({ query, size: ENTITY_SEARCH_SIZE }).pipe(map(res => res.items ?? []));
+    readonly searchCreators = (query: string, context?: HttpContext): Observable<CreatorResponse[]> =>
+        this.creatorService.searchCreators({ query, size: ENTITY_SEARCH_SIZE }, context).pipe(map(res => res.items ?? []));
 
     ngOnInit(): void {
         const media = this.media();
@@ -279,7 +281,7 @@ export class MediaFormComponent implements OnInit {
         this.toastService.show('Аналіз посилання та завантаження метаданих...', 'info', 3000);
 
         this.metadataSub?.unsubscribe();
-        this.metadataSub = this.serverService.getMetadata(url).pipe(
+        this.metadataSub = this.serverService.getMetadata(url, skipErrorToast()).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: meta => {
@@ -294,8 +296,7 @@ export class MediaFormComponent implements OnInit {
                     this.toastService.show('Нових даних для автозаповнення не знайдено.', 'info', 3000);
                 }
             },
-            error: err => {
-                console.error('Помилка отримання метаданих за URL:', err);
+            error: () => {
                 this.toastService.show('Не вдалося завантажити метадані за посиланням.', 'error', 4000);
             }
         });
@@ -385,13 +386,12 @@ export class MediaFormComponent implements OnInit {
         this.isSubmitting.set(true);
 
         forkJoin([this.resolveCollectionId(), this.resolveCreatorId()]).pipe(
-            switchMap(([collectionId, creatorId]) => this.mediaService.createMedia(this.buildPayload(collectionId, creatorId))),
+            switchMap(([collectionId, creatorId]) => this.mediaService.createMedia(this.buildPayload(collectionId, creatorId), skipErrorToast())),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: created => this.onCreated(created),
-            error: err => {
-                console.error('Помилка створення медіа:', err);
+            error: () => {
                 this.toastService.show(`Не вдалося створити медіа "${this.title()}".`, 'error', 6000);
             }
         });
@@ -413,7 +413,7 @@ export class MediaFormComponent implements OnInit {
         const creatorId$ = creatorChanged ? this.resolveCreatorId() : of(null);
 
         forkJoin([collectionId$, creatorId$]).pipe(
-            switchMap(([collectionId, creatorId]) => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId, creatorId))),
+            switchMap(([collectionId, creatorId]) => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId, creatorId), skipErrorToast())),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -431,8 +431,7 @@ export class MediaFormComponent implements OnInit {
                 }
                 this.mediaUpdated.emit(updated);
             },
-            error: err => {
-                console.error('Помилка оновлення медіа:', err);
+            error: () => {
                 this.toastService.show(`Не вдалося оновити "${this.title()}".`, 'error', 6000);
             }
         });
@@ -538,8 +537,8 @@ export class MediaFormComponent implements OnInit {
         return this.resolveEntityId<CreatorResponse, CreatorId>({
             selectedId: this.creatorId(),
             name: this.creatorName(),
-            search: this.searchCreators,
-            create: name => this.creatorService.createCreator({ name, visibility: this.visibility() }),
+            search: name => this.searchCreators(name, skipErrorToast()),
+            create: name => this.creatorService.createCreator({ name, visibility: this.visibility() }, skipErrorToast()),
             errorMessage: name => `Не вдалося створити автора "${name}".`
         });
     }
@@ -548,8 +547,8 @@ export class MediaFormComponent implements OnInit {
         return this.resolveEntityId<MediaCollectionResponse, CollectionId>({
             selectedId: this.collectionId(),
             name: this.collectionName(),
-            search: this.searchCollections,
-            create: name => this.collectionService.createCollection({ name, visibility: this.visibility(), tags: [] }),
+            search: name => this.searchCollections(name, skipErrorToast()),
+            create: name => this.collectionService.createCollection({ name, visibility: this.visibility(), tags: [] }, skipErrorToast()),
             errorMessage: name => `Не вдалося створити колекцію "${name}".`
         });
     }
@@ -575,8 +574,7 @@ export class MediaFormComponent implements OnInit {
             map(items => items.find(item => item.name.toLowerCase() === name.toLowerCase())),
             switchMap(existing => existing ? of(existing) : options.create(name)),
             map(entity => entity.id as TId),
-            catchError(err => {
-                console.error('Помилка пошуку/створення:', err);
+            catchError(() => {
                 this.toastService.show(options.errorMessage(name), 'error', 6000);
                 return EMPTY;
             })

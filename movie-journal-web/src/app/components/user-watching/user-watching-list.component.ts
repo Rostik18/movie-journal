@@ -199,10 +199,8 @@ export class UserWatchingListComponent implements OnInit {
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: () => this.toastService.show(`Рейтинг оновлено: ${newRating}/10 ⭐`, 'success', 2500),
-            error: err => {
-                console.error('Помилка оновлення рейтингу:', err);
+            error: () => {
                 this.patchItem(mediaId, previous);
-                this.toastService.show('Не вдалося оновити рейтинг.', 'error', 4000);
             }
         });
     }

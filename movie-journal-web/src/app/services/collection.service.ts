@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { CollectionSidebar, CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../models/collection.model';
@@ -13,7 +13,7 @@ export class CollectionService {
     private apiUrl = `${environment.apiUrl}/api/collections`;
     private http = inject(HttpClient);
 
-    searchCollections(params: CollectionSearchParams = {}): Observable<PageResponse<MediaCollectionResponse>> {
+    searchCollections(params: CollectionSearchParams = {}, context?: HttpContext): Observable<PageResponse<MediaCollectionResponse>> {
         let httpParams = new HttpParams();
 
         if (params.query) {
@@ -44,7 +44,7 @@ export class CollectionService {
             httpParams = httpParams.set('size', params.size.toString());
         }
 
-        return this.http.get<PageResponse<MediaCollectionResponse>>(`${this.apiUrl}/search`, { params: httpParams });
+        return this.http.get<PageResponse<MediaCollectionResponse>>(`${this.apiUrl}/search`, { params: httpParams, context });
     }
 
     getCollectionById(id: string): Observable<MediaCollectionResponse> {
@@ -56,8 +56,8 @@ export class CollectionService {
         return this.http.get<CollectionSidebar>(`${this.apiUrl}/${id}/sidebar`);
     }
 
-    createCollection(request: CreateMediaCollectionRequest): Observable<MediaCollectionResponse> {
-        return this.http.post<MediaCollectionResponse>(this.apiUrl, request);
+    createCollection(request: CreateMediaCollectionRequest, context?: HttpContext): Observable<MediaCollectionResponse> {
+        return this.http.post<MediaCollectionResponse>(this.apiUrl, request, { context });
     }
 
     updateCollection(request: UpdateMediaCollectionRequest): Observable<MediaCollectionResponse> {

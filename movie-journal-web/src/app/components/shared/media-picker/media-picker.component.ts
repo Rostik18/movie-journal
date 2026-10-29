@@ -74,9 +74,7 @@ export class MediaPickerComponent implements OnInit {
                         query,
                         items: (res.items ?? []) as MediaItem[]
                     })),
-                    catchError(err => {
-                        console.error('Помилка пошуку медіа:', err);
-                        this.toastService.show('Не вдалося виконати пошук.', 'error', 4000);
+                    catchError(() => {
                         return of<SearchOutcome>({ kind: 'empty' });
                     })
                 );

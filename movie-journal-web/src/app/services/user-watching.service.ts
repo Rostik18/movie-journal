@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { UserWatchingItem, UserWatchingResponseSlim, UserWatchingSidebar, CreateUserWatchingRequest, UpdateUserWatchingRequest } from '../models/user-watching.model';
 import { environment } from '../../environments/environment';
@@ -80,8 +80,8 @@ export class UserWatchingService {
         return this.http.get<PageResponse<UserWatchingResponseSlim>>(`${this.baseUrl}/search`, { params: httpParams });
     }
 
-    createOrUpdateWatchlist(request: CreateUserWatchingRequest): Observable<UserWatchingItem> {
-        return this.http.post<UserWatchingItem>(this.baseUrl, request);
+    createOrUpdateWatchlist(request: CreateUserWatchingRequest, context?: HttpContext): Observable<UserWatchingItem> {
+        return this.http.post<UserWatchingItem>(this.baseUrl, request, { context });
     }
 
     updateWatchlist(request: UpdateUserWatchingRequest): Observable<UserWatchingItem> {

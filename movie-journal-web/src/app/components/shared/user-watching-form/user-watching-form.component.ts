@@ -240,10 +240,7 @@ export class UserWatchingFormComponent implements OnInit {
                 this.watchingCreated.emit();
                 this.resetForm();
             },
-            error: err => {
-                console.error('Помилка додавання до списку перегляду:', err);
-                this.toastService.show('Не вдалося додати до списку перегляду.', 'error', 6000);
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 
@@ -269,10 +266,7 @@ export class UserWatchingFormComponent implements OnInit {
                 this.dirty.markClean();
                 this.watchingUpdated.emit(updated);
             },
-            error: err => {
-                console.error('Помилка оновлення запису списку перегляду:', err);
-                this.toastService.show('Не вдалося оновити запис списку перегляду.', 'error', 6000);
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 

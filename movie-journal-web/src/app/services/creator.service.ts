@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
@@ -13,7 +13,7 @@ export class CreatorService {
     private apiUrl = `${environment.apiUrl}/api/creators`;
     private http = inject(HttpClient);
 
-    searchCreators(params: { query?: string; size?: number; offset?: number } = {}): Observable<PageResponse<CreatorResponse>> {
+    searchCreators(params: { query?: string; size?: number; offset?: number } = {}, context?: HttpContext): Observable<PageResponse<CreatorResponse>> {
         let httpParams = new HttpParams();
 
         if (params.query) {
@@ -26,10 +26,10 @@ export class CreatorService {
             httpParams = httpParams.set('size', params.size.toString());
         }
 
-        return this.http.get<PageResponse<CreatorResponse>>(`${this.apiUrl}/search`, { params: httpParams });
+        return this.http.get<PageResponse<CreatorResponse>>(`${this.apiUrl}/search`, { params: httpParams, context });
     }
 
-    createCreator(request: CreateCreatorRequest): Observable<CreatorResponse> {
-        return this.http.post<CreatorResponse>(this.apiUrl, request);
+    createCreator(request: CreateCreatorRequest, context?: HttpContext): Observable<CreatorResponse> {
+        return this.http.post<CreatorResponse>(this.apiUrl, request, { context });
     }
 }

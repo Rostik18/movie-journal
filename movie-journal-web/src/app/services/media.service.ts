@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { MediaItem, MediaResponseSlim, MediaSidebar, CreateMediaRequest, UpdateMediaRequest } from '../models/media.model';
@@ -71,12 +71,12 @@ export class MediaService {
         return this.http.get<MediaSidebar>(`${this.apiUrl}/${id}/sidebar`);
     }
 
-    createMedia(request: CreateMediaRequest): Observable<MediaItem> {
-        return this.http.post<MediaItem>(`${this.apiUrl}`, request);
+    createMedia(request: CreateMediaRequest, context?: HttpContext): Observable<MediaItem> {
+        return this.http.post<MediaItem>(`${this.apiUrl}`, request, { context });
     }
 
-    updateMedia(request: UpdateMediaRequest): Observable<MediaItem> {
-        return this.http.put<MediaItem>(this.apiUrl, request);
+    updateMedia(request: UpdateMediaRequest, context?: HttpContext): Observable<MediaItem> {
+        return this.http.put<MediaItem>(this.apiUrl, request, { context });
     }
 
     deleteMedia(id: string): Observable<void> {

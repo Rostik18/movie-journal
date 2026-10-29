@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -40,7 +41,6 @@ export class LoginComponent {
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: (response: LoginResult) => {
-                console.log('Успішний вхід:', response);
 
                 this.authService.startSession(response);
 
@@ -48,9 +48,11 @@ export class LoginComponent {
                 this.errorMessage.set('');
                 this.router.navigateByUrl(this.safeReturnUrl());
             },
-            error: (err) => {
-                console.error('Помилка входу:', err);
-                this.errorMessage.set('Помилка логіну або пароля. Спробуйте ще раз.');
+            error: (err: unknown) => {
+                // 401 інтерсептор не озвучує (це «невірний пароль»); мережеві й серверні помилки показує він сам
+                if (err instanceof HttpErrorResponse && err.status === 401) {
+                    this.errorMessage.set('Помилка логіну або пароля. Спробуйте ще раз.');
+                }
             }
         });
     }

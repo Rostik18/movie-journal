@@ -65,9 +65,7 @@ export class SeedDataFormComponent implements OnInit {
             next: (res) => {
                 this.collections.set(res.items ?? []);
             },
-            error: (err) => {
-                console.error('Не вдалося завантажити колекції:', err);
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 
@@ -113,10 +111,8 @@ export class SeedDataFormComponent implements OnInit {
                         this.submitted.emit();
                     }
                 },
-                error: (err) => {
+                error: () => {
                     this.loading.set(false);
-                    console.error('Помилка seed акторів:', err);
-                    this.toastService.show('Помилка при виконанні seed акторів', 'error', 4000);
                 }
             });
         } else if (this.seedMode() === 'creators') {
@@ -150,10 +146,8 @@ export class SeedDataFormComponent implements OnInit {
                         this.submitted.emit();
                     }
                 },
-                error: (err) => {
+                error: () => {
                     this.loading.set(false);
-                    console.error('Помилка seed авторів:', err);
-                    this.toastService.show('Помилка при виконанні seed авторів', 'error', 4000);
                 }
             });
         } else if (this.seedMode() === 'collections') {
@@ -188,10 +182,8 @@ export class SeedDataFormComponent implements OnInit {
                         this.submitted.emit();
                     }
                 },
-                error: (err) => {
+                error: () => {
                     this.loading.set(false);
-                    console.error('Помилка seed колекцій:', err);
-                    this.toastService.show('Помилка при виконанні seed колекцій', 'error', 4000);
                 }
             });
         } else {
@@ -231,10 +223,8 @@ export class SeedDataFormComponent implements OnInit {
                         this.submitted.emit();
                     }
                 },
-                error: (err) => {
+                error: () => {
                     this.loading.set(false);
-                    console.error('Помилка seed запиту:', err);
-                    this.toastService.show('Помилка при виконанні seed запиту', 'error', 4000);
                 }
             });
         }
@@ -270,10 +260,8 @@ export class SeedDataFormComponent implements OnInit {
                 this.toastService.show(response.message || 'Базу даних успішно очищено!', 'success', 4000);
                 this.submitted.emit();
             },
-            error: (err) => {
+            error: () => {
                 this.loading.set(false);
-                console.error('Помилка очищення бази даних:', err);
-                this.toastService.show('Не вдалося очистити базу даних.', 'error', 4000);
             }
         });
     }

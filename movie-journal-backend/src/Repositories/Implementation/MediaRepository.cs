@@ -2,7 +2,6 @@
 using MongoDB.Driver.Linq;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
-using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
 using MovieJournalBackend.Extensions;
@@ -112,6 +111,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             if (!string.IsNullOrWhiteSpace(request.Filter.CreatorId))
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq("Creator.Id", request.Filter.CreatorId));
+            }
+            if (!string.IsNullOrWhiteSpace(request.Filter.CollectionId))
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq("Collection.Id", request.Filter.CollectionId));
             }
             if (request.Filter.Type.HasValue)
             {

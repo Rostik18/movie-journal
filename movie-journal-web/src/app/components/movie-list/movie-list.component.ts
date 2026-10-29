@@ -9,6 +9,7 @@ import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.component';
 import { ToastService } from '../../services/toast.service';
 import { MediaService } from '../../services/media.service';
+import { skipErrorToast } from '../../interceptors/http-error.interceptor';
 import { UserWatchingService } from '../../services/user-watching.service';
 import { MediaItem, MediaResponseSlim, MediaSidebar } from '../../models/media.model';
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus } from '../../models/enums';
@@ -168,12 +169,11 @@ export class MovieListComponent implements OnInit {
             rating: request.rating ?? previous?.rating ?? null
         });
 
-        this.userWatchingService.createOrUpdateWatchlist(request).pipe(
+        this.userWatchingService.createOrUpdateWatchlist(request, skipErrorToast()).pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
             next: () => this.toastService.show(successMessage, 'success', 3000),
-            error: err => {
-                console.error('Помилка оновлення списку перегляду:', err);
+            error: () => {
                 this.setWatchState(movie.id, previous);
                 this.toastService.show(`Не вдалося оновити "${movie.title}".`, 'error', 4000);
             }

@@ -40,8 +40,6 @@ export class UserProfileComponent implements OnInit {
     }
 
     loadProfile(): void {
-        console.log('Завантаження профілю...');
-
         this.loading.set(true);
         this.userService.getCurrentUser().pipe(
             takeUntilDestroyed(this.destroyRef)
@@ -54,9 +52,7 @@ export class UserProfileComponent implements OnInit {
                 });
                 this.loading.set(false);
             },
-            error: (err) => {
-                console.error('Помилка завантаження профілю:', err);
-                this.toastService.show('Не вдалося завантажити дані профілю.', 'error');
+            error: () => {
                 this.loading.set(false);
             }
         });
@@ -82,10 +78,7 @@ export class UserProfileComponent implements OnInit {
                 this.userService.setUserData(updatedUser); // Оновлюємо кеш у сервісі / localStorage
                 this.toastService.show('Профіль успішно оновлено! ✅', 'success');
             },
-            error: (err) => {
-                console.error('Помилка оновлення профілю:', err);
-                this.toastService.show('Не вдалося оновити профіль.', 'error');
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 
@@ -111,10 +104,7 @@ export class UserProfileComponent implements OnInit {
                 this.toastService.show('Пароль успішно змінено! 🔒', 'success');
                 this.passwordForm.reset();
             },
-            error: (err) => {
-                console.error('Помилка зміни пароля:', err);
-                this.toastService.show('Не вдалося змінити пароль.', 'error');
-            }
+            error: () => { /* помилку вже показав httpErrorInterceptor */ }
         });
     }
 }

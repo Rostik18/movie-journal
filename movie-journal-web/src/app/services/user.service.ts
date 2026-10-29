@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ChangePasswordRequest, CreateUserRequest, UpdateUserRequest, UserResponse } from '../models/user.model';
@@ -66,8 +66,8 @@ export class UserService {
     }
 
     // POST /api/users/
-    createUser(request: CreateUserRequest): Observable<UserResponse> {
-        return this.http.post<UserResponse>(`${this.baseUrl}/`, request);
+    createUser(request: CreateUserRequest, context?: HttpContext): Observable<UserResponse> {
+        return this.http.post<UserResponse>(`${this.baseUrl}/`, request, { context });
     }
 
     // PUT /api/users/
@@ -81,7 +81,7 @@ export class UserService {
     }
 
     // DELETE /api/users/{userId}
-    deleteUser(userId: string): Observable<UserResponse> {
-        return this.http.delete<UserResponse>(`${this.baseUrl}/${userId}`);
+    deleteUser(userId: string, context?: HttpContext): Observable<UserResponse> {
+        return this.http.delete<UserResponse>(`${this.baseUrl}/${userId}`, { context });
     }
 }
