@@ -9,9 +9,10 @@ namespace MovieJournalBackend.Services.Implementation
         private const int AgeBlockSize = 5;
         private const int MaxAge = 100;
 
-        public async Task<ActorsStatisticResponse> GetActorsStatisticsAsync(UserContext user, CancellationToken ct = default)
+        public async Task<ActorsStatisticResponse> GetActorsStatisticsAsync(int? ageGap, UserContext user, CancellationToken ct = default)
         {
-            var currentYear = DateTime.UtcNow.Year;
+            var now = DateTime.UtcNow;
+            var ageBlockSize = ageGap is null or <= 0 ? AgeBlockSize : ageGap.Value;
 
             var result = new ActorsStatisticResponse
             {
@@ -25,16 +26,10 @@ namespace MovieJournalBackend.Services.Implementation
             foreach (var (code, count) in nationalityCounts)
                 result.CountByNationality[code] = count;
 
-            var birthYearCounts = await actorRepository.GetCountByBirthYearAsync(currentYear - MaxAge, currentYear, user, ct);
+            var ageCounts = await actorRepository.GetCountByAgeAsync(now, MaxAge, ageBlockSize, user, ct);
 
-            foreach (var (birthYear, count) in birthYearCounts)
-            {
-                var age = currentYear - birthYear;
-                var ageBlock = age / AgeBlockSize * AgeBlockSize;
-
-                result.CountByAge.TryGetValue(ageBlock.ToString(), out var currentCount);
-                result.CountByAge[ageBlock.ToString()] = currentCount + count;
-            }
+            foreach (var (ageBlock, count) in ageCounts)
+                result.CountByAge[ageBlock.ToString()] = count;
 
             return result;
         }

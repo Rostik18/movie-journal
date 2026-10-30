@@ -4,6 +4,6 @@ namespace MovieJournalBackend.Services
 {
     public interface IStatisticService
     {
-        Task<ActorsStatisticResponse> GetActorsStatisticsAsync(UserContext user, CancellationToken ct = default);
+        Task<ActorsStatisticResponse> GetActorsStatisticsAsync(int? ageGap, UserContext user, CancellationToken ct = default);
     }
 }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { ActorsStatisticResponse } from '../../models/statistic.model';
@@ -8,7 +9,10 @@ import { countryFlag, countryName } from '../../utils/country.util';
 
 type StatisticsTab = 'actors';
 
-const AGE_BLOCK_SIZE = 5; // має збігатися з бекендом (StatisticService.AgeBlockSize)
+/** Розмір вікової групи (ageGap): межі слайдера й значення за замовчуванням (збігається з типовим на бекенді). */
+const MIN_AGE_GAP = 1;
+const MAX_AGE_GAP = 20;
+const DEFAULT_AGE_GAP = 5;
 const COLLAPSED_NATIONALITIES = 10;
 
 interface Bar {
@@ -45,6 +49,27 @@ export class StatisticsComponent implements OnInit {
     readonly hasError = signal(false);
 
     readonly showAllNationalities = signal(false);
+
+    // ---------- Розмір вікової групи ----------
+    readonly minAgeGap = MIN_AGE_GAP;
+    readonly maxAgeGap = MAX_AGE_GAP;
+    /** Значення під час перетягування слайдера (лише показується). */
+    readonly ageGapDraft = signal(DEFAULT_AGE_GAP);
+    /** Значення, яке використано для запиту: за ним будуються підписи груп. */
+    private readonly loadedAgeGap = signal(DEFAULT_AGE_GAP);
+    private request: Subscription | null = null;
+    /** «по 1 року», «по 3 роки», «по 5 років» (діапазон 1–20, тож винятків 11–14 достатньо врахувати нижче). */
+    readonly ageGapUnit = computed(() => {
+        const gap = this.ageGapDraft();
+        const lastDigit = gap % 10;
+        if (gap > 10 && gap < 15) {
+            return 'років';
+        }
+        if (lastDigit === 1) {
+            return 'року';
+        }
+        return lastDigit >= 2 && lastDigit <= 4 ? 'роки' : 'років';
+    });
 
     // ---------- Актори ----------
     readonly total = computed(() => this.actors()?.totalActors ?? 0);
@@ -111,11 +136,12 @@ export class StatisticsComponent implements OnInit {
         const max = Math.max(...counts.values());
 
         const bars: Bar[] = [];
-        for (let start = first; start <= last; start += AGE_BLOCK_SIZE) {
+        const gap = this.loadedAgeGap();
+        for (let start = first; start <= last; start += gap) {
             const count = counts.get(start) ?? 0;
             bars.push({
                 key: String(start),
-                label: `${start}–${start + AGE_BLOCK_SIZE - 1}`,
+                label: gap === 1 ? `${start}` : `${start}–${start + gap - 1}`,
                 count,
                 size: percent(count, max),
                 share: percent(count, data.totalActors)
@@ -134,17 +160,44 @@ export class StatisticsComponent implements OnInit {
         this.activeTab.set(tab);
     }
 
-    load(): void {
+    load(ageGap = this.loadedAgeGap()): void {
         this.loading.set(true);
         this.hasError.set(false);
 
-        this.statisticService.getActorsStatistics().pipe(
+        // Попередній запит скасовуємо: відповідь на старий розмір групи не має перезаписати нову
+        this.request?.unsubscribe();
+        this.request = this.statisticService.getActorsStatistics(ageGap).pipe(
             finalize(() => this.loading.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
-            next: data => this.actors.set(data),
+            next: data => {
+                this.loadedAgeGap.set(ageGap);
+                this.actors.set(data);
+            },
             error: () => this.hasError.set(true)
         });
+    }
+
+    /** Під час руху слайдера лише оновлюємо число поруч. */
+    onAgeGapInput(value: string): void {
+        this.ageGapDraft.set(this.clampAgeGap(value));
+    }
+
+    /** Відпустили слайдер (або змінили значення з клавіатури) — завантажуємо статистику з новим розміром групи. */
+    onAgeGapCommit(value: string): void {
+        const gap = this.clampAgeGap(value);
+        this.ageGapDraft.set(gap);
+        if (gap !== this.loadedAgeGap()) {
+            this.load(gap);
+        }
+    }
+
+    private clampAgeGap(value: string): number {
+        const parsed = Math.round(Number(value));
+        if (!Number.isFinite(parsed)) {
+            return this.loadedAgeGap();
+        }
+        return Math.min(MAX_AGE_GAP, Math.max(MIN_AGE_GAP, parsed));
     }
 
     toggleNationalities(): void {

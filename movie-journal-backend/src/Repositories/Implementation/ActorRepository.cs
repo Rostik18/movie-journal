@@ -83,29 +83,72 @@ namespace MovieJournalBackend.Repositories.Implementation
                 x => x["Count"].ToInt64());
         }
 
-        public async Task<Dictionary<int, long>> GetCountByBirthYearAsync(int fromYear, int toYear, UserContext user, CancellationToken ct = default)
+        public async Task<Dictionary<int, long>> GetCountByAgeAsync(DateTime asOfUtc, int maxAge, int ageGap, UserContext user, CancellationToken ct = default)
         {
             var visibilityFilter = user.BuildVisibilityFilter<Actor>();
 
             var filter = Builders<Actor>.Filter.And(
                 visibilityFilter,
                 Builders<Actor>.Filter.Ne(x => x.BirthDate, null),
-                Builders<Actor>.Filter.Gte(x => x.BirthDate, new(fromYear, 1, 1, 0, 0, 0, DateTimeKind.Utc)),
-                Builders<Actor>.Filter.Lt(x => x.BirthDate, new(toYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+                Builders<Actor>.Filter.Gte(x => x.BirthDate, asOfUtc.AddYears(-maxAge)),
+                Builders<Actor>.Filter.Lte(x => x.BirthDate, asOfUtc));
+
+            var pipeline = new[]
+            {
+                new BsonDocument("$set", new BsonDocument
+                {
+                    {
+                        "Age",
+                        new BsonDocument("$subtract", new BsonArray
+                        {
+                            new BsonDocument("$dateDiff", new BsonDocument
+                            {
+                                { "startDate", "$BirthDate" },
+                                { "endDate", asOfUtc },
+                                { "unit", "year" }
+                            }),
+                            new BsonDocument("$cond", new BsonArray
+                            {
+                                new BsonDocument("$or", new BsonArray
+                                {
+                                    new BsonDocument("$gt", new BsonArray { new BsonDocument("$month", "$BirthDate"), asOfUtc.Month }),
+                                    new BsonDocument("$and", new BsonArray
+                                    {
+                                        new BsonDocument("$eq", new BsonArray { new BsonDocument("$month", "$BirthDate"), asOfUtc.Month }),
+                                        new BsonDocument("$gt", new BsonArray { new BsonDocument("$dayOfMonth", "$BirthDate"), asOfUtc.Day })
+                                    })
+                                }),
+                                1,
+                                0
+                            })
+                        })
+                    }
+                }),
+                new BsonDocument("$set", new BsonDocument
+                {
+                    {
+                        "AgeBlock",
+                        new BsonDocument("$multiply", new BsonArray { new BsonDocument("$floor", new BsonDocument("$divide", new BsonArray { "$Age", ageGap })), ageGap })
+                    }
+                }),
+                new BsonDocument("$group", new BsonDocument
+                {
+                    { "_id", "$AgeBlock" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+            };
 
             var result = await Collection
                 .Aggregate()
                 .Match(filter)
-                .Group(
-                    x => x.BirthDate!.Value.Year,
-                    g => new
-                    {
-                        Year = g.Key,
-                        Count = g.LongCount()
-                    })
+                .AppendStage(new BsonDocumentPipelineStageDefinition<Actor, BsonDocument>(pipeline[0]))
+                .AppendStage(new BsonDocumentPipelineStageDefinition<BsonDocument, BsonDocument>(pipeline[1]))
+                .AppendStage(new BsonDocumentPipelineStageDefinition<BsonDocument, BsonDocument>(pipeline[2]))
                 .ToListAsync(ct);
 
-            return result.ToDictionary(x => x.Year, x => x.Count);
+            return result.ToDictionary(
+                x => x["_id"].AsInt32,
+                x => x["Count"].ToInt64());
         }
 
         private FilterDefinition<Actor> CreateFilter(SearchRequest<ActorFilter, ActorSortField> request, UserContext user)

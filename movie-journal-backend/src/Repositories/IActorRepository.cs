@@ -17,6 +17,6 @@ namespace MovieJournalBackend.Repositories
         Task<long> GetCountAsync(SearchRequest<ActorFilter, ActorSortField> request, UserContext user, CancellationToken ct = default);
 
         Task<Dictionary<string, long>> GetCountByNationalityAsync(UserContext user, CancellationToken ct = default);
-        Task<Dictionary<int, long>> GetCountByBirthYearAsync(int fromYear, int toYear, UserContext user, CancellationToken ct = default);
+        Task<Dictionary<int, long>> GetCountByAgeAsync(DateTime asOfUtc, int maxAge, int ageGap, UserContext user, CancellationToken ct = default);
     }
 }

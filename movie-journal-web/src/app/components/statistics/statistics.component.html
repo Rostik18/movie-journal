@@ -82,13 +82,26 @@
 
     <!-- Вік -->
     <section class="stats-section">
-        <h4>Вік <span class="muted">(групи по 5 років)</span></h4>
+        <h4>Вік <span class="muted">(групи по {{ ageGapDraft() }} {{ ageGapUnit() }})</span></h4>
+
+        <!-- Розмір вікової групи (ageGap): запит надсилається, коли слайдер відпущено -->
+        <div class="age-gap-control">
+            <label for="ageGap">Розмір групи, років</label>
+            <span class="age-gap-limit" aria-hidden="true">{{ minAgeGap }}</span>
+            <input id="ageGap" type="range" [min]="minAgeGap" [max]="maxAgeGap" step="1" [value]="ageGapDraft()"
+                [attr.aria-valuetext]="ageGapDraft() + ' ' + ageGapUnit()"
+                (input)="onAgeGapInput($any($event.target).value)" (change)="onAgeGapCommit($any($event.target).value)">
+            <span class="age-gap-limit" aria-hidden="true">{{ maxAgeGap }}</span>
+            <output class="age-gap-value" for="ageGap">{{ ageGapDraft() }}</output>
+        </div>
+
         @if (ageBars().length === 0) {
         <p class="muted">Дати народження не вказані.</p>
         } @else {
-        <div class="age-chart">
+        <div class="age-chart" [class.is-loading]="loading()" [attr.aria-busy]="loading()">
             @for (item of ageBars(); track item.key) {
-            <div class="age-col" [title]="item.label + ' р.: ' + item.count + ' (' + item.share.toFixed(1) + '%)'">
+            <div class="age-col" [style.flex-basis.px]="ageBars().length > 30 ? 30 : 44"
+                [title]="item.label + ' р.: ' + item.count + ' (' + item.share.toFixed(1) + '%)'">
                 <span class="age-count">{{ item.count || '' }}</span>
                 <span class="age-bar" [style.height.%]="item.size"></span>
                 <span class="age-label">{{ item.label }}</span>

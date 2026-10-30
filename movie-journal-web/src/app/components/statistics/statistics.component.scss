@@ -248,3 +248,43 @@
         white-space: nowrap;
     }
 }
+
+/* Слайдер розміру вікової групи */
+.age-gap-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #475569;
+
+    label {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    input[type='range'] {
+        flex: 1;
+        max-width: 320px;
+        accent-color: #0ea5e9;
+        cursor: pointer;
+    }
+
+    .age-gap-limit {
+        color: #94a3b8;
+        font-size: 0.75rem;
+    }
+
+    .age-gap-value {
+        min-width: 2ch;
+        font-weight: 700;
+        color: #0ea5e9;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.age-chart.is-loading {
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
