@@ -1,0 +1,72 @@
+$border: #cbd5e1;
+$accent: #0ea5e9;
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.btn-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border: 1px solid $border;
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+
+    &:hover {
+        background: #f1f5f9;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #93c5fd;
+        outline-offset: 2px;
+    }
+
+    &.active {
+        background: #e0f2fe;
+        border-color: $accent;
+        color: #0369a1;
+        font-weight: 600;
+    }
+
+    &.tone-blue.active {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1d4ed8;
+    }
+
+    &.tone-pink.active {
+        background: #fce7f3;
+        border-color: #ec4899;
+        color: #be185d;
+    }
+
+    &.icon-only {
+        min-width: 40px;
+        padding: 6px 10px;
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .glyph {
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+}

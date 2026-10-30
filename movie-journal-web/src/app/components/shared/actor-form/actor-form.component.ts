@@ -5,12 +5,14 @@ import { finalize } from 'rxjs/operators';
 
 import { ActorService } from '../../../services/actor.service';
 import { ToastService } from '../../../services/toast.service';
-import { Visibility, VisibilityLabels, Sex, SexLabels } from '../../../models/enums';
+import { Visibility, Sex, SexLabels } from '../../../models/enums';
 import { ActorItem, CreateActorRequest, UpdateActorRequest } from '../../../models/actor.model';
 import { CountryPickerComponent } from '../country-picker/country-picker.component';
 import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl } from '../../../utils/form-parse.util';
+import { VisibilityToggleComponent } from '../visibility-toggle/visibility-toggle.component';
+import { ToggleGroupComponent, ToggleOption } from '../toggle-group/toggle-group.component';
 
 const MIN_BIRTH_YEAR = 1800;
 
@@ -45,7 +47,7 @@ const emptySnapshot = (): Snapshot => ({
 @Component({
     selector: 'app-actor-form',
     standalone: true,
-    imports: [FormsModule, CountryPickerComponent],
+    imports: [FormsModule, CountryPickerComponent, VisibilityToggleComponent, ToggleGroupComponent],
     templateUrl: './actor-form.component.html',
     styleUrls: ['./actor-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -89,17 +91,10 @@ export class ActorFormComponent implements OnInit {
     readonly maxBirthYear = new Date().getFullYear();
     readonly minBirthYear = MIN_BIRTH_YEAR;
 
-    readonly visibilityOptions = [Visibility.Public, Visibility.Private].map(value => ({
-        value,
-        label: VisibilityLabels[value]
-    }));
-
-    readonly sexOptions = [
-        { value: null, label: '— Не вказано —' },
-        ...Object.values(Sex).map(value => ({
-            value,
-            label: SexLabels[value] ?? String(value)
-        }))
+    /** Дві кнопки; повторний клік по активній знімає вибір (стать не вказано). */
+    readonly sexOptions: readonly ToggleOption<Sex>[] = [
+        { value: Sex.Male, label: SexLabels[Sex.Male], glyph: '♂', tone: 'blue' },
+        { value: Sex.Female, label: SexLabels[Sex.Female], glyph: '♀', tone: 'pink' }
     ];
 
     /** Початковий стан форми. */

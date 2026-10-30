@@ -22,11 +22,7 @@
             </div>
             <div class="form-group" style="flex: 1;">
                 <label>Видимість</label>
-                <select [(ngModel)]="visibility" name="visibility">
-                    @for (opt of visibilityOptions; track opt.value) {
-                    <option [ngValue]="opt.value">{{ opt.label }}</option>
-                    }
-                </select>
+                <app-visibility-toggle [(value)]="visibility" />
             </div>
         </div>
 

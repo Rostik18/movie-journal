@@ -3,14 +3,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
-import { Visibility, WatchStatus, MediaType, VisibilityLabels, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
+import { Visibility, WatchStatus, MediaType, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
 import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest, SeedCollectionsRequest } from '../../services/server.service';
 import { MediaCollectionResponse } from '../../models/collection.model';
+import { VisibilityToggleComponent } from '../shared/visibility-toggle/visibility-toggle.component';
 
 @Component({
     selector: 'app-seed-data-form',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, VisibilityToggleComponent],
     templateUrl: './seed-data-form.component.html',
     styleUrls: ['./seed-data-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -40,10 +41,6 @@ export class SeedDataFormComponent implements OnInit {
     collections = signal<MediaCollectionResponse[]>([]);
     loading = signal(false);
 
-    readonly visibilityOptions = [Visibility.Public, Visibility.Private].map(value => ({
-        value,
-        label: VisibilityLabels[value]
-    }));
     readonly statusOptions = [WatchStatus.Wishlist, WatchStatus.Watching, WatchStatus.Watched, WatchStatus.Dropped].map(value => ({
         value,
         label: WatchStatusLabels[value]

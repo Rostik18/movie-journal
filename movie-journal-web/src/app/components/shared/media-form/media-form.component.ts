@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
-import { MediaType, MediaTypeLabels, Visibility, VisibilityLabels } from '../../../models/enums';
+import { MediaType, MediaTypeLabels, Visibility } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { CreatorResponse } from '../../../models/creator.model';
 import { MediaService } from '../../../services/media.service';
@@ -20,6 +20,7 @@ import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
 import { CastPickerComponent } from '../cast-picker/cast-picker.component';
 import { EntityPickerComponent } from '../entity-picker/entity-picker.component';
 import { SeasonsEditorComponent } from '../seasons-editor/seasons-editor.component';
+import { VisibilityToggleComponent } from '../visibility-toggle/visibility-toggle.component';
 
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
 type CreatorId = NonNullable<CreateMediaRequest['creatorId']>;
@@ -63,7 +64,7 @@ const entityKey = (id: string | null, name: string): string => {
 @Component({
     selector: 'app-media-form',
     standalone: true,
-    imports: [FormsModule, EntityPickerComponent, CastPickerComponent, SeasonsEditorComponent],
+    imports: [FormsModule, EntityPickerComponent, CastPickerComponent, SeasonsEditorComponent, VisibilityToggleComponent],
     templateUrl: './media-form.component.html',
     styleUrls: ['./media-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -112,11 +113,6 @@ export class MediaFormComponent implements OnInit {
     readonly mediaTypeOptions = Object.values(MediaType).map(type => ({
         value: type,
         label: MediaTypeLabels[type]
-    }));
-
-    readonly visibilityOptions = [Visibility.Public, Visibility.Private].map(value => ({
-        value,
-        label: VisibilityLabels[value]
     }));
 
     // ---- Посилання (Name та Type приховані) ----

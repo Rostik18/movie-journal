@@ -23,11 +23,7 @@
     <div class="form-row">
         <div class="form-group">
             <label>Видимість:</label>
-            <select [ngModel]="selectedVisibility()" (ngModelChange)="selectedVisibility.set($event)" name="visibility">
-                @for (opt of visibilityOptions; track opt.value) {
-                <option [ngValue]="opt.value">{{ opt.label }}</option>
-                }
-            </select>
+            <app-visibility-toggle [(value)]="selectedVisibility" />
         </div>
     </div>
 

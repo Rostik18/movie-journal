@@ -41,12 +41,8 @@
         <!-- Видимість / Тип / Тривалість -->
         <div class="form-row cols-equal">
             <div class="form-group">
-                <label for="visibility">Видимість</label>
-                <select id="visibility" [(ngModel)]="visibility" name="visibility">
-                    @for (opt of visibilityOptions; track opt.value) {
-                    <option [ngValue]="opt.value">{{ opt.label }}</option>
-                    }
-                </select>
+                <label>Видимість</label>
+                <app-visibility-toggle [(value)]="visibility" />
             </div>
             <div class="form-group">
                 <label for="type">Тип</label>

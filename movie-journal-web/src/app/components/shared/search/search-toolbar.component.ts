@@ -211,7 +211,7 @@ export class SearchToolbarComponent {
     readonly searchQuery = input<string | null | undefined>('');
     readonly searchPlaceholder = input<string>('Пошук...');
     /** Затримка перед відправкою query під час набору (мс). */
-    readonly debounceMs = input<number>(300);
+    readonly debounceMs = input<number>(500);
 
     readonly filters = input<ToolbarFilter[]>([]);
 

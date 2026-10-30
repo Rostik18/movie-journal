@@ -3,12 +3,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
-import { Visibility, VisibilityLabels } from '../../../models/enums';
+import { Visibility } from '../../../models/enums';
 import { CreateCreatorRequest, CreatorResponse, UpdateCreatorRequest } from '../../../models/creator.model';
 import { CreatorService } from '../../../services/creator.service';
 import { ToastService } from '../../../services/toast.service';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl } from '../../../utils/form-parse.util';
+import { VisibilityToggleComponent } from '../visibility-toggle/visibility-toggle.component';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
 interface Snapshot {
@@ -22,7 +23,7 @@ interface Snapshot {
 @Component({
     selector: 'app-creator-form',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, VisibilityToggleComponent],
     templateUrl: './creator-form.component.html',
     styleUrls: ['./creator-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -51,11 +52,6 @@ export class CreatorFormComponent implements OnInit {
     readonly websiteUrl = signal('');
     readonly visibility = signal<Visibility>(Visibility.Public);
     readonly imageError = signal(false);
-
-    readonly visibilityOptions = [Visibility.Public, Visibility.Private].map(value => ({
-        value,
-        label: VisibilityLabels[value]
-    }));
 
     ngOnInit(): void {
         const creator = this.creator();

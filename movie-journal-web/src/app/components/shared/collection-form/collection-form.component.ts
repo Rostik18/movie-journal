@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
-import { Visibility, VisibilityLabels } from '../../../models/enums';
+import { Visibility } from '../../../models/enums';
 import { CollectionService } from '../../../services/collection.service';
 import { ToastService } from '../../../services/toast.service';
 import { CreateMediaCollectionRequest, MediaCollectionResponse, UpdateMediaCollectionRequest } from '../../../models/collection.model';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { parseCommaList } from '../../../utils/form-parse.util';
+import { VisibilityToggleComponent } from '../visibility-toggle/visibility-toggle.component';
 
 /** Редаговані поля; порівнюються з baseline для dirty-check і payload. */
 interface Snapshot {
@@ -21,7 +22,7 @@ interface Snapshot {
 @Component({
     selector: 'app-collection-form',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, VisibilityToggleComponent],
     templateUrl: './collection-form.component.html',
     styleUrls: ['./collection-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -49,11 +50,6 @@ export class CollectionFormComponent implements OnInit {
     readonly visibility = signal<Visibility>(Visibility.Public);
     readonly tagsInput = signal('');
     readonly imageError = signal(false);
-
-    visibilityOptions = [
-        { value: Visibility.Public, label: VisibilityLabels[Visibility.Public] },
-        { value: Visibility.Private, label: VisibilityLabels[Visibility.Private] }
-    ];
 
     ngOnInit(): void {
         const col = this.collection();

@@ -1,0 +1,27 @@
+<div class="btn-group" role="group" [attr.aria-label]="ariaLabel() || null">
+    @for (opt of options(); track opt.value) {
+    <button type="button" class="btn-option" [class.icon-only]="!!opt.icon || !!opt.glyph"
+        [class.active]="value() === opt.value" [class.tone-blue]="opt.tone === 'blue'"
+        [class.tone-pink]="opt.tone === 'pink'" [attr.aria-pressed]="value() === opt.value"
+        [attr.aria-label]="opt.label" [title]="opt.label" (click)="select(opt)">
+        @switch (opt.icon) {
+        @case ('globe') {
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+        }
+        @case ('lock') {
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        }
+        @default {
+        <span class="glyph" aria-hidden="true">{{ opt.glyph ?? opt.label }}</span>
+        }
+        }
+    </button>
+    }
+</div>
