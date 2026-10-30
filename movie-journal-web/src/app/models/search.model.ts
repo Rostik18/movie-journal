@@ -93,9 +93,7 @@ export interface MediaSearchParams {
     tag?: string;
     collectionId?: string;
     actorId?: string;
-    /** Назва автора (пошук за назвою). */
-    creator?: string;
-    creatorId?: string;
+    author?: string;
     sortBy?: MediaSortField;
     sort?: SortDirection;
     offset?: number;

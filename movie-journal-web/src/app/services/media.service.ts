@@ -40,11 +40,8 @@ export class MediaService {
         if (params.actorId) {
             httpParams = httpParams.set('actorId', params.actorId);
         }
-        if (params.creator) {
-            httpParams = httpParams.set('creator', params.creator);
-        }
-        if (params.creatorId) {
-            httpParams = httpParams.set('creatorId', params.creatorId);
+        if (params.author) {
+            httpParams = httpParams.set('author', params.author);
         }
         if (params.sortBy !== undefined && params.sortBy !== null) {
             httpParams = httpParams.set('sortBy', params.sortBy.toString());

@@ -15,6 +15,7 @@ import { MediaItem, MediaResponseSlim, MediaSidebar } from '../../models/media.m
 import { MediaType, MediaTypeLabels, Visibility, WatchStatus } from '../../models/enums';
 import { CreateUserWatchingRequest } from '../../models/user-watching.model';
 import { formatDuration } from '../../utils/media-format.util';
+import { parseMediaSearch } from '../../utils/search-query';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
 import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { MediaSearchParams, MediaSortField, SortDirection } from '../../models/search.model';
@@ -61,10 +62,17 @@ export class MovieListComponent implements OnInit {
         search: params => this.mediaService.searchMedia(params),
         defaults: { offset: 0, size: DEFAULT_PAGE_SIZE, sort: SortDirection.Descending },
         filterKeys: ['type', 'visibility'],
-        isFiltered: ({ query, type, visibility }) => !!query || type !== undefined || visibility !== undefined,
+        isFiltered: ({ query, tag, genre, author, type, visibility }) =>
+            !!query || !!tag || !!genre || !!author || type !== undefined || visibility !== undefined,
         errorMessage: 'Не вдалося завантажити фільми.'
     });
     readonly movies = this.list.items;
+
+    /**
+     * Те, що користувач ввів у полі пошуку, як є («tag:космос»). У параметри API йде розібраний результат
+     * (tag / genre / author / query), тому в поле повертаємо саме цей текст, а не параметри.
+     */
+    readonly searchText = signal('');
 
     // ---------- Модалка створення / редагування ----------
     private readonly mediaForm = viewChild(MediaFormComponent);
@@ -127,6 +135,26 @@ export class MovieListComponent implements OnInit {
     });
 
     private readonly watchStates = signal<ReadonlyMap<MediaId, WatchState>>(new Map());
+
+    /** Пошуковий рядок → один із параметрів API за префіксом (tag:, жанр:, автор:, назва: …) або query. */
+    onSearchTextChanged(text: string): void {
+        this.searchText.set(text);
+
+        const { param, value } = parseMediaSearch(text);
+        this.list.updateParams({
+            query: undefined,
+            tag: undefined,
+            genre: undefined,
+            author: undefined,
+            [param]: value || undefined,
+            offset: 0
+        });
+    }
+
+    resetFilters(): void {
+        this.searchText.set('');
+        this.list.resetFilters();
+    }
 
     ngOnInit(): void {
         this.details.watchRoute();

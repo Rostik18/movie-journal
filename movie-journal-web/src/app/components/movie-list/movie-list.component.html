@@ -12,10 +12,10 @@
     </header>
 
     <!-- Універсальна панель пошуку, фільтрів та сортування -->
-    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук фільмів за назвою..."
+    <app-search-toolbar [searchQuery]="searchText()" searchPlaceholder="Пошук: назва, tag:…, жанр:…, автор:…"
         [filters]="toolbarFilters()" [sortFields]="movieSortFields" [currentSortBy]="list.searchParams().sortBy"
         [currentSort]="list.searchParams().sort ?? SortDirection.Descending"
-        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (searchQueryChange)="onSearchTextChanged($event)" (filterChange)="list.onFilterChanged($event)"
         (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
 
     @if (list.showInitialLoading()) {
@@ -30,7 +30,7 @@
         @if (list.hasActiveFilters()) {
         <p><strong>Нічого не знайдено.</strong></p>
         <p>Спробуйте змінити або скинути фільтри.</p>
-        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
+        <button type="button" class="btn-secondary" (click)="resetFilters()">Скинути фільтри</button>
         } @else {
         <p><strong>Каталог порожній.</strong></p>
         <p>Натисніть «Додати фільм», щоб створити перший запис.</p>

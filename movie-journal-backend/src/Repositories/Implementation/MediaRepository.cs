@@ -106,7 +106,7 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 var query = request.Filter.Creator.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.NormalizedName", new(Regex.Escape(query), "i")));
+                filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.Name", new(Regex.Escape(query), "i")));
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.CreatorId))
             {
