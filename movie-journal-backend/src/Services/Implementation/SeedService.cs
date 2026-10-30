@@ -255,12 +255,12 @@ namespace MovieJournalBackend.Services.Implementation
                             : new() { SeriesId = seriesId, Season = parsedItem.Series, Episode = parsedItem.Episode },
                         CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
                             ? request.CollectionId
-                            : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Name, StringComparison.InvariantCultureIgnoreCase))?.Id
+                            : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Collection, StringComparison.InvariantCultureIgnoreCase))?.Id
                     };
 
                     foreach (var cast in parsedItem.Cast)
                     {
-                        var actor = actors.FirstOrDefault(x => x.FullName.Equals(cast, StringComparison.InvariantCultureIgnoreCase) || x.Alias?.ToLowerInvariant() == cast);
+                        var actor = actors.FirstOrDefault(x => x.FullName.Equals(cast, StringComparison.InvariantCultureIgnoreCase) || (x.Alias?.Equals(cast, StringComparison.InvariantCultureIgnoreCase) ?? false));
 
                         if (actor is null) continue;
 

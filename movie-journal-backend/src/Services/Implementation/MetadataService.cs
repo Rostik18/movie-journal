@@ -127,7 +127,11 @@ namespace MovieJournalBackend.Services.Implementation
                 Author: GetMetaContent("author", "article:author", "og:video:actor"),
                 PublishedAtUtc: publishedAtUtc,
                 Type: GetMediaType(),
-                Tags: GetMetaContents("og:video:tag", "video:tag"));
+                Tags: GetMetaContents("og:video:tag", "video:tag")
+                    .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+            );
         }
     }
 

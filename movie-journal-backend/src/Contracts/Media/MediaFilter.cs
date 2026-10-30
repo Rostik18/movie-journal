@@ -14,5 +14,6 @@ namespace MovieJournalBackend.Contracts.Media
         public string? ActorId { get; init; }
         public string? Creator { get; init; }
         public string? CreatorId { get; init; }
+        public string? SeriesId { get; init; }
     }
 }

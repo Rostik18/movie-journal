@@ -46,10 +46,10 @@ namespace MovieJournalBackend.Endpoints
             var mediaPage = await mediaService.SearchAsync(new()
             {
                 Page = new(0, 50),
-                Filter = new() { CollectionId = seriesId }
+                Filter = new() { SeriesId = seriesId }
             }, principal.ToUserContext(), ct);
 
-            return Results.Ok(series.ToResponseSb([.. mediaPage.Items.Select(x => x.ToEpisodeResponse())]));
+            return Results.Ok(series.ToResponseSb([.. mediaPage.Items.OrderBy(x=>x.Episode!.Season).ThenBy(x => x.Episode!.Episode).Select(x => x.ToEpisodeResponse())]));
         }
 
         private static async Task<IResult> SearchAsync(

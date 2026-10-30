@@ -112,6 +112,10 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq("Creator.Id", request.Filter.CreatorId));
             }
+            if (!string.IsNullOrWhiteSpace(request.Filter.SeriesId))
+            {
+                filter = _fBuilder.And(filter, _fBuilder.Eq("Episode.SeriesId", request.Filter.SeriesId));
+            }
             if (!string.IsNullOrWhiteSpace(request.Filter.CollectionId))
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq("Collection.Id", request.Filter.CollectionId));
