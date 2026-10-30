@@ -128,7 +128,10 @@ namespace MovieJournalBackend.Repositories.Implementation
                 {
                     {
                         "AgeBlock",
-                        new BsonDocument("$multiply", new BsonArray { new BsonDocument("$floor", new BsonDocument("$divide", new BsonArray { "$Age", ageGap })), ageGap })
+                        new BsonDocument("$toInt", new BsonDocument("$multiply", new BsonArray
+                        {
+                            new BsonDocument("$floor", new BsonDocument("$divide", new BsonArray { "$Age", ageGap })), ageGap
+                        }))
                     }
                 }),
                 new BsonDocument("$group", new BsonDocument
