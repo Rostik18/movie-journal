@@ -461,6 +461,24 @@ $text-body: #334155;
     color: #475569;
 }
 
+// Клікабельні чіпи (app-search-chip): тег / жанр → пошук у /movies
+a.genre-tag,
+a.tag-chip {
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+
+    &:hover {
+        background-color: #e0f2fe;
+        color: #0369a1;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ea5e9;
+        outline-offset: 1px;
+    }
+}
+
 // Оверлей на постері; позиціонування задає app-grid-card через слоти
 .duration-badge {
     display: inline-block;

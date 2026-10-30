@@ -16,18 +16,20 @@ import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { RatingStarsComponent } from '../shared/rating-stars/rating-stars.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
-import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
+import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search/search-toolbar.component';
 import { DatePipe } from '@angular/common';
 import { createDeleteCallbacks } from '../../utils/delete-callbacks';
 import { createDetailsRoute } from '../../utils/details-route';
 import { createFormModal } from '../../utils/form-modal';
 import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
+import { SearchChipComponent } from '../shared/search/search-chip.component';
 
 @Component({
     selector: 'app-user-watching-list',
     standalone: true,
     imports: [
         RouterLink,
+        SearchChipComponent,
         ViewSwitcherComponent,
         AddButtonComponent,
         UserWatchingFormComponent,

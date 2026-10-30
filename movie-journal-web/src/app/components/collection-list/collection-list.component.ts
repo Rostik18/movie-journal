@@ -5,18 +5,14 @@ import { CollectionSidebar, MediaCollectionResponse } from '../../models/collect
 import { MediaLinkListComponent } from '../shared/media-link-list/media-link-list.component';
 import { Visibility, VisibilityLabels } from '../../models/enums';
 import { CollectionSearchParams, MediaCollectionSortField, SortDirection } from '../../models/search.model';
+import { SearchChipComponent } from '../shared/search/search-chip.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { CollectionFormComponent } from '../shared/collection-form/collection-form.component';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
-import {
-    SearchToolbarComponent,
-    SortFieldOption,
-    ToolbarFilter,
-    enumOptions
-} from '../shared/search-toolbar/search-toolbar.component';
+import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search/search-toolbar.component';
 import { createDeleteCallbacks } from '../../utils/delete-callbacks';
 import { createDetailsRoute } from '../../utils/details-route';
 import { createFormModal } from '../../utils/form-modal';
@@ -27,6 +23,7 @@ import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
     standalone: true,
     imports: [
         MediaLinkListComponent,
+        SearchChipComponent,
         ViewSwitcherComponent,
         AddButtonComponent,
         CollectionFormComponent,

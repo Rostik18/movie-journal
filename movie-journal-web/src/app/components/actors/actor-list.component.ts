@@ -14,7 +14,7 @@ import { ActorFormComponent } from '../shared/actor-form/actor-form.component';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
-import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
+import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search/search-toolbar.component';
 import { actorAlias, formatActorName, formatAge } from '../../utils/actor-format.util';
 import { createDeleteCallbacks } from '../../utils/delete-callbacks';
 import { createDetailsRoute } from '../../utils/details-route';

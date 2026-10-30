@@ -48,7 +48,7 @@
             @if (col.tags?.length) {
             <div class="genres">
                 @for (tag of col.tags; track tag) {
-                <span class="tag-chip">#{{ tag }}</span>
+                <app-search-chip kind="tag" [value]="tag" />
                 }
             </div>
             }
@@ -82,7 +82,7 @@
                         @if (col.tags?.length) {
                         <div class="genres-inline">
                             @for (tag of col.tags; track tag) {
-                            <span class="tag-chip">#{{ tag }}</span>
+                            <app-search-chip kind="tag" [value]="tag" />
                             }
                         </div>
                         } @else {
@@ -139,7 +139,7 @@
                 <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of col.tags; track tag) {
-                    <span class="tag-chip">#{{ tag }}</span>
+                    <app-search-chip kind="tag" [value]="tag" />
                     }
                 </div>
             </div>

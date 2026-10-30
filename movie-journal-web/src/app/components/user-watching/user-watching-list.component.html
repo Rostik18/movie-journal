@@ -55,7 +55,7 @@
 
             <div class="genres">
                 @for (genre of item.media.genres; track genre) {
-                <span class="genre-tag">{{ genre }}</span>
+                <app-search-chip kind="genre" [value]="genre" />
                 }
             </div>
 
@@ -264,7 +264,7 @@
                 <strong>Жанри:</strong>
                 <div class="genres">
                     @for (genre of item.media.genres; track genre) {
-                    <span class="genre-tag">{{ genre }}</span>
+                    <app-search-chip kind="genre" [value]="genre" />
                     }
                 </div>
             </div>
@@ -276,7 +276,7 @@
                 <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of item.media.tags; track tag) {
-                    <span class="tag-chip">#{{ tag }}</span>
+                    <app-search-chip kind="tag" [value]="tag" />
                     }
                 </div>
             </div>

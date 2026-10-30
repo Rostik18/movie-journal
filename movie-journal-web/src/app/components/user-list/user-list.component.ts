@@ -19,7 +19,7 @@ import {
     SortFieldOption,
     ToolbarFilter,
     enumOptions
-} from '../shared/search-toolbar/search-toolbar.component';
+} from '../shared/search/search-toolbar.component';
 
 /** Ключі UserSearchParams, якими керують кнопки-фільтри тулбара. */
 const FILTER_KEYS = ['role'] as const;

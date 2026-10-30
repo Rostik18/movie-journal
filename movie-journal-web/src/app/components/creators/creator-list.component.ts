@@ -18,7 +18,7 @@ import {
     SortFieldOption,
     ToolbarFilter,
     enumOptions
-} from '../shared/search-toolbar/search-toolbar.component';
+} from '../shared/search/search-toolbar.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
 import { CreatorFormComponent } from '../shared/creator-form/creator-form.component';
 

@@ -63,7 +63,7 @@
             <!-- Тіло картки (рік випуску — біля назви через [titleMeta]) -->
             <div class="genres">
                 @for (genre of mov.genres; track genre) {
-                <span class="genre-tag">{{ genre }}</span>
+                <app-search-chip kind="genre" [value]="genre" />
                 }
             </div>
 
@@ -112,7 +112,7 @@
                         @if (movie.genres?.length) {
                         <div class="genres-inline">
                             @for (genre of movie.genres; track genre) {
-                            <span class="genre-tag">{{ genre }}</span>
+                            <app-search-chip kind="genre" [value]="genre" />
                             }
                         </div>
                         }
@@ -259,7 +259,7 @@
                 <strong>Жанри:</strong>
                 <div class="genres">
                     @for (genre of mov.genres; track genre) {
-                    <span class="genre-tag">{{ genre }}</span>
+                    <app-search-chip kind="genre" [value]="genre" />
                     }
                 </div>
             </div>
@@ -270,7 +270,7 @@
                 <strong>Теги:</strong>
                 <div class="genres">
                     @for (tag of mov.tags; track tag) {
-                    <span class="tag-chip">#{{ tag }}</span>
+                    <app-search-chip kind="tag" [value]="tag" />
                     }
                 </div>
             </div>

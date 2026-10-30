@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { filter, map } from 'rxjs/operators';
 import { GridCardComponent } from '../shared/grid-card/grid-card.component';
 import { DetailsSidebarComponent } from '../shared/details-sidebar/details-sidebar.component';
 import { ViewSwitcherComponent } from '../shared/view-switcher/view-switcher.component';
@@ -17,12 +18,13 @@ import { CreateUserWatchingRequest } from '../../models/user-watching.model';
 import { formatDuration } from '../../utils/media-format.util';
 import { parseMediaSearch } from '../../utils/search-query';
 import { PaginationComponent } from '../shared/pagination/pagination.component';
-import { SearchToolbarComponent, SortFieldOption, ToolbarFilter, enumOptions } from '../shared/search-toolbar/search-toolbar.component';
 import { MediaSearchParams, MediaSortField, SortDirection } from '../../models/search.model';
 import { createDeleteCallbacks } from '../../utils/delete-callbacks';
 import { createDetailsRoute } from '../../utils/details-route';
 import { createFormModal } from '../../utils/form-modal';
 import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
+import { SearchChipComponent } from '../shared/search/search-chip.component';
+import { enumOptions, SearchToolbarComponent, SortFieldOption, ToolbarFilter } from '../shared/search/search-toolbar.component';
 
 type MediaId = MediaItem['id'];
 
@@ -36,6 +38,7 @@ interface WatchState {
     standalone: true,
     imports: [
         RouterLink,
+        SearchChipComponent,
         ViewSwitcherComponent,
         MediaFormComponent,
         AddButtonComponent,
@@ -54,6 +57,8 @@ export class MovieListComponent implements OnInit {
     private readonly userWatchingService = inject(UserWatchingService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
 
     readonly viewMode = signal<'grid' | 'list'>('grid');
 
@@ -158,7 +163,33 @@ export class MovieListComponent implements OnInit {
 
     ngOnInit(): void {
         this.details.watchRoute();
-        this.list.load();
+        this.applySearchFromUrl();
+
+        // З готовим пошуком у посиланні (?q=) список завантажує applySearchFromUrl, щоб не робити зайвий запит
+        if (!this.route.snapshot.queryParamMap.has('q')) {
+            this.list.load();
+        }
+    }
+
+    /**
+     * Посилання з тегів і жанрів по всьому застосунку ведуть на /movies?q=тег:космос.
+     * Застосовуємо пошук і прибираємо q з адреси, щоб перезавантаження сторінки не повторювало його
+     * (а наступний клік по тегу знову спрацював навіть для того самого значення).
+     */
+    private applySearchFromUrl(): void {
+        this.route.queryParamMap.pipe(
+            map(params => params.get('q')),
+            filter((text): text is string => text !== null),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe(text => {
+            this.onSearchTextChanged(text);
+            void this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { q: null },
+                queryParamsHandling: 'merge',
+                replaceUrl: true
+            });
+        });
     }
 
     typeLabel(type: MediaItem['type'] | null | undefined): string {
