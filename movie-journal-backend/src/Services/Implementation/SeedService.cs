@@ -1,5 +1,5 @@
-﻿using MovieJournalBackend.Contracts.Media;
-using MovieJournalBackend.Contracts.Maintenance;
+﻿using MovieJournalBackend.Contracts.Maintenance;
+using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Extensions;
@@ -14,7 +14,8 @@ namespace MovieJournalBackend.Services.Implementation
         IMetadataService metadataService,
         IMediaService mediaService,
         IUserWatchingService uwService,
-        IMediaCollectionService collectionService
+        IMediaCollectionService collectionService,
+        ISeriesService seriesService
         ) : ISeedService
     {
         public async Task<IResult> SeedActors(SeedActorsRequest request, string userId, CancellationToken ct)
@@ -140,23 +141,68 @@ namespace MovieJournalBackend.Services.Implementation
             });
         }
 
+        public async Task<IResult> SeedSeries(SeedSeriesRequest request, string userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
+
+            userId = request.UserId ?? userId;
+            var series = ParseSeriesPayload(request.Payload);
+
+            var missedLines = new List<SeedSeriesItem>();
+            var lastError = "";
+
+            foreach (var item in series)
+            {
+                try
+                {
+                    await seriesService.CreateAsync(new()
+                    {
+                        Title = item.Name,
+                        Description = item.Description,
+                        PosterUrl = item.ImageUrl,
+                        Visibility = request.Visibility,
+                        Tags = item.Tags.Distinct().ToList() ?? []
+                    }, new(userId!, [UserRole.Admin]), ct);
+                }
+                catch (Exception ex)
+                {
+                    missedLines.Add(item);
+                    lastError = ex.Message;
+                    continue;
+                }
+            }
+
+            return Results.Ok(new
+            {
+                Message = "Done",
+                MissedLines = missedLines,
+                LastError = lastError
+            });
+        }
+
         public async Task<IResult> SeedUserWatch(SeedUserWatchRequest request, string userId, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(request.Payload)) return Results.Ok("No payload");
 
             userId = request.UserId ?? userId;
-            var parsedPayload = Parse(request.Payload);
+            var admin = new UserContext(userId!, [UserRole.Admin]);
+
+            var parsedPayload = ParseMedia(request.Payload);
 
             var actors = parsedPayload.Length > 0
-                ? (await actorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                ? (await actorService.SearchAsync(new() { Page = new() { Size = 1000 } }, admin, ct)).Items
                 : [];
 
             var creators = parsedPayload.Length > 0
-                 ? (await creatorService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+                 ? (await creatorService.SearchAsync(new() { Page = new() { Size = 1000 } }, admin, ct)).Items
                  : [];
 
-            var collections = parsedPayload.Length > 0 && !string.IsNullOrEmpty(request.CollectionId)
-                ? (await collectionService.SearchAsync(new() { Page = new() { Size = 1000 } }, new(userId!, [UserRole.Admin]), ct)).Items
+            var collections = parsedPayload.Length > 0
+                ? (await collectionService.SearchAsync(new() { Page = new() { Size = 1000 } }, admin, ct)).Items
+                : [];
+
+            var series = parsedPayload.Length > 0
+                ? (await seriesService.SearchAsync(new() { Page = new() { Size = 1000 } }, admin, ct)).Items
                 : [];
 
             var missedLines = new List<UserWatch>();
@@ -187,6 +233,10 @@ namespace MovieJournalBackend.Services.Implementation
                         ? null
                         : creators.FirstOrDefault(x => x.Name.Equals(parsedItem.Creator, StringComparison.InvariantCultureIgnoreCase));
 
+                    var seriesId = parsedItem.Type is MediaType.SeriesEpisode
+                        ? series.FirstOrDefault(x => x.Title.Equals(parsedItem.SeriesName, StringComparison.InvariantCultureIgnoreCase))?.Id
+                        : null;
+
                     var media = new CreateMediaRequest()
                     {
                         Title = metadata.Title ?? parsedItem.Name ?? "",
@@ -200,6 +250,9 @@ namespace MovieJournalBackend.Services.Implementation
                         Duration = metadata.DurationSeconds,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [parsedItem.Url],
+                        Episode = seriesId is null
+                            ? null
+                            : new() { SeriesId = seriesId, Season = parsedItem.Series, Episode = parsedItem.Episode },
                         CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
                             ? request.CollectionId
                             : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Name, StringComparison.InvariantCultureIgnoreCase))?.Id
@@ -214,7 +267,7 @@ namespace MovieJournalBackend.Services.Implementation
                         media.Cast.Add(new() { ActorId = actor.Id, FullName = actor.FullName });
                     }
 
-                    var createdMedia = await mediaService.CreateAsync(media, new(userId!, [UserRole.Admin]), ct);
+                    var createdMedia = await mediaService.CreateAsync(media, admin, ct);
 
                     var created = await uwService.CreateAsync(new()
                     {
@@ -222,7 +275,7 @@ namespace MovieJournalBackend.Services.Implementation
                         Rating = parsedItem.Rate,
                         Status = parsedItem.Rate is null ? Entities.Journal.WatchStatus.Wishlist : Entities.Journal.WatchStatus.Watched,
                         Visibility = request.Visibility
-                    }, new(userId!, [UserRole.Admin]), ct);
+                    }, admin, ct);
                 }
                 catch (Exception ex)
                 {
@@ -276,6 +329,34 @@ namespace MovieJournalBackend.Services.Implementation
             })
         ];
 
+        public sealed record SeedSeriesItem(string Name, string? Description, string? ImageUrl, string[] Tags);
+        private static SeedSeriesItem[] ParseSeriesPayload(string payload) =>
+        [..payload
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
+            .Select(columns =>
+            {
+                var match = Regexes.AliasRegex().Match(columns[0]);
+                var fullName = Regexes.NameRegex().Replace(columns[0], "").Trim();
+                var alias = match.Success
+                    ? match.Groups[1].Value.Trim()
+                    : null;
+
+                return new SeedSeriesItem(
+                    Name: columns[0],
+                    Description: columns.Length > 1 && !string.IsNullOrWhiteSpace(columns[1])
+                        ? columns[1]
+                        : null,
+                    ImageUrl: columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
+                        ? columns[2]
+                        : null,
+                    Tags: columns.Length > 3 && !string.IsNullOrWhiteSpace(columns[3])
+                        ? [.. columns[3].Split(',').Select(n => n.Trim())]
+                        : []
+                );
+            })
+        ];
+
         public sealed record SeedCollectionItem(string Name, string? Description, string? ImageUrl, string[] Tags);
         private static SeedCollectionItem[] ParseCollectionsPayload(string payload) =>
         [..payload
@@ -324,9 +405,9 @@ namespace MovieJournalBackend.Services.Implementation
             )
         ];
 
-        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate, string? Collection, MediaType? Type);
-        private static UserWatch[] Parse(string text) =>
-        [..text
+        private record UserWatch(string Url, string? Name, int? Year, string[] Cast, string? Creator, int? Rate, string? Collection, MediaType? Type, int? Series, int? Episode, string? SeriesName);
+        private static UserWatch[] ParseMedia(string text) =>
+        [.. text
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(line => line.Split('\t', StringSplitOptions.TrimEntries))
             .Select(columns =>
@@ -336,17 +417,39 @@ namespace MovieJournalBackend.Services.Implementation
                     : null;
 
                 int? year = null;
+                int? series = null;
+                int? episode = null;
+                MediaType? type = null;
 
                 if (name is not null)
                 {
-                    var match = Regexes.YearRegex().Match(name);
+                    var episodeMatch = Regexes.SeriesEpisodeRegex().Match(name);
 
-                    if (match.Success && int.TryParse(match.Groups[1].Value, out var parsedYear))
+                    if (episodeMatch.Success
+                        && int.TryParse(episodeMatch.Groups[1].Value, out var parsedSeries)
+                        && int.TryParse(episodeMatch.Groups[2].Value, out var parsedEpisode))
+                    {
+                        series = parsedSeries;
+                        episode = parsedEpisode;
+                        type = MediaType.SeriesEpisode;
+
+                        name = name.Remove(episodeMatch.Index, episodeMatch.Length).Trim();
+                    }
+
+                    var yearMatch = Regexes.YearRegex().Match(name);
+
+                    if (yearMatch.Success && int.TryParse(yearMatch.Groups[1].Value, out var parsedYear))
                     {
                         year = parsedYear;
-                        name = name[..match.Index].TrimEnd();
+                        name = name[..yearMatch.Index].TrimEnd();
                     }
                 }
+
+                var seriesName = columns.Length > 6 && !string.IsNullOrWhiteSpace(columns[6])
+                    ? columns[6].Trim()
+                    : null;
+
+                type = string.IsNullOrEmpty(seriesName) ? type : MediaType.SeriesEpisode;
 
                 var cast = columns.Length > 2 && !string.IsNullOrWhiteSpace(columns[2])
                     ? columns[2].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
@@ -366,9 +469,12 @@ namespace MovieJournalBackend.Services.Implementation
                     Collection: columns.Length > 5 && !string.IsNullOrWhiteSpace(columns[5])
                         ? columns[5].Trim().ToLowerInvariant()
                         : null,
-                    Type: columns.Length > 6 && !string.IsNullOrWhiteSpace(columns[6])
-                        ? Enum.TryParse<MediaType>(columns[6], out var type) ? type : null
-                        : null
+                    Type: type ?? (columns.Length > 7 && !string.IsNullOrWhiteSpace(columns[7])
+                        ? Enum.TryParse<MediaType>(columns[7], true, out var parsedType) ? parsedType : null
+                        : null),
+                    SeriesName: seriesName,
+                    Series: series,
+                    Episode: episode
                 );
             })
         ];

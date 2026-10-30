@@ -2,6 +2,7 @@
 using MovieJournalBackend.Contracts.Creator;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Contracts.MediaCollection;
+using MovieJournalBackend.Contracts.Series;
 using MovieJournalBackend.Contracts.User;
 using MovieJournalBackend.Contracts.UserWatching;
 using MovieJournalBackend.Repositories.Common;
@@ -112,7 +113,7 @@ namespace MovieJournalBackend.Contracts.Common
             actor.Nationalities,
             medias);
 
-        public static MediaResponseSb ToResponseSb(this Entities.Media.Media media, List<CastResponse> actors, MediaCollectionResponse? collection) => new(
+        public static MediaResponseSb ToResponseSb(this Entities.Media.Media media, List<CastResponse> actors, MediaCollectionResponse? collection, SeriesResponse? series) => new(
             media.Id!,
             media.Title,
             media.Description,
@@ -127,6 +128,7 @@ namespace MovieJournalBackend.Contracts.Common
             media.Links,
             actors,
             media.Visibility,
+            series,
             collection
             );
 
@@ -161,5 +163,37 @@ namespace MovieJournalBackend.Contracts.Common
             entity.Visibility,
             medias
             );
+
+        public static SeriesResponse ToResponse(this Entities.Series.Series series) => new(
+             series.Id,
+             series.Title,
+             series.Description,
+             series.PosterUrl,
+             series.Tags,
+             series.Visibility
+         );
+
+        public static SeriesResponseSb ToResponseSb(this Entities.Series.Series series, List<EpisodeResponse> medias) => new(
+            series.Id,
+            series.Title,
+            series.Description,
+            series.PosterUrl,
+            series.Tags,
+            series.Visibility,
+            medias
+        );
+
+        public static EpisodeResponse ToEpisodeResponse(this Entities.Media.Media media) => new(
+            media.Id,
+            media.Title,
+            media.ReleaseYear,
+            media.DurationSec,
+            media.PosterUrl,
+            media.Genres,
+            media.Links,
+            media.Episode?.Season,
+            media.Episode?.Episode
+
+        );
     }
 }

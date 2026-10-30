@@ -3,6 +3,7 @@ using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Journal;
 using MovieJournalBackend.Entities.Media;
+using MovieJournalBackend.Entities.Series;
 using MovieJournalBackend.Entities.User;
 
 namespace MovieJournalBackend.Repositories.Common
@@ -14,6 +15,7 @@ namespace MovieJournalBackend.Repositories.Common
             await CreateActorIndexes(ct);
             await CreateUserIndexes(ct);
             await CreateMediaIndexes(ct);
+            await CreateSeriesIndexes(ct);
             await CreateMediaCollectionIndexes(ct);
             await CreateUserWatchingIndexes(ct);
         }
@@ -48,6 +50,16 @@ namespace MovieJournalBackend.Repositories.Common
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Creator!.Name)), cancellationToken: ct);
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Genres)), cancellationToken: ct);
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Tags)), cancellationToken: ct);
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Episode!.SeriesId)), cancellationToken: ct);
+
+            await CreateOwnerIndex(collection, ct);
+        }
+
+        private async Task CreateSeriesIndexes(CancellationToken ct)
+        {
+            var collection = _database.GetCollection<Series>("series");
+
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Series>(Builders<Series>.IndexKeys.Ascending(x => x.NormalizedTitle)), cancellationToken: ct);
 
             await CreateOwnerIndex(collection, ct);
         }

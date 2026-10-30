@@ -48,6 +48,12 @@ export enum UserSortField {
     LastEnterUtc = 'LastEnterUtc'
 }
 
+export enum SeriesSortField {
+    Title = 'Title',
+    CreatedAt = 'CreatedAt',
+    UpdatedAt = 'UpdatedAt'
+}
+
 export interface ActorSearchParams {
     query?: string;
     birthYear?: number;
@@ -124,6 +130,18 @@ export interface UserSearchParams {
     name?: string;
     role?: UserRole;
     sortBy?: UserSortField;
+    sort?: SortDirection;
+    offset?: number;
+    size?: number;
+}
+
+export interface SeriesSearchParams {
+    query?: string;
+    tag?: string;
+    visibility?: Visibility;
+    ownerUserId?: string;
+    hasPoster?: boolean;
+    sortBy?: SeriesSortField;
     sort?: SortDirection;
     offset?: number;
     size?: number;

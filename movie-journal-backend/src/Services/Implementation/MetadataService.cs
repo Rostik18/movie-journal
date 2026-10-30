@@ -70,8 +70,8 @@ namespace MovieJournalBackend.Services.Implementation
                     {
                         "video.movie" => MediaType.Movie,
 
-                        "video.tv_show" => MediaType.Series,
-                        "video.episode" => MediaType.Series,
+                        "video.tv_show" => MediaType.SeriesEpisode,
+                        "video.episode" => MediaType.SeriesEpisode,
 
                         "video.other" or
                         "video:other" or

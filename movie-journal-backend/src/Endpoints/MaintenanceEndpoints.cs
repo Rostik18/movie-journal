@@ -17,6 +17,7 @@ namespace MovieJournalBackend.Endpoints
             app.MapPost("/api/service/seed-actors", SeedActorsAsync).Produces<object>().RequireAdmin();
             app.MapPost("/api/service/seed-collections", SeedCollectionsAsync).Produces<object>().RequireAdmin();
             app.MapPost("/api/service/seed-creators", SeedCreatorsAsync).Produces<object>().RequireAdmin();
+            app.MapPost("/api/service/seed-series", SeedSeriesAsync).Produces<object>().RequireAdmin();
             app.MapGet("/api/service/database/backup", GetBackup).Produces<Stream>().RequireAdmin();
             app.MapPost("/api/service/database/restore", RestoreAsync).DisableAntiforgery().Produces<object>().RequireAdmin();
             app.MapDelete("/api/service/database/clear", DropCollectionsAsync).Produces<object>().RequireAdmin();
@@ -74,6 +75,9 @@ namespace MovieJournalBackend.Endpoints
 
         private static Task<IResult> SeedCreatorsAsync(SeedCreatorsRequest request, ClaimsPrincipal principal, ISeedService seedService, CancellationToken ct) =>
             seedService.SeedCreators(request, principal.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
+
+        private static Task<IResult> SeedSeriesAsync(SeedSeriesRequest request, ClaimsPrincipal principal, ISeedService seedService, CancellationToken ct) =>
+            seedService.SeedSeries(request, principal.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
 
         private static async Task<IResult> GetBackup(IDatabaseBackupService backupService, HttpContext context, CancellationToken ct)
         {

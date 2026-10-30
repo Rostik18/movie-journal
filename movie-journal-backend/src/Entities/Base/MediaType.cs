@@ -3,7 +3,7 @@
     public enum MediaType
     {
         Movie = 1,
-        Series = 2,
+        SeriesEpisode = 2,
         Animation = 3,
         Anime = 4,
         Documentary = 5,

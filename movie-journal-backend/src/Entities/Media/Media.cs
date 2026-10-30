@@ -24,20 +24,7 @@ namespace MovieJournalBackend.Entities.Media
         public List<string> Links { get; set; } = [];
         public List<MediaActor> Cast { get; set; } = [];
 
-        public List<Season> Seasons { get; set; } = [];
-
+        public EpisodeInfo? Episode { get; set; }
         public CollectionReference? Collection { get; set; }
-    }
-
-    public class Season
-    {
-        public int Number { get; set; }
-        public List<Episode> Episodes { get; set; } = [];
-    }
-
-    public class Episode
-    {
-        public int Number { get; set; }
-        public string? Title { get; set; }
     }
 }

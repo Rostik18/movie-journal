@@ -116,6 +116,7 @@ namespace MovieJournalBackend.Extensions
             builder.Services.AddSingleton<ICreatorRepository, CreatorRepository>();
             builder.Services.AddSingleton<IMediaCollectionRepository, MediaCollectionRepository>();
             builder.Services.AddSingleton<IMediaRepository, MediaRepository>();
+            builder.Services.AddSingleton<ISeriesRepository, SeriesRepository>();
             builder.Services.AddSingleton<IUserRepository, UserRepository>();
             builder.Services.AddSingleton<IUserWatchingRepository, UserWatchingRepository>();
         }
@@ -134,6 +135,7 @@ namespace MovieJournalBackend.Extensions
             builder.Services.AddSingleton<IMediaCollectionService, MediaCollectionService>();
             builder.Services.AddSingleton<IMediaRelationshipService, MediaRelationshipService>();
             builder.Services.AddSingleton<IMediaService, MediaService>();
+            builder.Services.AddSingleton<ISeriesService, SeriesService>();
             builder.Services.AddSingleton<IRealtimeService, RealtimeService>();
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserWatchingService, UserWatchingService>();

@@ -1,5 +1,6 @@
 import { MediaType, Visibility } from "./enums";
 import { MediaCollectionResponse } from "./collection.model";
+import { SeriesResponse } from "./series.model";
 
 export interface MediaItem {
     id: string;
@@ -25,6 +26,7 @@ export interface MediaItem {
 export interface MediaSidebar extends Omit<MediaItem, 'cast' | 'collection'> {
     cast: CastResponse[];
     collection?: MediaCollectionResponse | null;
+    series?: SeriesResponse | null,
 }
 
 /** Автор / творець медіа (канал, режисер тощо). */
@@ -93,6 +95,7 @@ export interface CreateMediaRequest {
     seasons: Season[];
     creatorId?: string | null;
     collectionId?: string | null;
+    episode?: EpisodeInfo | null;
 }
 
 export interface UpdateMediaRequest {
@@ -112,4 +115,11 @@ export interface UpdateMediaRequest {
     seasons?: Season[] | null;
     creatorId?: string | null;
     collectionId?: string | null;
+    episode?: EpisodeInfo | null;
+}
+
+export interface EpisodeInfo {
+    seriesId: string;
+    season?: number | null;
+    episode?: number | null;
 }

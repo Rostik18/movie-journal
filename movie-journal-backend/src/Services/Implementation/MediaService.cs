@@ -15,6 +15,7 @@ namespace MovieJournalBackend.Services.Implementation
         IMediaCollectionRepository _collectionRepository,
         IActorRepository _actorRepository,
         ICreatorRepository _creatorRepository,
+        ISeriesRepository _seriesRepository,
         IRealtimeService _realtimeService
     ) : IMediaService
     {
@@ -35,7 +36,11 @@ namespace MovieJournalBackend.Services.Implementation
                 ? null
                 : await _collectionRepository.GetByIdAsync(media.Collection.Id, ct);
 
-            return media.ToResponseSb(cast, collection?.ToResponse());
+            var series = media.Episode is null
+                ? null
+                : await _seriesRepository.GetByIdAsync(media.Episode.SeriesId, ct);
+
+            return media.ToResponseSb(cast, collection?.ToResponse(), series?.ToResponse());
         }
 
         public Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)
@@ -64,8 +69,10 @@ namespace MovieJournalBackend.Services.Implementation
                 Tags = request.Tags,
                 Cast = request.Cast,
                 Links = request.Links,
-                Seasons = request.Seasons,
                 Visibility = request.Visibility,
+                Episode = request.Type is MediaType.SeriesEpisode
+                    ? await GetSeries(request.Visibility, request.Episode, user, ct)
+                    : null,
                 Creator = request.CreatorId is null
                     ? null
                     : await GetCreator(request.Visibility, request.CreatorId, ct),
@@ -143,10 +150,6 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 media.Links = request.Links;
             }
-            if (request.Seasons is not null)
-            {
-                media.Seasons = request.Seasons;
-            }
             if (request.Visibility.HasValue)
             {
                 var actorIds = media.Cast.Select(x => x.ActorId).ToList();
@@ -159,6 +162,12 @@ namespace MovieJournalBackend.Services.Implementation
                 }
 
                 media.Visibility = request.Visibility.Value;
+            }
+            if (request.Episode is not null)
+            {
+                media.Episode = request.Type is MediaType.SeriesEpisode
+                    ? await GetSeries(media.Visibility, request.Episode, user, ct)
+                    : null;
             }
             if (request.CreatorId is not null)
             {
@@ -221,6 +230,21 @@ namespace MovieJournalBackend.Services.Implementation
             }
 
             return new() { Id = collection.Id, Name = collection.Name };
+        }
+
+        private async Task<EpisodeInfo?> GetSeries(Visibility mediaVisibility, EpisodeInfo? newInfo, UserContext user, CancellationToken ct)
+        {
+            if (newInfo is null) return null;
+
+            var series = await _seriesRepository.GetByIdAsync(newInfo.SeriesId, user, ct)
+                ?? throw new InvalidOperationException($"Series '{newInfo.SeriesId}' not found.");
+
+            if (mediaVisibility == Visibility.Private && series.Visibility == Visibility.Public)
+            {
+                throw new ValidationException("Private media cannot belong to a public series.");
+            }
+
+            return newInfo;
         }
 
         private static List<CastResponse> MapCast(Media media, List<Actor> actors)
