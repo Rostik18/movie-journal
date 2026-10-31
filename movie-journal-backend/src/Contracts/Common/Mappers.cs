@@ -43,7 +43,8 @@ namespace MovieJournalBackend.Contracts.Common
             media.Links,
             media.Cast,
             media.Visibility,
-            media.Collection
+            media.Collection,
+            media.EpisodeInfo
             );
 
         public static MediaResponseSlim ToResponseSlim(this Entities.Media.Media media) => new(
