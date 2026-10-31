@@ -21,6 +21,7 @@ namespace MovieJournalBackend.Contracts.Media
         List<CastResponse> Cast,
         Visibility Visibility,
         SeriesResponse? Series,
-        MediaCollectionResponse? Collection
+        MediaCollectionResponse? Collection,
+        EpisodeInfo? EpisodeInfo
         );
 }

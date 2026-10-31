@@ -20,13 +20,14 @@ export interface MediaItem {
     /** Колекція, до якої належить медіа. */
     collection?: CollectionReference | null;
     visibility: Visibility;
+    episodeInfo?: EpisodeInfo | null;
 }
 
 /** Відповідь GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, повна колекція). */
 export interface MediaSidebar extends Omit<MediaItem, 'cast' | 'collection'> {
     cast: CastResponse[];
     collection?: MediaCollectionResponse | null;
-    series?: SeriesResponse | null,
+    series?: SeriesResponse | null;
 }
 
 /** Автор / творець медіа (канал, режисер тощо). */

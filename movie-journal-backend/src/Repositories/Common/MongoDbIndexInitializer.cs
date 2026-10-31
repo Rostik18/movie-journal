@@ -50,7 +50,7 @@ namespace MovieJournalBackend.Repositories.Common
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Creator!.Name)), cancellationToken: ct);
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Genres)), cancellationToken: ct);
             await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Tags)), cancellationToken: ct);
-            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.Episode!.SeriesId)), cancellationToken: ct);
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<Media>(Builders<Media>.IndexKeys.Ascending(x => x.EpisodeInfo!.SeriesId)), cancellationToken: ct);
 
             await CreateOwnerIndex(collection, ct);
         }

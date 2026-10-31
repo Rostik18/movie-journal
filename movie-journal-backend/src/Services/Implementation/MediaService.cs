@@ -36,9 +36,9 @@ namespace MovieJournalBackend.Services.Implementation
                 ? null
                 : await _collectionRepository.GetByIdAsync(media.Collection.Id, ct);
 
-            var series = media.Episode is null
+            var series = media.EpisodeInfo is null
                 ? null
-                : await _seriesRepository.GetByIdAsync(media.Episode.SeriesId, ct);
+                : await _seriesRepository.GetByIdAsync(media.EpisodeInfo.SeriesId, ct);
 
             return media.ToResponseSb(cast, collection?.ToResponse(), series?.ToResponse());
         }
@@ -70,7 +70,7 @@ namespace MovieJournalBackend.Services.Implementation
                 Cast = request.Cast,
                 Links = request.Links,
                 Visibility = request.Visibility,
-                Episode = request.Type is MediaType.SeriesEpisode
+                EpisodeInfo = request.Type is MediaType.SeriesEpisode
                     ? await GetSeries(request.Visibility, request.Episode, user, ct)
                     : null,
                 Creator = request.CreatorId is null
@@ -165,7 +165,7 @@ namespace MovieJournalBackend.Services.Implementation
             }
             if (request.Episode is not null)
             {
-                media.Episode = request.Type is MediaType.SeriesEpisode
+                media.EpisodeInfo = (request.Type ?? media.Type) is MediaType.SeriesEpisode
                     ? await GetSeries(media.Visibility, request.Episode, user, ct)
                     : null;
             }

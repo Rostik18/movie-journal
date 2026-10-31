@@ -49,7 +49,7 @@ namespace MovieJournalBackend.Endpoints
                 Filter = new() { SeriesId = seriesId }
             }, principal.ToUserContext(), ct);
 
-            return Results.Ok(series.ToResponseSb([.. mediaPage.Items.OrderBy(x=>x.Episode!.Season).ThenBy(x => x.Episode!.Episode).Select(x => x.ToEpisodeResponse())]));
+            return Results.Ok(series.ToResponseSb([.. mediaPage.Items.OrderBy(x=>x.EpisodeInfo!.Season).ThenBy(x => x.EpisodeInfo!.Episode).Select(x => x.ToEpisodeResponse())]));
         }
 
         private static async Task<IResult> SearchAsync(

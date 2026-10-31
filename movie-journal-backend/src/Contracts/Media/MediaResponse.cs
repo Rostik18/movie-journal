@@ -18,6 +18,7 @@ namespace MovieJournalBackend.Contracts.Media
         List<string> Links,
         List<MediaActor> Cast,
         Visibility Visibility,
-        CollectionReference? Collection
+        CollectionReference? Collection,
+        EpisodeInfo? EpisodeInfo
         );
 }
