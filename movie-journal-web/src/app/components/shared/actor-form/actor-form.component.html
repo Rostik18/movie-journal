@@ -21,8 +21,8 @@
         </div>
     </div>
 
-    <!-- Стать та видимість -->
-    <div class="form-row">
+    <!-- Стать, видимість та дата народження в одному рядку (перемикачі — за розміром вмісту) -->
+    <div class="meta-row">
         <div class="form-group">
             <label>Стать</label>
             <app-toggle-group [options]="sexOptions" [value]="sex()" (valueChange)="sex.set($event)" [allowClear]="true"
@@ -33,9 +33,28 @@
             <label>Видимість</label>
             <app-visibility-toggle [(value)]="visibility" />
         </div>
+
+        <div class="form-group birth-group" role="group" aria-labelledby="birth-label">
+            <label id="birth-label" for="birthYear">Дата народження</label>
+            <div class="date-inputs-row">
+                <input type="number" id="birthYear" name="birthYear" [(ngModel)]="birthYear"
+                    (ngModelChange)="clearError('birthDate')" placeholder="Рік" [min]="minBirthYear"
+                    [max]="maxBirthYear" aria-label="Рік народження"
+                    [attr.aria-invalid]="errors().birthDate ? true : null">
+                <input type="number" name="birthMonth" [(ngModel)]="birthMonth"
+                    (ngModelChange)="clearError('birthDate')" placeholder="Місяць" min="1" max="12"
+                    aria-label="Місяць народження" [attr.aria-invalid]="errors().birthDate ? true : null">
+                <input type="number" name="birthDay" [(ngModel)]="birthDay" (ngModelChange)="clearError('birthDate')"
+                    placeholder="День" min="1" max="31" aria-label="День народження"
+                    [attr.aria-invalid]="errors().birthDate ? true : null">
+            </div>
+            @if (errors().birthDate; as message) {
+            <p class="field-error" role="alert">{{ message }}</p>
+            }
+        </div>
     </div>
 
-    <!-- Фото (URL) та дата народження зліва, прев'ю справа -->
+    <!-- Фото (URL) та громадянство зліва, прев'ю справа -->
     <div class="photo-block">
         <div class="photo-fields">
             <div class="form-group">
@@ -46,25 +65,6 @@
                     [attr.aria-describedby]="errors().photoUrl ? 'photoUrl-error' : null">
                 @if (errors().photoUrl; as message) {
                 <p class="field-error" id="photoUrl-error" role="alert">{{ message }}</p>
-                }
-            </div>
-
-            <div class="form-group" role="group" aria-labelledby="birth-label">
-                <label id="birth-label" for="birthYear">Дата народження (рік / місяць / день)</label>
-                <div class="date-inputs-row">
-                    <input type="number" id="birthYear" name="birthYear" [(ngModel)]="birthYear"
-                        (ngModelChange)="clearError('birthDate')" placeholder="Рік" [min]="minBirthYear"
-                        [max]="maxBirthYear" aria-label="Рік народження"
-                        [attr.aria-invalid]="errors().birthDate ? true : null">
-                    <input type="number" name="birthMonth" [(ngModel)]="birthMonth"
-                        (ngModelChange)="clearError('birthDate')" placeholder="Місяць" min="1" max="12"
-                        aria-label="Місяць народження" [attr.aria-invalid]="errors().birthDate ? true : null">
-                    <input type="number" name="birthDay" [(ngModel)]="birthDay"
-                        (ngModelChange)="clearError('birthDate')" placeholder="День" min="1" max="31"
-                        aria-label="День народження" [attr.aria-invalid]="errors().birthDate ? true : null">
-                </div>
-                @if (errors().birthDate; as message) {
-                <p class="field-error" role="alert">{{ message }}</p>
                 }
             </div>
 

@@ -1,6 +1,6 @@
 export enum MediaType {
     Movie = "Movie",
-    Series = "Series",
+    SeriesEpisode = "SeriesEpisode",
     Animation = "Animation",
     Anime = "Anime",
     Documentary = "Documentary",
@@ -10,7 +10,7 @@ export enum MediaType {
 
 export const MediaTypeLabels: Record<MediaType, string> = {
     [MediaType.Movie]: 'Фільм',
-    [MediaType.Series]: 'Серіал',
+    [MediaType.SeriesEpisode]: 'Епізод серіалу',
     [MediaType.Animation]: 'Анімація',
     [MediaType.Anime]: 'Аніме',
     [MediaType.Documentary]: 'Документальний',

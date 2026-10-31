@@ -3,27 +3,29 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpContext } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
-import { catchError, finalize, map, switchMap } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators';
 
 import { MediaType, MediaTypeLabels, Visibility } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { CreatorResponse } from '../../../models/creator.model';
+import { SeriesResponse } from '../../../models/series.model';
 import { MediaService } from '../../../services/media.service';
 import { CollectionService } from '../../../services/collection.service';
 import { CreatorService } from '../../../services/creator.service';
+import { SeriesService } from '../../../services/series.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
-import { CreateMediaRequest, MediaActor, MediaItem, MediaSidebar, Season, UpdateMediaRequest } from '../../../models/media.model';
+import { CreateMediaRequest, MediaActor, EpisodeInfo, MediaItem, MediaSidebar, UpdateMediaRequest } from '../../../models/media.model';
 import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
 import { CastPickerComponent } from '../cast-picker/cast-picker.component';
 import { EntityPickerComponent } from '../entity-picker/entity-picker.component';
-import { SeasonsEditorComponent } from '../seasons-editor/seasons-editor.component';
 import { VisibilityToggleComponent } from '../visibility-toggle/visibility-toggle.component';
 
 type CollectionId = NonNullable<CreateMediaRequest['collectionId']>;
 type CreatorId = NonNullable<CreateMediaRequest['creatorId']>;
+type SeriesId = string;
 
 type MediaMetadata = ReturnType<ServerService['getMetadata']> extends Observable<infer T> ? T : never;
 
@@ -50,6 +52,10 @@ interface Snapshot {
     cast: string;
     /** «id:…» — обрана колекція, «new:…» — введена назва (буде знайдена/створена), порожньо — без колекції. */
     collection: string;
+    /** «id:…» — обраний серіал, «new:…» — введена назва (буде знайдено/створено); має сенс лише для типу SeriesEpisode. */
+    series: string;
+    season: number | null;
+    episode: number | null;
 }
 
 /** Ключ вибору в EntityPicker: id існуючої сутності, нова назва або порожньо. */
@@ -64,7 +70,7 @@ const entityKey = (id: string | null, name: string): string => {
 @Component({
     selector: 'app-media-form',
     standalone: true,
-    imports: [FormsModule, EntityPickerComponent, CastPickerComponent, SeasonsEditorComponent, VisibilityToggleComponent],
+    imports: [FormsModule, EntityPickerComponent, CastPickerComponent, VisibilityToggleComponent],
     templateUrl: './media-form.component.html',
     styleUrls: ['./media-form.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -73,6 +79,7 @@ export class MediaFormComponent implements OnInit {
     private readonly mediaService = inject(MediaService);
     private readonly collectionService = inject(CollectionService);
     private readonly creatorService = inject(CreatorService);
+    private readonly seriesService = inject(SeriesService);
     private readonly serverService = inject(ServerService);
     private readonly toastService = inject(ToastService);
     private readonly destroyRef = inject(DestroyRef);
@@ -105,7 +112,8 @@ export class MediaFormComponent implements OnInit {
     readonly genresInput = signal('');
     readonly tagsInput = signal('');
     readonly imageError = signal(false);
-    readonly isSeries = computed(() => this.type() === MediaType.Series);
+    /** Тип «Епізод серіалу»: показуємо вибір серіалу та номери сезону / серії. */
+    readonly isSeriesEpisode = computed(() => this.type() === MediaType.SeriesEpisode);
     readonly isSubmitting = signal(false);
 
     private typeTouched = false;
@@ -119,9 +127,14 @@ export class MediaFormComponent implements OnInit {
     readonly newLinkUrl = signal('');
     private metadataSub: Subscription | null = null;
 
-    // ---- Актори та сезони (окремі компоненти) ----
+    // ---- Актори (окремий компонент) ----
     readonly cast = signal<MediaActor[]>([]);
-    readonly seasons = signal<Season[]>([]);
+
+    // ---- Серіал (лише для типу SeriesEpisode): id існуючого або введена назва (новий створюємо при збереженні) ----
+    readonly seriesId = signal<string | null>(null);
+    readonly seriesName = signal('');
+    readonly season = signal<number | null>(null);
+    readonly episode = signal<number | null>(null);
 
     // ---- Колекція та автор: id існуючої сутності або введена назва (нову створюємо при збереженні) ----
     readonly collectionId = signal<string | null>(null);
@@ -135,6 +148,12 @@ export class MediaFormComponent implements OnInit {
 
     readonly searchCreators = (query: string, context?: HttpContext): Observable<CreatorResponse[]> =>
         this.creatorService.searchCreators({ query, size: ENTITY_SEARCH_SIZE }, context).pipe(map(res => res.items ?? []));
+
+    /** EntityPicker працює з {id, name}, а серіал має title. */
+    readonly searchSeries = (query: string, context?: HttpContext): Observable<{ id: string; name: string }[]> =>
+        this.seriesService.searchSeries({ query, size: ENTITY_SEARCH_SIZE }, context).pipe(
+            map(res => (res.items ?? []).map(item => ({ id: item.id, name: item.title })))
+        );
 
     ngOnInit(): void {
         const media = this.media();
@@ -177,6 +196,10 @@ export class MediaFormComponent implements OnInit {
         this.creatorName.set(media.creator?.name ?? '');
         this.collectionId.set(media.collection?.id ?? null);
         this.collectionName.set(media.collection?.name ?? '');
+        this.seriesId.set(media.series?.id ?? media.episodeInfo?.seriesId ?? null);
+        this.seriesName.set(media.series?.title ?? '');
+        this.season.set(media.episodeInfo?.season ?? null);
+        this.episode.set(media.episodeInfo?.episode ?? null);
         this.genresInput.set((media.genres ?? []).join(', '));
         this.tagsInput.set((media.tags ?? []).join(', '));
         this.imageError.set(false);
@@ -200,7 +223,11 @@ export class MediaFormComponent implements OnInit {
             tags: parseCommaList(this.tagsInput()).join('\u0000'),
             links: this.links().join('\u0000'),
             cast: this.cast().map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
-            collection: entityKey(this.collectionId(), this.collectionName())
+            collection: entityKey(this.collectionId(), this.collectionName()),
+            // Для інших типів серіал / сезон / серія не враховуються
+            series: this.isSeriesEpisode() ? entityKey(this.seriesId(), this.seriesName()) : '',
+            season: this.isSeriesEpisode() ? (this.season() ?? null) : null,
+            episode: this.isSeriesEpisode() ? (this.episode() ?? null) : null
         };
     }
 
@@ -381,8 +408,8 @@ export class MediaFormComponent implements OnInit {
 
         this.isSubmitting.set(true);
 
-        forkJoin([this.resolveCollectionId(), this.resolveCreatorId()]).pipe(
-            switchMap(([collectionId, creatorId]) => this.mediaService.createMedia(this.buildPayload(collectionId, creatorId), skipErrorToast())),
+        forkJoin([this.resolveCollectionId(), this.resolveCreatorId(), this.resolveSeriesId()]).pipe(
+            switchMap(([collectionId, creatorId, seriesId]) => this.mediaService.createMedia(this.buildPayload(collectionId, creatorId, seriesId), skipErrorToast())),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -408,8 +435,12 @@ export class MediaFormComponent implements OnInit {
         const creatorChanged = this.dirty.changed('creator');
         const creatorId$ = creatorChanged ? this.resolveCreatorId() : of(null);
 
-        forkJoin([collectionId$, creatorId$]).pipe(
-            switchMap(([collectionId, creatorId]) => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId, creatorId), skipErrorToast())),
+        // Серіал резолвимо лише для епізоду й лише якщо змінили серіал / тип / сезон / серію
+        const seriesChanged = this.isSeriesEpisode() && this.dirty.changed('series');
+        const seriesId$ = seriesChanged ? this.resolveSeriesId() : of(null);
+
+        forkJoin([collectionId$, creatorId$, seriesId$]).pipe(
+            switchMap(([collectionId, creatorId, seriesId]) => this.mediaService.updateMedia(this.buildUpdatePayload(media.id, collectionId, creatorId, seriesId), skipErrorToast())),
             finalize(() => this.isSubmitting.set(false)),
             takeUntilDestroyed(this.destroyRef)
         ).subscribe({
@@ -434,12 +465,14 @@ export class MediaFormComponent implements OnInit {
     }
 
     /** Надсилаємо лише змінені поля; незмінені — null (бекенд null-поля не оновлює). */
-    private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null, creatorId: CreatorId | null): UpdateMediaRequest {
+    private buildUpdatePayload(mediaId: string, collectionId: CollectionId | null, creatorId: CreatorId | null, seriesId: SeriesId | null): UpdateMediaRequest {
+        const episode = this.episodePayload(seriesId);
         return {
             mediaId,
             ...this.dirty.diff({
                 title: 'title',
-                type: 'type',
+                // BE перераховує зв'язок із серіалом за типом із запиту: тип надсилаємо разом з episode
+                type: { when: ['type', 'series', 'season', 'episode'], value: () => this.type() },
                 description: 'description',
                 originalTitle: 'originalTitle',
                 releaseYear: 'releaseYear',
@@ -451,10 +484,21 @@ export class MediaFormComponent implements OnInit {
                 tags: { when: 'tags', value: () => parseCommaList(this.tagsInput()) },
                 links: { when: 'links', value: () => [...this.links()] },
                 cast: { when: 'cast', value: () => this.castPayload() },
-                collectionId: { when: 'collection', value: () => collectionId }
-            }),
-            seasons: null
+                collectionId: { when: 'collection', value: () => collectionId },
+                episode: { when: ['type', 'series', 'season', 'episode'], value: () => episode }
+            })
         };
+    }
+
+    /** Зв'язок із серіалом: лише для типу SeriesEpisode; id беремо з resolve (змінений) або з обраного. */
+    private episodePayload(resolvedSeriesId: SeriesId | null): EpisodeInfo | null {
+        if (!this.isSeriesEpisode()) {
+            // Тип змінили з «Епізод серіалу» на інший: BE скидає зв'язок лише коли episode непорожній
+            const previous = this.dirty.baseline?.series;
+            return previous?.startsWith('id:') ? { seriesId: previous.slice(3) } : null;
+        }
+        const seriesId = resolvedSeriesId ?? this.seriesId();
+        return seriesId ? { seriesId, season: this.season() ?? null, episode: this.episode() ?? null } : null;
     }
 
     private castPayload(): MediaActor[] {
@@ -494,6 +538,18 @@ export class MediaFormComponent implements OnInit {
                 return false;
             }
         }
+        if (this.isSeriesEpisode()) {
+            if (!this.seriesId() && !this.seriesName().trim()) {
+                this.toastService.show('Для епізоду серіалу оберіть або введіть серіал.', 'error');
+                return false;
+            }
+            const season = this.season();
+            const episode = this.episode();
+            if ((season != null && season < 1) || (episode != null && episode < 1)) {
+                this.toastService.show('Номер сезону та серії має бути більшим за 0.', 'error');
+                return false;
+            }
+        }
         if (releaseYear != null && (releaseYear < MIN_RELEASE_YEAR || releaseYear > MAX_RELEASE_YEAR)) {
             this.toastService.show(`Рік випуску має бути між ${MIN_RELEASE_YEAR} та ${MAX_RELEASE_YEAR}.`, 'error');
             return false;
@@ -509,7 +565,7 @@ export class MediaFormComponent implements OnInit {
         return true;
     }
 
-    private buildPayload(collectionId: CollectionId | null, creatorId: CreatorId | null): CreateMediaRequest {
+    private buildPayload(collectionId: CollectionId | null, creatorId: CreatorId | null, seriesId: SeriesId | null): CreateMediaRequest {
         return {
             title: this.title().trim(),
             originalTitle: this.originalTitle().trim(),
@@ -524,8 +580,8 @@ export class MediaFormComponent implements OnInit {
             genres: parseCommaList(this.genresInput()),
             tags: parseCommaList(this.tagsInput()),
             cast: this.castPayload(),
-            seasons: this.isSeries() ? this.seasons() : [],
-            collectionId
+            collectionId,
+            episode: this.episodePayload(seriesId)
         };
     }
 
@@ -537,6 +593,26 @@ export class MediaFormComponent implements OnInit {
             create: name => this.creatorService.createCreator({ name, visibility: this.visibility() }, skipErrorToast()),
             errorMessage: name => `Не вдалося створити автора "${name}".`
         });
+    }
+
+    private resolveSeriesId(): Observable<SeriesId | null> {
+        if (!this.isSeriesEpisode()) {
+            return of(null);
+        }
+
+        return this.resolveEntityId<{ id: string; name: string }, SeriesId>({
+            selectedId: this.seriesId(),
+            name: this.seriesName(),
+            search: name => this.searchSeries(name, skipErrorToast()),
+            create: name => this.seriesService.createSeries(
+                { title: name, visibility: this.visibility(), genres: [], tags: [] },
+                skipErrorToast()
+            ).pipe(map((created: SeriesResponse) => ({ id: created.id, name: created.title }))),
+            errorMessage: name => `Не вдалося створити серіал "${name}".`
+        }).pipe(
+            // Запам'ятовуємо id, щоб повторне збереження не створювало дублікат
+            tap(id => id && this.seriesId.set(id))
+        );
     }
 
     private resolveCollectionId(): Observable<CollectionId | null> {
@@ -608,7 +684,10 @@ export class MediaFormComponent implements OnInit {
         this.imageError.set(false);
         this.newLinkUrl.set('');
         this.cast.set([]);
-        this.seasons.set([]);
+        this.seriesId.set(null);
+        this.seriesName.set('');
+        this.season.set(null);
+        this.episode.set(null);
         this.creatorId.set(null);
         this.creatorName.set('');
         this.collectionId.set(null);

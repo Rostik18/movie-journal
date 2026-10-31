@@ -45,7 +45,7 @@ export class SeedDataFormComponent implements OnInit {
         value,
         label: WatchStatusLabels[value]
     }));
-    readonly typeOptions = [MediaType.Movie, MediaType.Series, MediaType.Animation, MediaType.Anime, MediaType.Documentary, MediaType.ShortFilm, MediaType.Video].map(value => ({
+    readonly typeOptions = [MediaType.Movie, MediaType.SeriesEpisode, MediaType.Animation, MediaType.Anime, MediaType.Documentary, MediaType.ShortFilm, MediaType.Video].map(value => ({
         value,
         label: MediaTypeLabels[value]
     }));

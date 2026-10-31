@@ -19,14 +19,16 @@ export interface MediaItem {
     cast: MediaActor[];
     /** Колекція, до якої належить медіа. */
     collection?: CollectionReference | null;
-    visibility: Visibility;
+    /** Серіал, сезон і серія (лише для MediaType.SeriesEpisode). */
     episodeInfo?: EpisodeInfo | null;
+    visibility: Visibility;
 }
 
 /** Відповідь GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, повна колекція). */
 export interface MediaSidebar extends Omit<MediaItem, 'cast' | 'collection'> {
     cast: CastResponse[];
     collection?: MediaCollectionResponse | null;
+    /** Серіал, до якого належить епізод (лише для MediaType.SeriesEpisode). */
     series?: SeriesResponse | null;
 }
 
@@ -70,16 +72,6 @@ export interface MediaActor {
     characterName?: string | null;
 }
 
-export interface Episode {
-    number: number;
-    title?: string | null;
-}
-
-export interface Season {
-    number: number;
-    episodes: Episode[];
-}
-
 export interface CreateMediaRequest {
     title: string;
     description?: string | null;
@@ -93,7 +85,6 @@ export interface CreateMediaRequest {
     tags: string[];
     links: string[];
     cast: MediaActor[];
-    seasons: Season[];
     creatorId?: string | null;
     collectionId?: string | null;
     episode?: EpisodeInfo | null;
@@ -113,12 +104,12 @@ export interface UpdateMediaRequest {
     tags?: string[] | null;
     links?: string[] | null;
     cast?: MediaActor[] | null;
-    seasons?: Season[] | null;
     creatorId?: string | null;
     collectionId?: string | null;
     episode?: EpisodeInfo | null;
 }
 
+/** Прив'язка епізоду до серіалу (лише для MediaType.SeriesEpisode). */
 export interface EpisodeInfo {
     seriesId: string;
     season?: number | null;

@@ -1,0 +1,53 @@
+<div class="series-form-card">
+    <h3>{{ isEditMode() ? 'Редагувати серіал' : 'Створити новий серіал' }}</h3>
+
+    <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label>Назва серіалу *</label>
+            <input type="text" [(ngModel)]="title" name="title" required placeholder="Наприклад: Шерлок">
+        </div>
+
+        <div class="form-group">
+            <label>Опис</label>
+            <textarea [(ngModel)]="description" name="description" rows="3"
+                placeholder="Короткий опис серіалу..."></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Постер (URL)</label>
+                <input type="url" [(ngModel)]="posterUrl" (ngModelChange)="onPosterUrlChange()" name="posterUrl"
+                    placeholder="https://...">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Видимість</label>
+                <app-visibility-toggle [(value)]="visibility" />
+            </div>
+        </div>
+
+        <!-- Прев'ю постера -->
+        @if (posterUrl()) {
+        <div class="poster-preview-section">
+            <span class="preview-label">Прев'ю:</span>
+            <div class="preview-container">
+                @if (!imageError()) {
+                <img [src]="posterUrl()" alt="" (error)="imageError.set(true)" />
+                } @else {
+                <div class="preview-error"><span>⚠️ Помилка завантаження</span></div>
+                }
+            </div>
+        </div>
+        }
+
+        <div class="form-group">
+            <label>Теги (через кому)</label>
+            <input type="text" [(ngModel)]="tagsInput" name="tagsInput" placeholder="sci-fi, 90s, action">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting() || (isEditMode() && !hasChanges())">
+                {{ isEditMode() ? 'Зберегти зміни' : 'Створити серіал' }}
+            </button>
+        </div>
+    </form>
+</div>

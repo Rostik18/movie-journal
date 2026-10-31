@@ -16,9 +16,9 @@ export interface UpdateSeriesRequest {
     originalTitle?: string | null;
     description?: string | null;
     posterUrl?: string | null;
-    visibility: Visibility | null;
+    visibility?: Visibility | null;
     genres?: string[] | null;
-    tags: string[] | null;
+    tags?: string[] | null;
 }
 
 export interface SeriesResponse {
@@ -32,7 +32,7 @@ export interface SeriesResponse {
 
 export interface SeriesResponseSb {
     id: string;
-    name: string;
+    title: string;
     description?: string | null;
     posterUrl?: string | null;
     tags: string[];

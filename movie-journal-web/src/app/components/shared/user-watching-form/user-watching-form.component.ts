@@ -102,8 +102,8 @@ export class UserWatchingFormComponent implements OnInit {
     // чи показувати сезон/епізод
     readonly showProgressFields = computed(() =>
         this.isCreatingNewMedia()
-            ? (this.mediaForm()?.isSeries() ?? false)
-            : this.selectedMedia()?.type === MediaType.Series
+            ? (this.mediaForm()?.isSeriesEpisode() ?? false)
+            : this.selectedMedia()?.type === MediaType.SeriesEpisode
     );
 
     ngOnInit(): void {

@@ -1,0 +1,186 @@
+<div class="list-page">
+    <header class="list-header">
+        <h2 class="list-title">Серіали</h2>
+
+        <app-add-button label="Додати серіал" (clicked)="modal.openCreate()" />
+
+        <div class="list-actions">
+            <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+                [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
+            <app-view-switcher [currentMode]="viewMode()" (modeChange)="viewMode.set($event)" />
+        </div>
+    </header>
+
+    <!-- Універсальна панель пошуку, фільтрів та сортування -->
+    <app-search-toolbar [searchQuery]="list.searchParams().query" searchPlaceholder="Пошук серіалів за назвою..."
+        [filters]="toolbarFilters()" [sortFields]="seriesSortFields" [currentSortBy]="list.searchParams().sortBy"
+        [currentSort]="list.searchParams().sort ?? SortDirection.Ascending"
+        (searchQueryChange)="list.onSearchQueryChanged($event)" (filterChange)="list.onFilterChanged($event)"
+        (sortByChange)="list.onSortByChanged($event)" (sortDirectionChange)="list.onSortDirectionChanged($event)" />
+
+    @if (list.showInitialLoading()) {
+    <div class="list-state loading">Завантаження серіалів...</div>
+    } @else if (list.showError()) {
+    <div class="list-state error">
+        <p>Не вдалося завантажити серіали.</p>
+        <button type="button" class="btn-secondary" (click)="list.load()">Спробувати знову</button>
+    </div>
+    } @else if (list.showEmpty()) {
+    <div class="list-state">
+        @if (list.hasActiveFilters()) {
+        <p><strong>Нічого не знайдено.</strong></p>
+        <p>Спробуйте змінити або скинути фільтри.</p>
+        <button type="button" class="btn-secondary" (click)="list.resetFilters()">Скинути фільтри</button>
+        } @else {
+        <p><strong>Серіалів ще немає.</strong></p>
+        <p>Натисніть «Додати серіал», щоб створити перший.</p>
+        }
+    </div>
+    } @else {
+    <!-- Під час повторного завантаження список лишається на екрані -->
+    @if (viewMode() === 'grid') {
+    <!-- РЕЖИМ 1: Плитки -->
+    <div class="cards-grid">
+        @for (col of seriesItems(); track col.id) {
+        <app-grid-card [imageUrl]="col.posterUrl" [imageAlt]="col.title" [title]="col.title" noImageText="Немає постера"
+            [visibility]="col.visibility" (cardClick)="details.open(col.id)">
+
+            @if (col.tags?.length) {
+            <div class="genres">
+                @for (tag of col.tags; track tag) {
+                <app-search-chip kind="tag" [value]="tag" />
+                }
+            </div>
+            }
+        </app-grid-card>
+        }
+    </div>
+    } @else {
+    <!-- РЕЖИМ 2: Таблиця -->
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Постер</th>
+                    <th>Назва серіалу</th>
+                    <th>Теги</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (col of seriesItems(); track col.id) {
+                <tr class="clickable-row" tabindex="0" (click)="details.open(col.id)"
+                    (keydown.enter)="details.open(col.id)">
+                    <td class="table-poster-cell">
+                        @if (col.posterUrl) {
+                        <img [src]="col.posterUrl" [alt]="col.title" class="table-poster">
+                        } @else {
+                        <div class="table-no-poster">—</div>
+                        }
+                    </td>
+                    <td><strong>{{ col.title }}</strong></td>
+                    <td>
+                        @if (col.tags?.length) {
+                        <div class="genres-inline">
+                            @for (tag of col.tags; track tag) {
+                            <app-search-chip kind="tag" [value]="tag" />
+                            }
+                        </div>
+                        } @else {
+                        —
+                        }
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+
+    @if (list.totalCount() > 10) {
+    <div class="pagination-bottom">
+        <app-pagination [offset]="list.searchParams().offset ?? 0" [size]="list.searchParams().size ?? 20"
+            [total]="list.totalCount()" (pageChange)="list.onPaginationChange($event)" />
+    </div>
+    }
+    }
+
+    <!-- МОДАЛЬНЕ ВІКНО ДОДАВАННЯ / РЕДАГУВАННЯ СЕРІАЛУ -->
+    @if (modal.isOpen()) {
+    <div class="modal-backdrop" (mousedown)="modal.onBackdropMouseDown($event)">
+        <div class="modal-content" role="dialog" aria-modal="true"
+            [attr.aria-label]="modal.editing() ? 'Редагувати серіал' : 'Додати новий серіал'">
+            <button type="button" class="modal-close-btn" aria-label="Закрити" (click)="modal.close()">&times;</button>
+
+            <app-series-form [series]="modal.editing()" (seriesCreated)="onSeriesCreated()"
+                (seriesUpdated)="onSeriesUpdated($event)" />
+        </div>
+    </div>
+    }
+
+    <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ СЕРІАЛУ -->
+    <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedSeries()?.title ?? ''"
+        [imageUrl]="selectedSeries()?.posterUrl" [imageAlt]="selectedSeries()?.title ?? ''" noImageText="Немає постера"
+        [deleteAction]="selectedDeleteCallback()" (closed)="details.close()" (editClicked)="onEditSeries()"
+        (deleted)="onSidebarSeriesDeleted()">
+
+        @if (selectedSeries(); as col) {
+        <div class="sidebar-details-info">
+            <!-- Visibility може бути 0 (falsy), тому перевіряємо на null/undefined -->
+            @if (col.visibility !== null && col.visibility !== undefined) {
+            <p class="detail-row"><strong>Видимість:</strong> {{ visibilityLabels[col.visibility] }}</p>
+            }
+
+            @if (col.description) {
+            <p class="detail-row"><strong>Опис:</strong> {{ col.description }}</p>
+            }
+
+            @if (col.tags?.length) {
+            <div class="detail-row detail-row-chips">
+                <strong>Теги:</strong>
+                <div class="genres">
+                    @for (tag of col.tags; track tag) {
+                    <app-search-chip kind="tag" [value]="tag" />
+                    }
+                </div>
+            </div>
+            }
+
+            <!-- Епізоди серіалу (приходять разом із серіалом, відсортовані за сезоном та номером) -->
+            <div class="actors-section">
+                <h4>
+                    Епізоди
+                    @if (col.episodes.length > 0) {
+                    <span class="title-meta">({{ col.episodes.length }})</span>
+                    }
+                </h4>
+
+                @if (col.episodes.length === 0) {
+                <p class="detail-row">Епізодів ще немає.</p>
+                } @else {
+                <div class="actors-sidebar-list">
+                    @for (ep of col.episodes; track ep.id) {
+                    <a class="actor-row" [routerLink]="['/movies', ep.id]" [title]="'Відкрити: ' + ep.title">
+                        @if (ep.posterUrl) {
+                        <img [src]="ep.posterUrl" [alt]="ep.title" class="movie-thumb">
+                        } @else {
+                        <div class="movie-thumb movie-no-poster">🎬</div>
+                        }
+                        <div class="actor-info">
+                            <span class="actor-name"><strong>{{ ep.title }}</strong>
+                                @if (ep.releaseYear) {
+                                <span class="title-meta">{{ ep.releaseYear }}</span>
+                                }
+                            </span>
+                            @if (episodeLabel(ep); as label) {
+                            <span class="actor-character">{{ label }}</span>
+                            }
+                        </div>
+                    </a>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+        }
+    </app-details-sidebar>
+</div>

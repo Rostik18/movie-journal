@@ -82,6 +82,12 @@ $primary: #3b82f6;
             gap: 12px;
         }
 
+        &.cols-series {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr;
+            gap: 12px;
+        }
+
         &.cols-equal {
             display: grid;
             grid-template-columns: repeat(3, 1fr);

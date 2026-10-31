@@ -58,6 +58,25 @@
             </div>
         </div>
 
+        <!-- Епізод серіалу: серіал (обов'язково) + номери сезону та серії -->
+        @if (isSeriesEpisode()) {
+        <div class="form-row cols-series">
+            <app-entity-picker class="form-group" inputId="series" label="Серіал *"
+                placeholder="Введіть назву існуючого або нового серіалу..." icon="📺"
+                newHint="Такого серіалу немає в базі. При збереженні буде створено новий:"
+                selectedHint="Обрано існуючий серіал" [search]="searchSeries" [(query)]="seriesName"
+                [(selectedId)]="seriesId" />
+            <div class="form-group">
+                <label for="season">Сезон</label>
+                <input id="season" type="number" [(ngModel)]="season" name="season" min="1" placeholder="1">
+            </div>
+            <div class="form-group">
+                <label for="episode">Серія</label>
+                <input id="episode" type="number" [(ngModel)]="episode" name="episode" min="1" placeholder="1">
+            </div>
+        </div>
+        }
+
         <!-- Постер (URL), Автор, Колекція одне під одним + прев'ю справа на повну висоту -->
         <div class="poster-block">
             <div class="poster-fields">
@@ -117,11 +136,6 @@
 
         <!-- Акторський склад -->
         <app-cast-picker [(cast)]="cast" />
-
-        <!-- Сезони (тільки для серіалу, лише при створенні) -->
-        @if (isSeries() && !isEditMode()) {
-        <app-seasons-editor [(seasons)]="seasons" />
-        }
 
         <!-- Прикріплені посилання -->
         @if (links().length > 0) {

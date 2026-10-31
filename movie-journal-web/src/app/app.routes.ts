@@ -12,6 +12,7 @@ import { UserListComponent } from './components/user-list/user-list.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
 import { StatisticsComponent } from './components/statistics/statistics.component';
 import { adminGuard, authGuard, guestGuard } from './guards/auth.guard';
+import { SeriesListComponent } from './components/series/series-list.component';
 
 /**
  * Маршрут `path` та `path/:id` з ОДНИМ записом конфігурації: Angular перевикористовує компонент
@@ -41,6 +42,7 @@ export const routes: Routes = [
             withOptionalId('movies', MovieListComponent),
             withOptionalId('actors', ActorListComponent),
             withOptionalId('collections', CollectionListComponent),
+            withOptionalId('series', SeriesListComponent),
             withOptionalId('creators', CreatorListComponent),
             { path: 'users', component: UserListComponent },
             { path: 'profile', component: UserProfileComponent },
