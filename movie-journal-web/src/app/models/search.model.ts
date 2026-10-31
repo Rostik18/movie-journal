@@ -98,8 +98,13 @@ export interface MediaSearchParams {
     genre?: string;
     tag?: string;
     collectionId?: string;
+    collection?: string;
     actorId?: string;
-    author?: string;
+    actor?: string;
+    creatorId?: string;
+    creator?: string;
+    seriesId?: string;
+    series?: string;
     sortBy?: MediaSortField;
     sort?: SortDirection;
     offset?: number;

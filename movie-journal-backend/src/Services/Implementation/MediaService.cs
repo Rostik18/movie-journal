@@ -244,6 +244,8 @@ namespace MovieJournalBackend.Services.Implementation
                 throw new ValidationException("Private media cannot belong to a public series.");
             }
 
+            newInfo.SeriesTitle = series.Title;
+
             return newInfo;
         }
 

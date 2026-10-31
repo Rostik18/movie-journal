@@ -67,8 +67,8 @@ export class MovieListComponent implements OnInit {
         search: params => this.mediaService.searchMedia(params),
         defaults: { offset: 0, size: DEFAULT_PAGE_SIZE, sort: SortDirection.Descending },
         filterKeys: ['type', 'visibility'],
-        isFiltered: ({ query, tag, genre, author, type, visibility }) =>
-            !!query || !!tag || !!genre || !!author || type !== undefined || visibility !== undefined,
+        isFiltered: ({ query, tag, genre, type, visibility, collectionId, collection, actorId, actor, creatorId, creator, seriesId, series }) =>
+            !!query || !!tag || !!genre || type !== undefined || visibility !== undefined || !!collectionId || !!collection || !!actorId || !!actor || !!creatorId || !!creator || !!seriesId || !!series,
         errorMessage: 'Не вдалося завантажити фільми.'
     });
     readonly movies = this.list.items;
@@ -150,7 +150,14 @@ export class MovieListComponent implements OnInit {
             query: undefined,
             tag: undefined,
             genre: undefined,
-            author: undefined,
+            collectionId: undefined,
+            collection: undefined,
+            actorId: undefined,
+            actor: undefined,
+            creatorId: undefined,
+            creator: undefined,
+            seriesId: undefined,
+            series: undefined,
             [param]: value || undefined,
             offset: 0
         });

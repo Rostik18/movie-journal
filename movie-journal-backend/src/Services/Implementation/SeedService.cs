@@ -233,8 +233,8 @@ namespace MovieJournalBackend.Services.Implementation
                         ? null
                         : creators.FirstOrDefault(x => x.Name.Equals(parsedItem.Creator, StringComparison.InvariantCultureIgnoreCase));
 
-                    var seriesId = parsedItem.Type is MediaType.SeriesEpisode
-                        ? series.FirstOrDefault(x => x.Title.Equals(parsedItem.SeriesName, StringComparison.InvariantCultureIgnoreCase))?.Id
+                    var selectedSeries = parsedItem.Type is MediaType.SeriesEpisode
+                        ? series.FirstOrDefault(x => x.Title.Equals(parsedItem.SeriesName, StringComparison.InvariantCultureIgnoreCase))
                         : null;
 
                     var media = new CreateMediaRequest()
@@ -250,9 +250,9 @@ namespace MovieJournalBackend.Services.Implementation
                         Duration = metadata.DurationSeconds,
                         ReleaseYear = metadata.PublishedAtUtc?.Year,
                         Links = [parsedItem.Url],
-                        Episode = seriesId is null
+                        Episode = selectedSeries is null
                             ? null
-                            : new() { SeriesId = seriesId, Season = parsedItem.Series, Episode = parsedItem.Episode },
+                            : new() { SeriesId = selectedSeries.Id, SeriesTitle = selectedSeries.Title, Season = parsedItem.Series, Episode = parsedItem.Episode },
                         CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
                             ? request.CollectionId
                             : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Collection, StringComparison.InvariantCultureIgnoreCase))?.Id

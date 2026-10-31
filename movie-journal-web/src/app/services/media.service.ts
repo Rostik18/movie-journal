@@ -37,11 +37,26 @@ export class MediaService {
         if (params.collectionId) {
             httpParams = httpParams.set('collectionId', params.collectionId);
         }
+        if (params.collection) {
+            httpParams = httpParams.set('collection', params.collection);
+        }
         if (params.actorId) {
             httpParams = httpParams.set('actorId', params.actorId);
         }
-        if (params.author) {
-            httpParams = httpParams.set('author', params.author);
+        if (params.actor) {
+            httpParams = httpParams.set('actor', params.actor);
+        }
+        if (params.creatorId) {
+            httpParams = httpParams.set('creatorId', params.creatorId);
+        }
+        if (params.creator) {
+            httpParams = httpParams.set('creator', params.creator);
+        }
+        if (params.seriesId) {
+            httpParams = httpParams.set('seriesId', params.seriesId);
+        }
+        if (params.series) {
+            httpParams = httpParams.set('series', params.series);
         }
         if (params.sortBy !== undefined && params.sortBy !== null) {
             httpParams = httpParams.set('sortBy', params.sortBy.toString());

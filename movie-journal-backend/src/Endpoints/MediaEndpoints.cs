@@ -95,8 +95,13 @@ namespace MovieJournalBackend.Endpoints
             [FromQuery] string? genre,
             [FromQuery] string? tag,
             [FromQuery] string? collectionId,
+            [FromQuery] string? collection,
             [FromQuery] string? actorId,
-            [FromQuery] string? author,
+            [FromQuery] string? actor,
+            [FromQuery] string? creatorId,
+            [FromQuery] string? creator,
+            [FromQuery] string? seriesId,
+            [FromQuery] string? series,
 
             [FromQuery] MediaSortField? sortBy,
             [FromQuery] SortDirection? sort,
@@ -121,8 +126,13 @@ namespace MovieJournalBackend.Endpoints
                     Genre = genre,
                     Tag = tag,
                     CollectionId = collectionId,
+                    Collection = collection,
                     ActorId = actorId,
-                    Creator = author
+                    Actor = actor,
+                    CreatorId = creatorId,
+                    Creator = creator,
+                    SeriesId = seriesId,
+                    Series = series
                 }
             }, principal.ToUserContext(), ct);
 
