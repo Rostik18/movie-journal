@@ -14,6 +14,9 @@
             (click)="seedMode.set('collections')">
             Колекції
         </button>
+        <button type="button" class="tab-btn" [class.active]="seedMode() === 'series'" (click)="seedMode.set('series')">
+            Серіали
+        </button>
         <button type="button" class="tab-btn" [class.active]="seedMode() === 'userWatch'"
             (click)="seedMode.set('userWatch')">
             Дані перегляду
@@ -59,7 +62,7 @@
     <div class="form-group">
         <label>Дані (Payload):</label>
         <textarea [ngModel]="payloadText()" (ngModelChange)="payloadText.set($event)" name="payload" rows="8"
-            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    actors    creator    10    collection    type' : seedMode() === 'creators' ? 'name   description   https://logo-url.com   https://website.com' : seedMode() === 'collections' ? 'name   description   https://poster-url.com   tag1, tag2' : 'name   https://photo-url.com   20.04.2010    biography   Male    USA'"
+            [placeholder]="seedMode() === 'userWatch' ? 'https://example.com    name    actors    creator    10    collection    type' : seedMode() === 'creators' ? 'name   description   https://logo-url.com   https://website.com' : seedMode() === 'collections' || seedMode() === 'series' ? 'name   description   https://poster-url.com   tag1, tag2' : 'name   https://photo-url.com   20.04.2010    biography   Male    USA'"
             required>
         </textarea>
         <small class="hint">
@@ -68,7 +71,7 @@
             } @else if (seedMode() === 'creators') {
             Вставте рядки у форматі: Назва (режисера чи компанії) [TAB] Опис / біографія [TAB] Лого URL [TAB] Вебсайт
             (чи YouTube-канал)
-            } @else if (seedMode() === 'collections') {
+            } @else if (seedMode() === 'collections' || seedMode() === 'series') {
             Вставте рядки у форматі: Назва [TAB] Опис [TAB] Постер URL [TAB] Теги
             } @else {
             Вставте рядки у форматі: Назва [TAB] Фото URL [TAB] Дата народження [TAB] Біографія [TAB] Стать [TAB]
@@ -140,6 +143,27 @@
     <div class="form-group missed-section">
         <label class="error-label">Остання помилка:</label>
         <textarea [ngModel]="collectionLastError()" name="collectionLastError" rows="3" readonly
+            class="missed-textarea"></textarea>
+    </div>
+    }
+
+    <!-- Блок пропущених серіалів (для Series) -->
+    @if (seriesResultText()) {
+    <div class="form-group success-section">
+        <div class="missed-header">
+            <label class="error-label">Пропущені серіали:</label>
+            <button type="button" class="btn-copy" (click)="copyText(seriesResultText())">Скопіювати 📋</button>
+        </div>
+        <textarea [ngModel]="seriesResultText()" name="seriesResults" rows="5" readonly
+            class="missed-textarea"></textarea>
+        <small class="hint">Ці рядки не вдалося імпортувати.</small>
+    </div>
+    }
+
+    @if (seriesLastError()) {
+    <div class="form-group missed-section">
+        <label class="error-label">Остання помилка:</label>
+        <textarea [ngModel]="seriesLastError()" name="seriesLastError" rows="3" readonly
             class="missed-textarea"></textarea>
     </div>
     }

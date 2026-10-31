@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { CollectionService } from '../../services/collection.service';
 import { Visibility, WatchStatus, MediaType, WatchStatusLabels, MediaTypeLabels } from '../../models/enums';
-import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest, SeedCollectionsRequest } from '../../services/server.service';
+import { ServerService, SeedUserWatchRequest, SeedActorsRequest, SeedCreatorsRequest, SeedCollectionsRequest, SeedSeriesRequest } from '../../services/server.service';
 import { MediaCollectionResponse } from '../../models/collection.model';
 import { VisibilityToggleComponent } from '../shared/visibility-toggle/visibility-toggle.component';
 
@@ -22,7 +22,7 @@ export class SeedDataFormComponent implements OnInit {
     private toastService = inject(ToastService);
     private destroyRef = inject(DestroyRef);
 
-    seedMode = signal<'userWatch' | 'actors' | 'creators' | 'collections'>('actors');
+    seedMode = signal<'userWatch' | 'actors' | 'creators' | 'collections' | 'series'>('actors');
 
     // Моделі для форми
     payloadText = signal('');
@@ -37,6 +37,8 @@ export class SeedDataFormComponent implements OnInit {
     creatorLastError = signal<string>('');
     collectionResultText = signal<string>('');
     collectionLastError = signal<string>('');
+    seriesResultText = signal<string>('');
+    seriesLastError = signal<string>('');
 
     collections = signal<MediaCollectionResponse[]>([]);
     loading = signal(false);
@@ -80,6 +82,8 @@ export class SeedDataFormComponent implements OnInit {
         this.creatorLastError.set('');
         this.collectionResultText.set('');
         this.collectionLastError.set('');
+        this.seriesResultText.set('');
+        this.seriesLastError.set('');
 
         if (this.seedMode() === 'actors') {
             const request: SeedActorsRequest = {
@@ -175,6 +179,41 @@ export class SeedDataFormComponent implements OnInit {
                             (item.tags ?? []).join(', ')
                         ].join('\t')).join('\n'));
                         this.toastService.show(`Пропущено колекцій: ${missed.length}`, 'error', 5000);
+                    } else if (!response.lastError) {
+                        this.submitted.emit();
+                    }
+                },
+                error: () => {
+                    this.loading.set(false);
+                }
+            });
+        } else if (this.seedMode() === 'series') {
+            const request: SeedSeriesRequest = {
+                userId: null,
+                visibility: this.selectedVisibility(),
+                payload: text
+            };
+
+            this.serverService.seedSeriesData(request).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+                next: (response) => {
+                    this.loading.set(false);
+
+                    this.toastService.show(`Імпорт серіалів завершено: ${response.message ?? 'Done'}`, 'success', 4000);
+
+                    const missed = response.missedLines ?? [];
+                    if (response.lastError) {
+                        this.seriesLastError.set(response.lastError);
+                    }
+
+                    if (missed.length > 0) {
+                        // Той самий формат, що й на вході (Назва / Опис / Постер / Теги) — можна одразу вставити назад
+                        this.seriesResultText.set(missed.map(item => [
+                            item.name,
+                            item.description ?? '',
+                            item.imageUrl ?? '',
+                            (item.tags ?? []).join(', ')
+                        ].join('\t')).join('\n'));
+                        this.toastService.show(`Пропущено серіалів: ${missed.length}`, 'error', 5000);
                     } else if (!response.lastError) {
                         this.submitted.emit();
                     }
