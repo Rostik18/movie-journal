@@ -109,11 +109,11 @@ export interface UpdateMediaRequest {
 /** Прив'язка епізоду до серіалу (лише для MediaType.SeriesEpisode). */
 export interface EpisodeInfo {
     seriesId: string;
-    seriesTitle: string;
     season?: number | null;
     episode?: number | null;
 }
 
+/** Серіал епізоду у відповіді сайдбару: з назвою та постером. */
 export interface MediaEpisodeInfoSb {
     seriesId: string;
     seriesTitle: string;

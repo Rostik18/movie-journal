@@ -495,10 +495,10 @@ export class MediaFormComponent implements OnInit {
         if (!this.isSeriesEpisode()) {
             // Тип змінили з «Епізод серіалу» на інший: BE скидає зв'язок лише коли episode непорожній
             const previous = this.dirty.baseline?.series;
-            return previous?.startsWith('id:') ? { seriesId: previous.slice(3), seriesTitle: '' } : null;
+            return previous?.startsWith('id:') ? { seriesId: previous.slice(3) } : null;
         }
         const seriesId = resolvedSeriesId ?? this.seriesId();
-        return seriesId ? { seriesId, seriesTitle: this.seriesName().trim(), season: this.season() ?? null, episode: this.episode() ?? null } : null;
+        return seriesId ? { seriesId, season: this.season() ?? null, episode: this.episode() ?? null } : null;
     }
 
     private castPayload(): MediaActor[] {

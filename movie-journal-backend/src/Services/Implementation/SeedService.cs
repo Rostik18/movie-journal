@@ -248,7 +248,7 @@ namespace MovieJournalBackend.Services.Implementation
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
                         Duration = metadata.DurationSeconds,
-                        ReleaseYear = metadata.PublishedAtUtc?.Year,
+                        ReleaseYear = parsedItem.Year ?? metadata.PublishedAtUtc?.Year,
                         Links = [parsedItem.Url],
                         Episode = selectedSeries is null
                             ? null
