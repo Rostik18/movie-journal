@@ -202,6 +202,19 @@
                 <a class="detail-link" [routerLink]="['/collections', collection.id]"> {{ collection.name }}</a>
             </p>
             }
+            @if (mov.episodeInfo; as ep) {
+            <p class="detail-row">
+                <strong>Серіал:</strong>
+                <a class="detail-link" [routerLink]="['/series', ep.seriesId]"> {{ ep.seriesTitle }}</a>
+                @if (ep.season != null || ep.episode != null) {
+                <span class="title-meta">
+                    @if (ep.season != null) { Сезон {{ ep.season }} }
+                    @if (ep.season != null && ep.episode != null) { · }
+                    @if (ep.episode != null) { Серія {{ ep.episode }} }
+                </span>
+                }
+            </p>
+            }
             @if (mov.duration) {
             <p class="detail-row"><strong>Тривалість:</strong> {{ formatDuration(mov.duration) }}</p>
             }

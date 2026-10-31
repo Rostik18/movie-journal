@@ -498,7 +498,7 @@ export class MediaFormComponent implements OnInit {
             return previous?.startsWith('id:') ? { seriesId: previous.slice(3), seriesTitle: '' } : null;
         }
         const seriesId = resolvedSeriesId ?? this.seriesId();
-        return seriesId ? { seriesId, seriesTitle: this.seriesName(), season: this.season() ?? null, episode: this.episode() ?? null } : null;
+        return seriesId ? { seriesId, seriesTitle: this.seriesName().trim(), season: this.season() ?? null, episode: this.episode() ?? null } : null;
     }
 
     private castPayload(): MediaActor[] {

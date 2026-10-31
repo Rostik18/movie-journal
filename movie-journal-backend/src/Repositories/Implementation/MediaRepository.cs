@@ -98,20 +98,6 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 filter = _fBuilder.And(filter, _fBuilder.AnyEq(x => x.Tags, request.Filter.Tag));
             }
-            if (!string.IsNullOrWhiteSpace(request.Filter.Creator))
-            {
-                var query = request.Filter.Creator.Trim();
-
-                filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.Name", new(Regex.Escape(query), "i")));
-            }
-            if (!string.IsNullOrWhiteSpace(request.Filter.CreatorId))
-            {
-                filter = _fBuilder.And(filter, _fBuilder.Eq("Creator.Id", request.Filter.CreatorId));
-            }
-            if (!string.IsNullOrWhiteSpace(request.Filter.SeriesId))
-            {
-                filter = _fBuilder.And(filter, _fBuilder.Eq("Episode.SeriesId", request.Filter.SeriesId));
-            }
             if (request.Filter.Type.HasValue)
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq(x => x.Type, request.Filter.Type));
@@ -128,7 +114,7 @@ namespace MovieJournalBackend.Repositories.Implementation
             {
                 var сollection = request.Filter.Collection.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Eq("Collection.Name", сollection));
+                filter = _fBuilder.And(filter, _fBuilder.Regex("Collection.Name", new(Regex.Escape(сollection), "i")));
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.ActorId))
             {
@@ -146,19 +132,13 @@ namespace MovieJournalBackend.Repositories.Implementation
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.Creator))
             {
-                var name = request.Filter.Creator.Trim();
+                var query = request.Filter.Creator.Trim();
 
-                filter = _fBuilder.And(filter, _fBuilder.Eq("Creator.Name", name));
+                filter = _fBuilder.And(filter, _fBuilder.Regex("Creator.Name", new(Regex.Escape(query), "i")));
             }
             if (!string.IsNullOrWhiteSpace(request.Filter.SeriesId))
             {
                 filter = _fBuilder.And(filter, _fBuilder.Eq("EpisodeInfo.SeriesId", request.Filter.SeriesId));
-            }
-            if (!string.IsNullOrWhiteSpace(request.Filter.Series))
-            {
-                var name = request.Filter.Series.Trim();
-
-                filter = _fBuilder.And(filter, _fBuilder.Eq("EpisodeInfo.SeriesTitle", name));
             }
 
             return filter;

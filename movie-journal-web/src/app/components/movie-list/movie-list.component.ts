@@ -305,7 +305,9 @@ export class MovieListComponent implements OnInit {
                 ...current,
                 ...updated,
                 cast: current.cast,
-                collection: current.collection
+                collection: current.collection,
+                // Відповідь на оновлення не містить постера серіалу — зберігаємо його до тихого оновлення сайдбару
+                episodeInfo: updated.episodeInfo ? { ...current.episodeInfo, ...updated.episodeInfo } : null
             } : current);
             this.details.refresh();
         }

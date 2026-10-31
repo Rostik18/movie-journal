@@ -252,7 +252,7 @@ namespace MovieJournalBackend.Services.Implementation
                         Links = [parsedItem.Url],
                         Episode = selectedSeries is null
                             ? null
-                            : new() { SeriesId = selectedSeries.Id, SeriesTitle = selectedSeries.Title, Season = parsedItem.Series, Episode = parsedItem.Episode },
+                            : new() { SeriesId = selectedSeries.Id, Season = parsedItem.Series, Episode = parsedItem.Episode },
                         CollectionId = string.IsNullOrEmpty(parsedItem.Collection)
                             ? request.CollectionId
                             : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Collection, StringComparison.InvariantCultureIgnoreCase))?.Id

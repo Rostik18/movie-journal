@@ -43,9 +43,18 @@ namespace MovieJournalBackend.Services.Implementation
             return media.ToResponseSb(cast, collection?.ToResponse(), series);
         }
 
-        public Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)
+        public async Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)
         {
-            return _mediaRepository.SearchAsync(request, user, ct);
+            if (!string.IsNullOrWhiteSpace(request.Filter?.Series))
+            {
+                var series = await _seriesRepository.GetByTitleAsync(request.Filter.Series, user, ct);
+
+                request.Filter.SeriesId = series is null
+                    ? "impossible-to-find-series-id"
+                    : series?.Id;
+            }
+
+            return await _mediaRepository.SearchAsync(request, user, ct);
         }
 
         public async Task<MediaResponse> CreateAsync(CreateMediaRequest request, UserContext user, CancellationToken ct = default)
@@ -243,8 +252,6 @@ namespace MovieJournalBackend.Services.Implementation
             {
                 throw new ValidationException("Private media cannot belong to a public series.");
             }
-
-            newInfo.SeriesTitle = series.Title;
 
             return newInfo;
         }

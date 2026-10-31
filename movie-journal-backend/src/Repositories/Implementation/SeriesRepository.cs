@@ -20,6 +20,15 @@ namespace MovieJournalBackend.Repositories.Implementation
             return Collection.Find(filter).FirstOrDefaultAsync(ct)!;
         }
 
+        public Task<Series?> GetByTitleAsync(string title, UserContext user, CancellationToken ct = default)
+        {
+            var filter = user.BuildVisibilityFilter<Series>();
+
+            filter = _fBuilder.And(filter, _fBuilder.Regex(x => x.NormalizedTitle, new(Regex.Escape(title.Trim()), "i")));
+
+            return Collection.Find(filter).FirstOrDefaultAsync(ct)!;
+        }
+
         public async Task<Page<Series>> SearchAsync(SearchRequest<SeriesFilter, SeriesSortField> request, UserContext user, CancellationToken ct = default)
         {
             var filter = CreateFilter(request, user);
