@@ -43,8 +43,7 @@ namespace MovieJournalBackend.Contracts.Common
             media.Links,
             media.Cast,
             media.Visibility,
-            media.Collection,
-            media.EpisodeInfo
+            media.Collection
             );
 
         public static MediaResponseSlim ToResponseSlim(this Entities.Media.Media media) => new(
@@ -114,7 +113,7 @@ namespace MovieJournalBackend.Contracts.Common
             actor.Nationalities,
             medias);
 
-        public static MediaResponseSb ToResponseSb(this Entities.Media.Media media, List<CastResponse> actors, MediaCollectionResponse? collection, SeriesResponse? series) => new(
+        public static MediaResponseSb ToResponseSb(this Entities.Media.Media media, List<CastResponse> actors, MediaCollectionResponse? collection, Entities.Series.Series? series) => new(
             media.Id!,
             media.Title,
             media.Description,
@@ -129,9 +128,14 @@ namespace MovieJournalBackend.Contracts.Common
             media.Links,
             actors,
             media.Visibility,
-            series,
             collection,
-            media.EpisodeInfo
+            media.EpisodeInfo is null || series is null ? null : new MediaEpisodeInfoSb(
+                series.Id,
+                series.Title,
+                series.PosterUrl,
+                media.EpisodeInfo.Season,
+                media.EpisodeInfo.Episode
+                )
             );
 
         public static MediaCollectionResponseSb ToResponseSb(this Entities.Media.MediaCollection collection, List<MediaResponseSlim> media) => new(
@@ -195,7 +199,6 @@ namespace MovieJournalBackend.Contracts.Common
             media.Links,
             media.EpisodeInfo?.Season,
             media.EpisodeInfo?.Episode
-
         );
     }
 }

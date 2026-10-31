@@ -15,7 +15,12 @@ import { MediaResponseSlim } from '../../../models/media.model';
     template: `
         <div class="actors-section">
             <h4>
+                @if (filterKey() && filterId()) {
+                <a class="heading-link" [routerLink]="['/movies']" [queryParams]="{ q: filterKey() + ':' + filterId() }"
+                    title="Відкрити в каталозі фільмів з фільтром">{{ heading() }} ↗</a>
+                } @else {
                 {{ heading() }}
+                }
                 @if (movies().length > 0) {
                 <span class="title-meta">({{ movies().length }})</span>
                 }
@@ -51,6 +56,9 @@ import { MediaResponseSlim } from '../../../models/media.model';
 export class MediaLinkListComponent {
     readonly movies = input<MediaResponseSlim[]>([]);
     readonly heading = input('Фільми');
+    /** Якщо задано разом з filterId, заголовок стає посиланням на /movies з цим фільтром (actorId, collectionId, creatorId…). */
+    readonly filterKey = input<'actorId' | 'collectionId' | 'creatorId' | 'seriesId' | null>(null);
+    readonly filterId = input<string | null>(null);
 
     readonly typeLabels = MediaTypeLabels;
 }

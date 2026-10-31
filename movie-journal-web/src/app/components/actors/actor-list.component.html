@@ -151,7 +151,7 @@
             }
 
             <!-- Фільми, у яких знімався актор (приходять разом з актором) -->
-            <app-media-link-list [movies]="actor.media" />
+            <app-media-link-list [movies]="actor.media" filterKey="actorId" [filterId]="actor.id" />
         </div>
         }
     </app-details-sidebar>

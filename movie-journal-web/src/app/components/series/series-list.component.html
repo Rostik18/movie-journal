@@ -148,7 +148,8 @@
             <!-- Епізоди серіалу (приходять разом із серіалом, відсортовані за сезоном та номером) -->
             <div class="actors-section">
                 <h4>
-                    Епізоди
+                    <a class="heading-link" [routerLink]="['/movies']" [queryParams]="{ q: 'seriesId:' + col.id }"
+                        title="Відкрити в каталозі фільмів з фільтром">Епізоди ↗</a>
                     @if (col.episodes.length > 0) {
                     <span class="title-meta">({{ col.episodes.length }})</span>
                     }

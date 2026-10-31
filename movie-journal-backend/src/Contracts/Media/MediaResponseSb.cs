@@ -1,5 +1,4 @@
 ﻿using MovieJournalBackend.Contracts.MediaCollection;
-using MovieJournalBackend.Contracts.Series;
 using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
 
@@ -20,8 +19,7 @@ namespace MovieJournalBackend.Contracts.Media
         List<string> Links,
         List<CastResponse> Cast,
         Visibility Visibility,
-        SeriesResponse? Series,
         MediaCollectionResponse? Collection,
-        EpisodeInfo? EpisodeInfo
+        MediaEpisodeInfoSb? EpisodeInfo
         );
 }

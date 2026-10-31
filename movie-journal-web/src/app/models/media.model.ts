@@ -1,6 +1,5 @@
 import { MediaType, Visibility } from "./enums";
 import { MediaCollectionResponse } from "./collection.model";
-import { SeriesResponse } from "./series.model";
 
 export interface MediaItem {
     id: string;
@@ -19,17 +18,15 @@ export interface MediaItem {
     cast: MediaActor[];
     /** Колекція, до якої належить медіа. */
     collection?: CollectionReference | null;
-    /** Серіал, сезон і серія (лише для MediaType.SeriesEpisode). */
-    episodeInfo?: EpisodeInfo | null;
     visibility: Visibility;
+    episodeInfo?: EpisodeInfo | null;
 }
 
 /** Відповідь GET /api/media/{id}/sidebar: усе для сайдбару одним запитом (склад з фото, повна колекція). */
 export interface MediaSidebar extends Omit<MediaItem, 'cast' | 'collection'> {
     cast: CastResponse[];
     collection?: MediaCollectionResponse | null;
-    /** Серіал, до якого належить епізод (лише для MediaType.SeriesEpisode). */
-    series?: SeriesResponse | null;
+    episodeInfo?: MediaEpisodeInfoSb | null;
 }
 
 /** Автор / творець медіа (канал, режисер тощо). */
@@ -112,6 +109,15 @@ export interface UpdateMediaRequest {
 /** Прив'язка епізоду до серіалу (лише для MediaType.SeriesEpisode). */
 export interface EpisodeInfo {
     seriesId: string;
+    seriesTitle: string;
+    season?: number | null;
+    episode?: number | null;
+}
+
+export interface MediaEpisodeInfoSb {
+    seriesId: string;
+    seriesTitle: string;
+    posterUrl?: string | null;
     season?: number | null;
     episode?: number | null;
 }

@@ -40,7 +40,7 @@ namespace MovieJournalBackend.Services.Implementation
                 ? null
                 : await _seriesRepository.GetByIdAsync(media.EpisodeInfo.SeriesId, ct);
 
-            return media.ToResponseSb(cast, collection?.ToResponse(), series?.ToResponse());
+            return media.ToResponseSb(cast, collection?.ToResponse(), series);
         }
 
         public Task<Page<Media>> SearchAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default)

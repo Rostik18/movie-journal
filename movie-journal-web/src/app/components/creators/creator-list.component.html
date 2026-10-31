@@ -135,7 +135,7 @@
             }
 
             <!-- Фільми творця (приходять разом із творцем) -->
-            <app-media-link-list [movies]="creator.media" />
+            <app-media-link-list [movies]="creator.media" filterKey="creatorId" [filterId]="creator.id" />
         </div>
         }
     </app-details-sidebar>

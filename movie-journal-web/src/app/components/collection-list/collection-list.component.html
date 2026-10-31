@@ -146,7 +146,7 @@
             }
 
             <!-- Фільми колекції (приходять разом з колекцією) -->
-            <app-media-link-list [movies]="col.media" />
+            <app-media-link-list [movies]="col.media" filterKey="collectionId" [filterId]="col.id" />
         </div>
         }
     </app-details-sidebar>

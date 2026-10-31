@@ -196,8 +196,8 @@ export class MediaFormComponent implements OnInit {
         this.creatorName.set(media.creator?.name ?? '');
         this.collectionId.set(media.collection?.id ?? null);
         this.collectionName.set(media.collection?.name ?? '');
-        this.seriesId.set(media.series?.id ?? media.episodeInfo?.seriesId ?? null);
-        this.seriesName.set(media.series?.title ?? '');
+        this.seriesId.set(media.episodeInfo?.seriesId ?? null);
+        this.seriesName.set(media.episodeInfo?.seriesTitle ?? '');
         this.season.set(media.episodeInfo?.season ?? null);
         this.episode.set(media.episodeInfo?.episode ?? null);
         this.genresInput.set((media.genres ?? []).join(', '));
@@ -495,10 +495,10 @@ export class MediaFormComponent implements OnInit {
         if (!this.isSeriesEpisode()) {
             // Тип змінили з «Епізод серіалу» на інший: BE скидає зв'язок лише коли episode непорожній
             const previous = this.dirty.baseline?.series;
-            return previous?.startsWith('id:') ? { seriesId: previous.slice(3) } : null;
+            return previous?.startsWith('id:') ? { seriesId: previous.slice(3), seriesTitle: '' } : null;
         }
         const seriesId = resolvedSeriesId ?? this.seriesId();
-        return seriesId ? { seriesId, season: this.season() ?? null, episode: this.episode() ?? null } : null;
+        return seriesId ? { seriesId, seriesTitle: this.seriesName(), season: this.season() ?? null, episode: this.episode() ?? null } : null;
     }
 
     private castPayload(): MediaActor[] {
