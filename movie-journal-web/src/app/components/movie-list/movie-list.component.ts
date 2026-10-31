@@ -75,7 +75,7 @@ export class MovieListComponent implements OnInit {
 
     /**
      * Те, що користувач ввів у полі пошуку, як є («tag:космос»). У параметри API йде розібраний результат
-     * (tag / genre / author / query), тому в поле повертаємо саме цей текст, а не параметри.
+     * (tag / genre / creator / collection / actor / series / *Id / query), тому в поле повертаємо саме цей текст, а не параметри.
      */
     readonly searchText = signal('');
 
