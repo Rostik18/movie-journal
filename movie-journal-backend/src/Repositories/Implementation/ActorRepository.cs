@@ -154,6 +154,32 @@ namespace MovieJournalBackend.Repositories.Implementation
                 x => x["Count"].ToInt64());
         }
 
+        public async Task<Dictionary<int, long>> GetCountByMonthAsync(UserContext user, CancellationToken ct = default)
+        {
+            var filter = Builders<Actor>.Filter.And(
+                user.BuildVisibilityFilter<Actor>(),
+                Builders<Actor>.Filter.Ne(x => x.BirthDate, null));
+
+            var pipeline = new[]
+            {
+                new BsonDocument("$group", new BsonDocument
+                {
+                    { "_id", new BsonDocument("$month", "$BirthDate") },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+            };
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .AppendStage(new BsonDocumentPipelineStageDefinition<Actor, BsonDocument>(pipeline[0]))
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].ToInt32(),
+                x => x["Count"].ToInt64());
+        }
+
         private FilterDefinition<Actor> CreateFilter(SearchRequest<ActorFilter, ActorSortField> request, UserContext user)
         {
             var filter = user.BuildVisibilityFilter<Actor>();

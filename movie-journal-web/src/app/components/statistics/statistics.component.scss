@@ -249,6 +249,11 @@
     }
 }
 
+/* Місяць народження: та сама діаграма, інший колір */
+.month-chart .age-bar {
+    background: #8b5cf6;
+}
+
 /* Слайдер розміру вікової групи */
 .age-gap-control {
     display: flex;

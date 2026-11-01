@@ -110,5 +110,25 @@
         </div>
         }
     </section>
+
+    <!-- Місяць народження: усі 12 місяців, відсутні у відповіді = 0 -->
+    <section class="stats-section">
+        <h4>Місяць народження</h4>
+
+        @if (monthBars().length === 0) {
+        <p class="muted">Дати народження не вказані.</p>
+        } @else {
+        <div class="age-chart month-chart">
+            @for (item of monthBars(); track item.key) {
+            <div class="age-col" [style.flex-basis.px]="44"
+                [title]="item.fullLabel + ': ' + item.count + ' (' + item.share.toFixed(1) + '%)'">
+                <span class="age-count">{{ item.count || '' }}</span>
+                <span class="age-bar" [style.height.%]="item.size"></span>
+                <span class="age-label">{{ item.label }}</span>
+            </div>
+            }
+        </div>
+        }
+    </section>
     }
 </div>

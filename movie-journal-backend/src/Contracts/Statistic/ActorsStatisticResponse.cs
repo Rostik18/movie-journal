@@ -7,5 +7,6 @@
         public long FemaleActors { get; set; }
         public Dictionary<string, long> CountByNationality { get; set; } = [];
         public Dictionary<string, long> CountByAge { get; set; } = [];
+        public Dictionary<string, long> CountByMonth { get; set; } = [];
     }
 }

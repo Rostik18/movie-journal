@@ -6,4 +6,6 @@ export interface ActorsStatisticResponse {
     countByNationality: Record<string, number>;
     /** Початок п'ятирічного вікового блоку ("20" = 20–24 роки) → кількість акторів. */
     countByAge: Record<string, number>;
+    /** Номер місяця народження ("1"–"12") → кількість акторів. Місяці без акторів у відповідь не потрапляють. */
+    countByMonth: Record<string, number>;
 }

@@ -24,7 +24,24 @@ interface Bar {
     size: number;
     /** Частка від усіх акторів, %. */
     share: number;
+    /** Повна назва для підказки (місяць). */
+    fullLabel?: string;
 }
+
+const MONTHS: readonly { short: string; full: string }[] = [
+    { short: 'Січ', full: 'Січень' },
+    { short: 'Лют', full: 'Лютий' },
+    { short: 'Бер', full: 'Березень' },
+    { short: 'Кві', full: 'Квітень' },
+    { short: 'Тра', full: 'Травень' },
+    { short: 'Чер', full: 'Червень' },
+    { short: 'Лип', full: 'Липень' },
+    { short: 'Сер', full: 'Серпень' },
+    { short: 'Вер', full: 'Вересень' },
+    { short: 'Жов', full: 'Жовтень' },
+    { short: 'Лис', full: 'Листопад' },
+    { short: 'Гру', full: 'Грудень' }
+];
 
 const percent = (part: number, whole: number): number => (whole > 0 ? (part / whole) * 100 : 0);
 
@@ -148,6 +165,41 @@ export class StatisticsComponent implements OnInit {
             });
         }
         return bars;
+    });
+
+    /**
+     * Місяць народження: завжди всі 12 місяців по порядку; місяці, яких бекенд не повернув
+     * (немає акторів), показуємо як 0. Без жодного значення блок не відображається.
+     */
+    readonly monthBars = computed<Bar[]>(() => {
+        const data = this.actors();
+        if (!data) {
+            return [];
+        }
+
+        const counts = new Map<number, number>();
+        for (const [key, count] of Object.entries(data.countByMonth ?? {})) {
+            const month = Number(key);
+            if (Number.isInteger(month) && month >= 1 && month <= 12) {
+                counts.set(month, (counts.get(month) ?? 0) + count);
+            }
+        }
+        if (counts.size === 0) {
+            return [];
+        }
+
+        const max = Math.max(...counts.values());
+        return MONTHS.map((name, index) => {
+            const count = counts.get(index + 1) ?? 0;
+            return {
+                key: String(index + 1),
+                label: name.short,
+                fullLabel: name.full,
+                count,
+                size: percent(count, max),
+                share: percent(count, data.totalActors)
+            };
+        });
     });
 
     readonly isEmpty = computed(() => !this.loading() && !this.hasError() && this.total() === 0);

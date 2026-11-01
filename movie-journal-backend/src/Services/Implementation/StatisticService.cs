@@ -31,6 +31,11 @@ namespace MovieJournalBackend.Services.Implementation
             foreach (var (ageBlock, count) in ageCounts)
                 result.CountByAge[ageBlock.ToString()] = count;
 
+            var monthCounts = await actorRepository.GetCountByMonthAsync(user, ct);
+
+            foreach (var (month, count) in monthCounts)
+                result.CountByMonth[month.ToString()] = count;
+
             return result;
         }
     }

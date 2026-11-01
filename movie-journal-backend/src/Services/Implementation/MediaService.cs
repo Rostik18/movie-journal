@@ -74,8 +74,8 @@ namespace MovieJournalBackend.Services.Implementation
                 ReleaseYear = request.ReleaseYear,
                 DurationSec = request.Duration,
                 PosterUrl = request.PosterUrl,
-                Genres = request.Genres,
-                Tags = request.Tags,
+                Genres = [.. request.Genres.Select(t => t.Trim().ToLowerInvariant()).Distinct()],
+                Tags = [.. request.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct()],
                 Cast = request.Cast,
                 Links = request.Links,
                 Visibility = request.Visibility,
@@ -145,11 +145,11 @@ namespace MovieJournalBackend.Services.Implementation
             }
             if (request.Genres is not null)
             {
-                media.Genres = request.Genres;
+                media.Genres = [.. request.Genres.Select(t => t.Trim().ToLowerInvariant()).Distinct()];
             }
             if (request.Tags is not null)
             {
-                media.Tags = request.Tags;
+                media.Tags = [.. request.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct()];
             }
             if (request.Cast is not null)
             {
