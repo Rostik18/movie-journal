@@ -47,7 +47,6 @@ export interface EpisodeResponse {
     duration?: number | null;
     posterUrl?: string | null;
     genres: string[];
-    links: string[];
     season?: number | null;
     episode?: number | null;
 }

@@ -63,3 +63,16 @@ export const SexLabels: Record<Sex, string> = {
     [Sex.Male]: 'Чоловік',
     [Sex.Female]: 'Жінка'
 };
+
+/** Тип посилання медіа: як його показувати в UI. */
+export enum LinkType {
+    Any = "Any",
+    Embed = "Embed",
+    Video = "Video"
+}
+
+export const LinkTypeLabels: Record<LinkType, string> = {
+    [LinkType.Any]: 'Посилання',
+    [LinkType.Embed]: 'Embed',
+    [LinkType.Video]: 'Відео'
+};

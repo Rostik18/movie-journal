@@ -144,9 +144,15 @@
                 <h4>Прикріплені посилання ({{ links().length }})</h4>
             </div>
             <div class="selected-links-list">
-                @for (link of links(); track link; let i = $index) {
+                @for (link of links(); track link.url; let i = $index) {
                 <div class="link-row">
-                    <a [href]="link" target="_blank" rel="noopener noreferrer" class="link-url">{{ link }}</a>
+                    <a [href]="link.url" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url }}</a>
+                    <select class="link-type-select" [ngModel]="link.type" (ngModelChange)="setLinkType(i, $event)"
+                        [name]="'linkType' + i" aria-label="Тип посилання">
+                        @for (opt of linkTypeOptions; track opt.value) {
+                        <option [ngValue]="opt.value">{{ opt.label }}</option>
+                        }
+                    </select>
                     <button type="button" class="btn-danger-sm" (click)="removeLink(i)">&times;</button>
                 </div>
                 }

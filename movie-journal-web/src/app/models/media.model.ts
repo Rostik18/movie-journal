@@ -1,4 +1,4 @@
-import { MediaType, Visibility } from "./enums";
+import { LinkType, MediaType, Visibility } from "./enums";
 import { MediaCollectionResponse } from "./collection.model";
 
 export interface MediaItem {
@@ -13,7 +13,7 @@ export interface MediaItem {
     creator?: MediaCreator | null;
     genres: string[];
     tags: string[];
-    links: string[];
+    links: MediaLink[];
     /** У звичайній відповіді склад короткий (без фото); повний — у MediaSidebar. */
     cast: MediaActor[];
     /** Колекція, до якої належить медіа. */
@@ -43,8 +43,13 @@ export interface MediaResponseSlim {
     duration: number | null;
     posterUrl: string | null;
     genres: string[];
-    links: string[];
     visibility: Visibility;
+}
+
+/** Посилання медіа: URL та спосіб показу (Any — відкрити на сайті, Embed — iframe, Video — файл). */
+export interface MediaLink {
+    url: string;
+    type: LinkType;
 }
 
 /** Посилання на колекцію у відповіді BE: id та назва (додаткові запити не потрібні). */
@@ -80,7 +85,7 @@ export interface CreateMediaRequest {
     visibility: Visibility;
     genres: string[];
     tags: string[];
-    links: string[];
+    links: MediaLink[];
     cast: MediaActor[];
     creatorId?: string | null;
     collectionId?: string | null;
@@ -99,7 +104,7 @@ export interface UpdateMediaRequest {
     visibility?: Visibility | null;
     genres?: string[] | null;
     tags?: string[] | null;
-    links?: string[] | null;
+    links?: MediaLink[] | null;
     cast?: MediaActor[] | null;
     creatorId?: string | null;
     collectionId?: string | null;

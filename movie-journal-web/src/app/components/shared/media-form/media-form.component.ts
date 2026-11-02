@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { EMPTY, Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators';
 
-import { MediaType, MediaTypeLabels, Visibility } from '../../../models/enums';
+import { LinkType, LinkTypeLabels, MediaType, MediaTypeLabels, Visibility } from '../../../models/enums';
 import { MediaCollectionResponse } from '../../../models/collection.model';
 import { CreatorResponse } from '../../../models/creator.model';
 import { SeriesResponse } from '../../../models/series.model';
@@ -15,7 +15,7 @@ import { CreatorService } from '../../../services/creator.service';
 import { SeriesService } from '../../../services/series.service';
 import { ToastService } from '../../../services/toast.service';
 import { ServerService } from '../../../services/server.service';
-import { CreateMediaRequest, MediaActor, EpisodeInfo, MediaItem, MediaSidebar, UpdateMediaRequest } from '../../../models/media.model';
+import { CreateMediaRequest, MediaActor, EpisodeInfo, MediaItem, MediaLink, MediaSidebar, UpdateMediaRequest } from '../../../models/media.model';
 import { skipErrorToast } from '../../../interceptors/http-error.interceptor';
 import { createDirtyTracker } from '../../../utils/form-diff';
 import { isHttpUrl, parseCommaList } from '../../../utils/form-parse.util';
@@ -108,7 +108,8 @@ export class MediaFormComponent implements OnInit {
     readonly duration = signal<number | null>(null);
     readonly posterUrl = signal('');
     readonly visibility = signal<Visibility>(Visibility.Public);
-    readonly links = signal<string[]>([]);
+    readonly links = signal<MediaLink[]>([]);
+    readonly linkTypeOptions = Object.values(LinkType).map(value => ({ value, label: LinkTypeLabels[value] }));
     readonly genresInput = signal('');
     readonly tagsInput = signal('');
     readonly imageError = signal(false);
@@ -185,7 +186,7 @@ export class MediaFormComponent implements OnInit {
         this.duration.set(media.duration ?? null);
         this.posterUrl.set(media.posterUrl ?? '');
         this.visibility.set(media.visibility);
-        this.links.set([...(media.links ?? [])]);
+        this.links.set((media.links ?? []).map(l => ({ ...l })));
         this.cast.set((media.cast ?? []).map(c => ({
             actorId: c.id,
             fullName: c.fullName,
@@ -221,7 +222,7 @@ export class MediaFormComponent implements OnInit {
             visibility: this.visibility(),
             genres: parseCommaList(this.genresInput()).join('\u0000'),
             tags: parseCommaList(this.tagsInput()).join('\u0000'),
-            links: this.links().join('\u0000'),
+            links: this.links().map(l => `${l.type}|${l.url}`).join('\u0000'),
             cast: this.cast().map(c => `${c.actorId}:${(c.characterName ?? '').trim()}`).join('\u0000'),
             collection: entityKey(this.collectionId(), this.collectionName()),
             // Для інших типів серіал / сезон / серія не враховуються
@@ -287,16 +288,21 @@ export class MediaFormComponent implements OnInit {
         this.links.update(list => list.filter((_, i) => i !== index));
     }
 
-    private addLink(url: string): boolean {
+    /** Змінюємо тип посилання вручну (якщо автовизначення помилилось). */
+    setLinkType(index: number, type: LinkType): void {
+        this.links.update(list => list.map((l, i) => (i === index ? { ...l, type } : l)));
+    }
+
+    private addLink(url: string, type: LinkType = LinkType.Any): boolean {
         if (!isHttpUrl(url)) {
             this.toastService.show('Некоректне посилання.', 'error', 3000);
             return false;
         }
-        if (this.links().includes(url)) {
+        if (this.links().some(l => l.url === url)) {
             this.toastService.show('Це посилання вже додано.', 'info', 3000);
             return false;
         }
-        this.links.update(list => [...list, url]);
+        this.links.update(list => [...list, { url, type }]);
         return true;
     }
 
@@ -344,18 +350,25 @@ export class MediaFormComponent implements OnInit {
             filled.push('автор');
         }
 
+        // Посилання для відтворення (iframe-embed або відеофайл), яке віддала сторінка, додаємо поруч з основним
+        const player = meta.link;
+        if (player?.url && isHttpUrl(player.url) && !this.links().some(l => l.url === player.url)) {
+            this.links.update(list => [...list, { url: player.url, type: player.type }]);
+            filled.push(player.type === LinkType.Video ? 'відео' : 'плеєр');
+        }
+
         if (meta.durationSeconds && meta.durationSeconds > 0) {
             this.duration.set(meta.durationSeconds);
             filled.push('тривалість');
         }
 
         if (
-            meta.mediaType != null &&
+            meta.type != null &&
             !this.typeTouched &&
-            this.type() !== meta.mediaType &&
-            this.mediaTypeOptions.some(o => o.value === meta.mediaType)
+            this.type() !== meta.type &&
+            this.mediaTypeOptions.some(o => o.value === meta.type)
         ) {
-            this.type.set(meta.mediaType);
+            this.type.set(meta.type);
             filled.push('тип');
         }
 
@@ -482,7 +495,7 @@ export class MediaFormComponent implements OnInit {
                 creatorId: { when: 'creator', value: () => creatorId },
                 genres: { when: 'genres', value: () => parseCommaList(this.genresInput()) },
                 tags: { when: 'tags', value: () => parseCommaList(this.tagsInput()) },
-                links: { when: 'links', value: () => [...this.links()] },
+                links: { when: 'links', value: () => this.links().map(l => ({ ...l })) },
                 cast: { when: 'cast', value: () => this.castPayload() },
                 collectionId: { when: 'collection', value: () => collectionId },
                 episode: { when: ['type', 'series', 'season', 'episode'], value: () => episode }
@@ -575,7 +588,7 @@ export class MediaFormComponent implements OnInit {
             duration: this.duration(),
             posterUrl: this.posterUrl().trim(),
             visibility: this.visibility(),
-            links: [...this.links()],
+            links: this.links().map(l => ({ ...l })),
             creatorId,
             genres: parseCommaList(this.genresInput()),
             tags: parseCommaList(this.tagsInput()),

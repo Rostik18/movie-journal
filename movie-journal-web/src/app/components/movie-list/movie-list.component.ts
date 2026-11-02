@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { MediaLinksComponent } from '../shared/media-links/media-links.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
@@ -37,6 +38,7 @@ interface WatchState {
     selector: 'app-movie-list',
     standalone: true,
     imports: [
+        MediaLinksComponent,
         RouterLink,
         SearchChipComponent,
         ViewSwitcherComponent,
@@ -293,7 +295,6 @@ export class MovieListComponent implements OnInit {
                 duration: updated.duration,
                 posterUrl: updated.posterUrl,
                 genres: updated.genres,
-                links: updated.links,
                 visibility: updated.visibility
             }
             : m));
@@ -323,14 +324,5 @@ export class MovieListComponent implements OnInit {
     onMediaCreated(): void {
         this.modal.close();
         this.list.load();
-    }
-
-    copyToClipboard(url: string): void {
-        navigator.clipboard.writeText(url).then(() => {
-            this.toastService.show('Посилання скопійовано в буфер обміну! 📋', 'success', 2500);
-        }).catch(err => {
-            console.error('Не вдалося скопіювати посилання:', err);
-            this.toastService.show('Помилка копіювання посилання.', 'error', 3000);
-        });
     }
 }

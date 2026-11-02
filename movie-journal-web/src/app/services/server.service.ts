@@ -3,6 +3,7 @@ import { HttpContext, HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Visibility, WatchStatus, MediaType } from '../models/enums';
+import { MediaLink } from '../models/media.model';
 
 export interface MetadataResponse {
     title?: string | null;
@@ -10,8 +11,12 @@ export interface MetadataResponse {
     image?: string | null;
     durationSeconds?: number | null;
     author?: string | null;
-    mediaType?: MediaType | null;
+    type?: MediaType | null;
     tags?: string[] | null;
+    /** Посилання для відтворення на сайті: iframe-embed або відеофайл (якщо сторінка його віддає). */
+    link?: MediaLink | null;
+    playerWidth?: number | null;
+    playerHeight?: number | null;
 }
 
 export interface SeedUserWatchRequest {

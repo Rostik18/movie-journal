@@ -23,11 +23,13 @@ import { createDetailsRoute } from '../../utils/details-route';
 import { createFormModal } from '../../utils/form-modal';
 import { DEFAULT_PAGE_SIZE, createListState } from '../../utils/list-state';
 import { SearchChipComponent } from '../shared/search/search-chip.component';
+import { MediaLinksComponent } from '../shared/media-links/media-links.component';
 
 @Component({
     selector: 'app-user-watching-list',
     standalone: true,
     imports: [
+        MediaLinksComponent,
         RouterLink,
         SearchChipComponent,
         ViewSwitcherComponent,
@@ -251,14 +253,5 @@ export class UserWatchingListComponent implements OnInit {
     onWatchingCreated(): void {
         this.modal.close();
         this.list.load();
-    }
-
-    copyToClipboard(url: string): void {
-        navigator.clipboard.writeText(url).then(() => {
-            this.toastService.show('Посилання скопійовано в буфер обміну! 📋', 'success', 2500);
-        }).catch(err => {
-            console.error('Не вдалося скопіювати посилання:', err);
-            this.toastService.show('Помилка копіювання посилання.', 'error', 3000);
-        });
     }
 }
