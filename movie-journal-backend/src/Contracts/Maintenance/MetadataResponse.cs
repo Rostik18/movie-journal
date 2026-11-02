@@ -1,4 +1,5 @@
 ﻿using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Media;
 
 namespace MovieJournalBackend.Contracts.Maintenance
 {
@@ -10,5 +11,8 @@ namespace MovieJournalBackend.Contracts.Maintenance
         string? Author,
         DateTime? PublishedAtUtc,
         MediaType? Type,
-        string[] Tags);
+        string[] Tags,
+        MediaLink? Link,
+        int? PlayerWidth,
+        int? PlayerHeight);
 }

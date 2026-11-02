@@ -10,6 +10,5 @@ namespace MovieJournalBackend.Contracts.Media
        int? Duration,
        string? PosterUrl,
        List<string> Genres,
-       List<string> Links,
        Visibility Visibility);
 }

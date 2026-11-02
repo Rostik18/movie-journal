@@ -55,7 +55,6 @@ namespace MovieJournalBackend.Contracts.Common
             media.DurationSec,
             media.PosterUrl,
             media.Genres,
-            media.Links,
             media.Visibility);
 
         public static MediaCollectionResponse ToResponse(this Entities.Media.MediaCollection collection) => new(
@@ -197,7 +196,6 @@ namespace MovieJournalBackend.Contracts.Common
             media.DurationSec,
             media.PosterUrl,
             media.Genres,
-            media.Links,
             media.EpisodeInfo?.Season,
             media.EpisodeInfo?.Episode
         );

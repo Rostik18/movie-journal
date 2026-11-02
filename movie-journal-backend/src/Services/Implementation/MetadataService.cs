@@ -1,6 +1,7 @@
 ﻿using AngleSharp.Html.Parser;
 using MovieJournalBackend.Contracts.Maintenance;
 using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Media;
 using System.Globalization;
 
 namespace MovieJournalBackend.Services.Implementation
@@ -14,6 +15,18 @@ namespace MovieJournalBackend.Services.Implementation
             using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
 
             response.EnsureSuccessStatusCode();
+
+            // Посилання прямо на відеофайл: HTML не розбираємо
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+            if (contentType is not null && contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+            {
+                return new MetadataResponse(
+                    Title: Path.GetFileNameWithoutExtension(url.AbsolutePath),
+                    Description: null, Image: null, DurationSeconds: null, Author: null,
+                    PublishedAtUtc: null, Type: MediaType.Video, Tags: [],
+                    Link: new(url.ToString(), LinkType.Video),
+                    PlayerWidth: null, PlayerHeight: null);
+            }
 
             var contentLength = response.Content.Headers.ContentLength;
 
@@ -38,7 +51,7 @@ namespace MovieJournalBackend.Services.Implementation
                 {
                     var content = document
                         .QuerySelector(
-                            $"meta[property='{name}'], meta[name='{name}']")
+                            $"meta[property='{name}'], meta[name='{name}'], meta[itemprop='{name}']")
                         ?.GetAttribute("content")
                         ?.Trim();
 
@@ -53,7 +66,7 @@ namespace MovieJournalBackend.Services.Implementation
 
             string[] GetMetaContents(params string[] names) =>
             [.. names
-                .SelectMany(name => document.QuerySelectorAll($"meta[property='{name}'], meta[name='{name}']"))
+                .SelectMany(name => document.QuerySelectorAll($"meta[property='{name}'], meta[name='{name}'], meta[itemprop='{name}']"))
                 .Select(element => element.GetAttribute("content")?.Trim())
                 .Where(content => !string.IsNullOrWhiteSpace(content))
                 .Select(content => content!)
@@ -84,6 +97,72 @@ namespace MovieJournalBackend.Services.Implementation
                     {
                         return mediaType;
                     }
+                }
+
+                return null;
+            }
+
+            // Абсолютний http-URL; relative → відносно сторінки; інше (javascript:, data:) відкидаємо
+            string? ToHttpUrl(string? raw) =>
+                !string.IsNullOrWhiteSpace(raw) &&
+                Uri.TryCreate(url, raw, out var uri)
+                    ? uri.ToString()
+                    : null;
+
+            // За MIME/розширенням: Video, Embed або null (не підтримуємо: Flash, HLS/DASH тощо)
+            LinkType? Classify(string link, string? mime)
+            {
+                mime = mime?.Trim().ToLowerInvariant();
+                var path = new Uri(link).AbsolutePath.ToLowerInvariant();
+
+                if (path.EndsWith(".m3u8") || path.EndsWith(".mpd") ||
+                    mime is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "application/dash+xml" ||
+                    mime == "application/x-shockwave-flash")
+                {
+                    return null;
+                }
+
+                if (mime?.StartsWith("video/") == true ||
+                    path.EndsWith(".mp4") || path.EndsWith(".webm") || path.EndsWith(".ogv") || path.EndsWith(".mov"))
+                {
+                    return LinkType.Video;
+                }
+
+                return LinkType.Embed; // text/html або тип не вказано
+            }
+
+            MediaLink? GetPlayerLink()
+            {
+                // 1. Open Graph: тип береться з og:video:type
+                var ogType = GetMetaContent("og:video:type");
+                foreach (var raw in GetMetaContents("og:video:secure_url", "og:video:url", "og:video"))
+                {
+                    if (ToHttpUrl(raw) is { } link && Classify(link, ogType) is { } type)
+                    {
+                        return new(link, type);
+                    }
+                }
+
+                // 2. Twitter Player Card
+                if (ToHttpUrl(GetMetaContent("twitter:player:stream")) is { } stream &&
+                    Classify(stream, GetMetaContent("twitter:player:stream:content_type")) is { } streamType)
+                {
+                    return new(stream, streamType);
+                }
+                if (ToHttpUrl(GetMetaContent("twitter:player")) is { } player)
+                {
+                    return new(player, LinkType.Embed);
+                }
+
+                // 3. schema.org: microdata
+                if (ToHttpUrl(GetMetaContent("embedUrl")) is { } embed)
+                {
+                    return new(embed, LinkType.Embed);
+                }
+                if (ToHttpUrl(GetMetaContent("contentUrl")) is { } content &&
+                    Classify(content, null) is { } contentType)
+                {
+                    return new(content, contentType);
                 }
 
                 return null;
@@ -129,7 +208,10 @@ namespace MovieJournalBackend.Services.Implementation
                 Type: GetMediaType(),
                 Tags: [.. GetMetaContents("og:video:tag", "video:tag")
                     .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)]
+                    .Distinct(StringComparer.OrdinalIgnoreCase)],
+                Link: GetPlayerLink(),
+                PlayerWidth: int.TryParse(GetMetaContent("og:video:width", "twitter:player:width"), out var w) ? w : null,
+                PlayerHeight: int.TryParse(GetMetaContent("og:video:height", "twitter:player:height"), out var h) ? h : null
             );
         }
     }

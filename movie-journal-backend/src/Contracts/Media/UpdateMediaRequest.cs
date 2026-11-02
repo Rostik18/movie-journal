@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Contracts.Media
         public Visibility? Visibility { get; init; }
         public List<string>? Genres { get; init; }
         public List<string>? Tags { get; init; }
-        public List<string>? Links { get; init; }
+        public List<MediaLink>? Links { get; init; }
         public List<MediaActor>? Cast { get; init; }
         public EpisodeInfo? Episode { get; init; }
         public string? CreatorId { get; init; }

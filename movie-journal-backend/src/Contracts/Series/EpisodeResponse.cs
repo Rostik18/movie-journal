@@ -7,7 +7,6 @@
         int? Duration,
         string? PosterUrl,
         List<string> Genres,
-        List<string> Links,
         int? Season,
         int? Episode
     );

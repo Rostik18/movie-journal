@@ -16,7 +16,7 @@ namespace MovieJournalBackend.Contracts.Media
         MediaCreator? Creator,
         List<string> Genres,
         List<string> Tags,
-        List<string> Links,
+        List<MediaLink> Links,
         List<CastResponse> Cast,
         Visibility Visibility,
         MediaCollectionResponse? Collection,

@@ -2,6 +2,7 @@
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Actor;
 using MovieJournalBackend.Entities.Base;
+using MovieJournalBackend.Entities.Media;
 using MovieJournalBackend.Extensions;
 using System.Globalization;
 
@@ -190,7 +191,7 @@ namespace MovieJournalBackend.Services.Implementation
             var parsedPayload = ParseMedia(request.Payload);
 
             var actors = parsedPayload.Length > 0
-                ? (await actorService.SearchAsync(new() { Page = new() { Size = 1000 } }, admin, ct)).Items
+                ? (await actorService.SearchAsync(new() { Page = new() { Size = 2000 } }, admin, ct)).Items
                 : [];
 
             var creators = parsedPayload.Length > 0
@@ -249,7 +250,7 @@ namespace MovieJournalBackend.Services.Implementation
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],
                         Duration = metadata.DurationSeconds,
                         ReleaseYear = parsedItem.Year ?? metadata.PublishedAtUtc?.Year,
-                        Links = [parsedItem.Url],
+                        Links = [new(parsedItem.Url, LinkType.Any)],
                         Episode = selectedSeries is null
                             ? null
                             : new() { SeriesId = selectedSeries.Id, Season = parsedItem.Series, Episode = parsedItem.Episode },
@@ -257,6 +258,9 @@ namespace MovieJournalBackend.Services.Implementation
                             ? request.CollectionId
                             : collections.FirstOrDefault(x => x.Name.Equals(parsedItem.Collection, StringComparison.InvariantCultureIgnoreCase))?.Id
                     };
+
+                    if (metadata.Link is not null)
+                        media.Links.Add(metadata.Link);
 
                     foreach (var cast in parsedItem.Cast)
                     {

@@ -21,10 +21,19 @@ namespace MovieJournalBackend.Entities.Media
 
         public List<string> Genres { get; set; } = [];
         public List<string> Tags { get; set; } = [];
-        public List<string> Links { get; set; } = [];
+        public List<MediaLink> Links { get; set; } = [];
         public List<MediaActor> Cast { get; set; } = [];
 
         public EpisodeInfo? EpisodeInfo { get; set; }
         public CollectionReference? Collection { get; set; }
+    }
+
+    public record MediaLink(string Url, LinkType Type);
+
+    public enum LinkType
+    {
+        Any = 1,
+        Embed = 2,
+        Video = 3,
     }
 }
