@@ -11,7 +11,6 @@ export interface MetadataResponse {
     image?: string | null;
     durationSeconds?: number | null;
     author?: string | null;
-    type?: MediaType | null;
     tags?: string[] | null;
     /** Посилання для відтворення на сайті: iframe-embed або відеофайл (якщо сторінка його віддає). */
     link?: MediaLink | null;

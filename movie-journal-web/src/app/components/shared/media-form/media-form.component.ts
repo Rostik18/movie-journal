@@ -362,16 +362,6 @@ export class MediaFormComponent implements OnInit {
             filled.push('тривалість');
         }
 
-        if (
-            meta.type != null &&
-            !this.typeTouched &&
-            this.type() !== meta.type &&
-            this.mediaTypeOptions.some(o => o.value === meta.type)
-        ) {
-            this.type.set(meta.type);
-            filled.push('тип');
-        }
-
         if (this.mergeTags(meta.tags)) {
             filled.push('теги');
         }

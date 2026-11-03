@@ -32,10 +32,14 @@ export class VideoPlayerComponent {
     readonly playing = linkedSignal<MediaLink, boolean>({ source: this.link, computation: () => false });
     readonly failed = linkedSignal<MediaLink, boolean>({ source: this.link, computation: () => false });
 
-    /** Довіряємо лише https: інакше javascript:/data: у iframe. */
+    /**
+     * ЕКСПЕРИМЕНТ: дозволяємо і http, і https (http у https-застосунку браузер усе одно заблокує як mixed content).
+     * javascript:/data:/blob: лишаємо забороненими: у iframe вони виконувались би з доступом до вашого сайту.
+     */
     private readonly isHttps = computed(() => {
         try {
-            return new URL(this.link().url).protocol === 'https:';
+            const protocol = new URL(this.link().url).protocol;
+            return protocol === 'https:' || protocol === 'http:';
         } catch {
             return false;
         }

@@ -17,9 +17,7 @@
         (error)="failed.set(true)"></video>
     } @else if (embedUrl(); as src) {
     <iframe class="player-media" [src]="src" [title]="title() || 'Відео'" loading="lazy" allowfullscreen
-        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-        referrerpolicy="strict-origin-when-cross-origin"
-        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="unsafe-url"></iframe>
     <a class="player-open" [href]="link().url" target="_blank" rel="noopener noreferrer">Не відтворюється? Відкрити на
         сайті ↗</a>
     }

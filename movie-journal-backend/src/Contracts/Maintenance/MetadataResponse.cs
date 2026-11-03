@@ -10,7 +10,6 @@ namespace MovieJournalBackend.Contracts.Maintenance
         int? DurationSeconds,
         string? Author,
         DateTime? PublishedAtUtc,
-        MediaType? Type,
         string[] Tags,
         MediaLink? Link,
         int? PlayerWidth,

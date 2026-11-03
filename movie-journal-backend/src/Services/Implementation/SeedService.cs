@@ -244,7 +244,7 @@ namespace MovieJournalBackend.Services.Implementation
                         OriginalTitle = metadata.Title ?? parsedItem.Name ?? "",
                         Description = metadata.Description,
                         CreatorId = creator?.Id,
-                        Type = parsedItem.Type ?? metadata.Type ?? MediaType.Video,
+                        Type = parsedItem.Type ?? MediaType.Video,
                         Visibility = request.Visibility,
                         PosterUrl = metadata.Image,
                         Tags = metadata.Tags.Concat(request.Tags).Distinct().ToList() ?? [],

@@ -1,6 +1,6 @@
-﻿using AngleSharp.Html.Parser;
+﻿using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using MovieJournalBackend.Contracts.Maintenance;
-using MovieJournalBackend.Entities.Base;
 using MovieJournalBackend.Entities.Media;
 using System.Globalization;
 
@@ -23,7 +23,7 @@ namespace MovieJournalBackend.Services.Implementation
                 return new MetadataResponse(
                     Title: Path.GetFileNameWithoutExtension(url.AbsolutePath),
                     Description: null, Image: null, DurationSeconds: null, Author: null,
-                    PublishedAtUtc: null, Type: MediaType.Video, Tags: [],
+                    PublishedAtUtc: null, Tags: [],
                     Link: new(url.ToString(), LinkType.Video),
                     PlayerWidth: null, PlayerHeight: null);
             }
@@ -45,174 +45,142 @@ namespace MovieJournalBackend.Services.Implementation
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(html, ct);
 
-            string? GetMetaContent(params string[] names)
+            var image = GetMetaContent(document, "og:image", "twitter:image");
+
+            if (!string.IsNullOrWhiteSpace(image) && Uri.TryCreate(url, image, out var absoluteImageUri))
             {
-                foreach (var name in names)
-                {
-                    var content = document
-                        .QuerySelector(
-                            $"meta[property='{name}'], meta[name='{name}'], meta[itemprop='{name}']")
-                        ?.GetAttribute("content")
-                        ?.Trim();
-
-                    if (!string.IsNullOrWhiteSpace(content))
-                    {
-                        return content;
-                    }
-                }
-
-                return null;
+                image = absoluteImageUri.ToString();
             }
 
-            string[] GetMetaContents(params string[] names) =>
-            [.. names
+            var durationText = GetMetaContent(document, "og:video:duration", "video:duration", "og:duration");
+
+            int? durationSeconds = int.TryParse(
+                durationText,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var seconds) && seconds >= 0
+                    ? seconds
+                    : null;
+
+            var publishedAtText = GetMetaContent(document, "article:published_time", "og:video:release_date", "datePublished", "video:release_date");
+
+            DateTime? publishedAtUtc = DateTimeOffset.TryParse(
+                publishedAtText,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal,
+                out var publishedAt)
+                    ? publishedAt.UtcDateTime
+                    : null;
+
+            return new MetadataResponse(
+                Title: GetMetaContent(document, "og:title", "twitter:title"),
+                Description: GetMetaContent(document, "og:description", "twitter:description"),
+                Image: image,
+                DurationSeconds: durationSeconds,
+                Author: GetMetaContent(document, "author", "article:author", "og:video:actor"),
+                PublishedAtUtc: publishedAtUtc,
+                Tags: [.. GetMetaContents(document, "og:video:tag", "video:tag")
+                    .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)],
+                Link: GetPlayerLink(url, document),
+                PlayerWidth: int.TryParse(GetMetaContent(document, "og:video:width", "twitter:player:width"), out var w) ? w : null,
+                PlayerHeight: int.TryParse(GetMetaContent(document, "og:video:height", "twitter:player:height"), out var h) ? h : null
+            );
+        }
+
+        public static string? GetMetaContent(IHtmlDocument document, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                var content = document
+                    .QuerySelector(
+                        $"meta[property='{name}'], meta[name='{name}'], meta[itemprop='{name}']")
+                    ?.GetAttribute("content")
+                    ?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    return content;
+                }
+            }
+
+            return null;
+        }
+
+        private static string[] GetMetaContents(IHtmlDocument document, params string[] names) =>
+        [.. names
                 .SelectMany(name => document.QuerySelectorAll($"meta[property='{name}'], meta[name='{name}'], meta[itemprop='{name}']"))
                 .Select(element => element.GetAttribute("content")?.Trim())
                 .Where(content => !string.IsNullOrWhiteSpace(content))
                 .Select(content => content!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-            ];
+        ];
 
-            MediaType? GetMediaType()
+
+        private static MediaLink? GetPlayerLink(Uri url, IHtmlDocument document)
+        {
+            // 1. Open Graph: тип береться з og:video:type
+            var ogType = GetMetaContent(document, "og:video:type");
+            foreach (var raw in GetMetaContents(document, "og:video:secure_url", "og:video:url", "og:video"))
             {
-                foreach (var rawType in GetMetaContents("og:type"))
+                if (ToHttpUrl(url, raw) is { } link && Classify(link, ogType) is { } type)
                 {
-                    var type = rawType.ToLowerInvariant();
-
-                    var mediaType = type switch
-                    {
-                        "video.movie" => MediaType.Movie,
-
-                        "video.tv_show" => MediaType.SeriesEpisode,
-                        "video.episode" => MediaType.SeriesEpisode,
-
-                        "video.other" or
-                        "video:other" or
-                        "video" => MediaType.Video,
-
-                        _ => (MediaType?)null
-                    };
-
-                    if (mediaType.HasValue)
-                    {
-                        return mediaType;
-                    }
+                    return new(link, type);
                 }
+            }
 
+            // 2. Twitter Player Card
+            if (ToHttpUrl(url, GetMetaContent(document, "twitter:player:stream")) is { } stream &&
+                Classify(stream, GetMetaContent(document, "twitter:player:stream:content_type")) is { } streamType)
+            {
+                return new(stream, streamType);
+            }
+            if (ToHttpUrl(url, GetMetaContent(document, "twitter:player")) is { } player)
+            {
+                return new(player, LinkType.Embed);
+            }
+
+            // 3. schema.org: microdata
+            if (ToHttpUrl(url, GetMetaContent(document, "embedUrl")) is { } embed)
+            {
+                return new(embed, LinkType.Embed);
+            }
+            if (ToHttpUrl(url, GetMetaContent(document, "contentUrl")) is { } content &&
+                Classify(content, null) is { } contentType)
+            {
+                return new(content, contentType);
+            }
+
+            return null;
+        }
+
+        // Абсолютний http-URL; relative → відносно сторінки; інше (javascript:, data:) відкидаємо
+        private static string? ToHttpUrl(Uri url, string? raw) =>
+            !string.IsNullOrWhiteSpace(raw) &&
+            Uri.TryCreate(url, raw, out var uri)
+                ? uri.ToString()
+                : null;
+
+        // За MIME/розширенням: Video, Embed або null (не підтримуємо: Flash, HLS/DASH тощо)
+        private static LinkType? Classify(string link, string? mime)
+        {
+            mime = mime?.Trim().ToLowerInvariant();
+            var path = new Uri(link).AbsolutePath.ToLowerInvariant();
+
+            if (path.EndsWith(".m3u8") || path.EndsWith(".mpd") ||
+                mime is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "application/dash+xml" ||
+                mime == "application/x-shockwave-flash")
+            {
                 return null;
             }
 
-            // Абсолютний http-URL; relative → відносно сторінки; інше (javascript:, data:) відкидаємо
-            string? ToHttpUrl(string? raw) =>
-                !string.IsNullOrWhiteSpace(raw) &&
-                Uri.TryCreate(url, raw, out var uri)
-                    ? uri.ToString()
-                    : null;
-
-            // За MIME/розширенням: Video, Embed або null (не підтримуємо: Flash, HLS/DASH тощо)
-            LinkType? Classify(string link, string? mime)
+            if (mime?.StartsWith("video/") == true ||
+                path.EndsWith(".mp4") || path.EndsWith(".webm") || path.EndsWith(".ogv") || path.EndsWith(".mov"))
             {
-                mime = mime?.Trim().ToLowerInvariant();
-                var path = new Uri(link).AbsolutePath.ToLowerInvariant();
-
-                if (path.EndsWith(".m3u8") || path.EndsWith(".mpd") ||
-                    mime is "application/x-mpegurl" or "application/vnd.apple.mpegurl" or "application/dash+xml" ||
-                    mime == "application/x-shockwave-flash")
-                {
-                    return null;
-                }
-
-                if (mime?.StartsWith("video/") == true ||
-                    path.EndsWith(".mp4") || path.EndsWith(".webm") || path.EndsWith(".ogv") || path.EndsWith(".mov"))
-                {
-                    return LinkType.Video;
-                }
-
-                return LinkType.Embed; // text/html або тип не вказано
+                return LinkType.Video;
             }
 
-            MediaLink? GetPlayerLink()
-            {
-                // 1. Open Graph: тип береться з og:video:type
-                var ogType = GetMetaContent("og:video:type");
-                foreach (var raw in GetMetaContents("og:video:secure_url", "og:video:url", "og:video"))
-                {
-                    if (ToHttpUrl(raw) is { } link && Classify(link, ogType) is { } type)
-                    {
-                        return new(link, type);
-                    }
-                }
-
-                // 2. Twitter Player Card
-                if (ToHttpUrl(GetMetaContent("twitter:player:stream")) is { } stream &&
-                    Classify(stream, GetMetaContent("twitter:player:stream:content_type")) is { } streamType)
-                {
-                    return new(stream, streamType);
-                }
-                if (ToHttpUrl(GetMetaContent("twitter:player")) is { } player)
-                {
-                    return new(player, LinkType.Embed);
-                }
-
-                // 3. schema.org: microdata
-                if (ToHttpUrl(GetMetaContent("embedUrl")) is { } embed)
-                {
-                    return new(embed, LinkType.Embed);
-                }
-                if (ToHttpUrl(GetMetaContent("contentUrl")) is { } content &&
-                    Classify(content, null) is { } contentType)
-                {
-                    return new(content, contentType);
-                }
-
-                return null;
-            }
-
-            var image = GetMetaContent("og:image", "twitter:image");
-
-            if (!string.IsNullOrWhiteSpace(image) &&
-                Uri.TryCreate(url, image, out var absoluteImageUri))
-            {
-                image = absoluteImageUri.ToString();
-            }
-
-            var durationText = GetMetaContent("og:video:duration", "video:duration", "og:duration");
-
-            int? durationSeconds =
-                int.TryParse(
-                    durationText,
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out var seconds) && seconds >= 0
-                        ? seconds
-                        : null;
-
-            var publishedAtText = GetMetaContent("article:published_time", "og:video:release_date", "datePublished", "video:release_date");
-
-            DateTime? publishedAtUtc =
-                DateTimeOffset.TryParse(
-                    publishedAtText,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal,
-                    out var publishedAt)
-                        ? publishedAt.UtcDateTime
-                        : null;
-
-            return new MetadataResponse(
-                Title: GetMetaContent("og:title", "twitter:title"),
-                Description: GetMetaContent("og:description", "twitter:description"),
-                Image: image,
-                DurationSeconds: durationSeconds,
-                Author: GetMetaContent("author", "article:author", "og:video:actor"),
-                PublishedAtUtc: publishedAtUtc,
-                Type: GetMediaType(),
-                Tags: [.. GetMetaContents("og:video:tag", "video:tag")
-                    .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)],
-                Link: GetPlayerLink(),
-                PlayerWidth: int.TryParse(GetMetaContent("og:video:width", "twitter:player:width"), out var w) ? w : null,
-                PlayerHeight: int.TryParse(GetMetaContent("og:video:height", "twitter:player:height"), out var h) ? h : null
-            );
+            return LinkType.Embed; // text/html або тип не вказано
         }
     }
 
