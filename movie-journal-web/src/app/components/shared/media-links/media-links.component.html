@@ -1,18 +1,3 @@
-@if (current(); as video) {
-<div class="links-section">
-    <h4>Відео</h4>
-    <app-video-player [link]="video" [posterUrl]="posterUrl()" [title]="title()" />
-    @if (playable().length > 1) {
-    <div class="video-switch">
-        @for (item of playable(); track item.url; let i = $index) {
-        <button type="button" class="btn-secondary" [class.active]="i === selectedIndex()"
-            (click)="selectedIndex.set(i)">Відео {{ i + 1 }}</button>
-        }
-    </div>
-    }
-</div>
-}
-
 @if (links().length > 0) {
 <div class="links-section">
     <h4>Посилання</h4>

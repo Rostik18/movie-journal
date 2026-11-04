@@ -25,11 +25,13 @@ export class VideoPlayerComponent {
     readonly link = input.required<MediaLink>();
     readonly posterUrl = input<string | null>(null);
     readonly title = input('');
+    /** Одразу запускати відео, без заставки з кнопкою ▶ (коли користувач уже натиснув ▶ деінде). */
+    readonly autoplay = input(false);
 
     readonly LinkType = LinkType;
 
     /** Скидається при зміні посилання. */
-    readonly playing = linkedSignal<MediaLink, boolean>({ source: this.link, computation: () => false });
+    readonly playing = linkedSignal<MediaLink, boolean>({ source: this.link, computation: () => this.autoplay() });
     readonly failed = linkedSignal<MediaLink, boolean>({ source: this.link, computation: () => false });
 
     /**

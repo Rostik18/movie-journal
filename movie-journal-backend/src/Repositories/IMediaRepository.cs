@@ -15,5 +15,13 @@ namespace MovieJournalBackend.Repositories
         Task<bool> HasPrivateMediaInCollectionAsync(string collectionId, CancellationToken ct = default);
         Task<bool> HasPublicMediaUsingActorAsync(string actorId, CancellationToken ct = default);
         Task<bool> HasPublicMediaUsingCreatorAsync(string creatorId, CancellationToken ct = default);
+
+        Task<long> GetCountAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default);
+        Task<Dictionary<string, long>> GetCountByTypeAsync(UserContext user, CancellationToken ct = default);
+        Task<Dictionary<int, long>> GetCountByYearAsync(UserContext user, CancellationToken ct = default);
+        Task<Dictionary<int, long>> GetCountByDecadeAsync(UserContext user, CancellationToken ct = default);
+        Task<Dictionary<string, long>> GetCountByGenreAsync(UserContext user, CancellationToken ct = default);
+        Task<Dictionary<string, long>> GetCountByTagAsync(UserContext user, CancellationToken ct = default);
+        Task<(long WithPoster, long WithoutPoster)> GetPosterStatisticsAsync(UserContext user, CancellationToken ct = default);
     }
 }

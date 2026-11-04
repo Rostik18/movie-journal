@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.UserWatching;
 using MovieJournalBackend.Entities.Journal;
@@ -29,6 +30,169 @@ namespace MovieJournalBackend.Repositories.Implementation
             var total = await Collection.CountDocumentsAsync(filter, cancellationToken: ct);
 
             return new(items, request.Page.Offset, request.Page.Size, total);
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByStatusAsync(string userId, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(x => x.UserId == userId)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Status" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByTypeAsync(string userId, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(x => x.UserId == userId)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Type" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByRatingAsync(string userId, CancellationToken ct = default)
+        {
+            var filter = Builders<UserWatching>.Filter.And(
+                Builders<UserWatching>.Filter.Eq(x => x.UserId, userId),
+                Builders<UserWatching>.Filter.Ne(x => x.Rating, null));
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Rating" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].ToString()!,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByGenreAsync(string userId, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(x => x.UserId == userId)
+                .AppendStage<BsonDocument>(
+                    new BsonDocument("$lookup", new BsonDocument
+                    {
+                        { "from", "media" },
+                        { "localField", "MediaId" },
+                        { "foreignField", "_id" },
+                        { "as", "Media" }
+                    }))
+                .AppendStage<BsonDocument>(new BsonDocument("$unwind", "$Media"))
+                .AppendStage<BsonDocument>(new BsonDocument("$unwind", "$Media.Genres"))
+                .AppendStage<BsonDocument>(new BsonDocument("$group", new BsonDocument
+                {
+                    { "_id", "$Media.Genres" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                }))
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public Task<Dictionary<string, long>> GetCountStartedByMonthAsync(string userId, CancellationToken ct = default) =>
+            GetCountByMonthAsync(userId, "StartedAtUtc", ct);
+
+        public Task<Dictionary<string, long>> GetCountFinishedByMonthAsync(string userId, CancellationToken ct = default) =>
+            GetCountByMonthAsync(userId, "FinishedAtUtc", ct);
+
+        private async Task<Dictionary<string, long>> GetCountByMonthAsync(string userId, string dateField, CancellationToken ct)
+        {
+            var filter = Builders<UserWatching>.Filter.And(
+                Builders<UserWatching>.Filter.Eq(x => x.UserId, userId),
+                Builders<UserWatching>.Filter.Ne(dateField, BsonNull.Value));
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .AppendStage<BsonDocument>(
+                    new BsonDocument("$group", new BsonDocument
+                    {
+                        {
+                            "_id",
+                            new BsonDocument("$dateToString", new BsonDocument
+                            {
+                                { "format", "%Y-%m" },
+                                { "date", $"${dateField}" },
+                                { "timezone", "UTC" }
+                            })
+                        },
+                        { "Count", new BsonDocument("$sum", 1) }
+                    }))
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<UserWatchingSummary> GetStatisticsSummaryAsync(string userId, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(x => x.UserId == userId)
+                .Group(new BsonDocument
+                {
+                    { "_id", BsonNull.Value },
+                    { "TotalMedia", new BsonDocument("$sum", 1) },
+                    { "AverageRating", new BsonDocument("$avg", "$Rating") },
+                    {
+                        "Watched",
+                        new BsonDocument("$sum", new BsonDocument("$cond", new BsonArray
+                        {
+                            new BsonDocument("$eq", new BsonArray { "$Status", WatchStatus.Watched.ToString() }),
+                            1,
+                            0
+                        }))
+                    },
+                    {
+                        "Dropped",
+                        new BsonDocument("$sum", new BsonDocument("$cond", new BsonArray
+                        {
+                            new BsonDocument("$eq", new BsonArray { "$Status", WatchStatus.Dropped.ToString() }),
+                            1,
+                            0
+                        }))
+                    }
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (result is null)
+                return new(0, null, 0, 0);
+
+            var total = result["TotalMedia"].ToInt64();
+
+            return new UserWatchingSummary(
+                TotalMedia: total,
+                AverageRating: result["AverageRating"].IsBsonNull
+                    ? null
+                    : result["AverageRating"].ToDouble(),
+                CompletionRate: total == 0 ? 0 : result["Watched"].ToDouble() / total * 100,
+                DropRate: total == 0 ? 0 : result["Dropped"].ToDouble() / total * 100);
         }
 
         private FilterDefinition<UserWatching> CreateFilter(SearchRequest<UserWatchingFilter, UserWatchingSortField> request, UserContext user)

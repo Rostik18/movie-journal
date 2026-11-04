@@ -1,5 +1,7 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using MovieJournalBackend.Contracts.Actor;
 using MovieJournalBackend.Contracts.Common;
 using MovieJournalBackend.Contracts.Media;
 using MovieJournalBackend.Entities.Base;
@@ -73,6 +75,160 @@ namespace MovieJournalBackend.Repositories.Implementation
 
         public Task<bool> HasPublicMediaUsingCreatorAsync(string creatorId, CancellationToken ct = default) =>
             Collection.Find(x => x.Visibility == Visibility.Public && x.Creator != null && x.Creator.Id == creatorId).AnyAsync(ct);
+
+        public Task<long> GetCountAsync(SearchRequest<MediaFilter, MediaSortField> request, UserContext user, CancellationToken ct = default) =>
+            Collection.CountDocumentsAsync(CreateFilter(request, user), cancellationToken: ct);
+
+        public async Task<Dictionary<string, long>> GetCountByTypeAsync(UserContext user, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(user.BuildVisibilityFilter<Media>())
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Type" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<int, long>> GetCountByYearAsync(UserContext user, CancellationToken ct = default)
+        {
+            var filter = Builders<Media>.Filter.And(
+                user.BuildVisibilityFilter<Media>(),
+                Builders<Media>.Filter.Ne(x => x.ReleaseYear, null));
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$ReleaseYear" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].ToInt32(),
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<int, long>> GetCountByDecadeAsync(UserContext user, CancellationToken ct = default)
+        {
+            var filter = Builders<Media>.Filter.And(
+                user.BuildVisibilityFilter<Media>(),
+                Builders<Media>.Filter.Ne(x => x.ReleaseYear, null));
+
+            var result = await Collection
+                .Aggregate()
+                .Match(filter)
+                .Group(new BsonDocument
+                {
+                    {
+                        "_id",
+                        new BsonDocument("$subtract", new BsonArray
+                        {
+                            "$ReleaseYear", new BsonDocument("$mod", new BsonArray { "$ReleaseYear", 10 })
+                        })
+                    },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].ToInt32(),
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByGenreAsync(
+            UserContext user,
+            CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(user.BuildVisibilityFilter<Media>())
+                .Unwind(x => x.Genres)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Genres" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<Dictionary<string, long>> GetCountByTagAsync(UserContext user, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(user.BuildVisibilityFilter<Media>())
+                .Unwind(x => x.Tags)
+                .Group(new BsonDocument
+                {
+                    { "_id", "$Tags" },
+                    { "Count", new BsonDocument("$sum", 1) }
+                })
+                .ToListAsync(ct);
+
+            return result.ToDictionary(
+                x => x["_id"].AsString,
+                x => x["Count"].ToInt64());
+        }
+
+        public async Task<(long WithPoster, long WithoutPoster)> GetPosterStatisticsAsync(UserContext user, CancellationToken ct = default)
+        {
+            var result = await Collection
+                .Aggregate()
+                .Match(user.BuildVisibilityFilter<Media>())
+                .Group(new BsonDocument
+                {
+                    { "_id", BsonNull.Value },
+                    {
+                        "WithPoster",
+                        new BsonDocument("$sum", new BsonDocument("$cond", new BsonArray
+                        {
+                            new BsonDocument("$gt", new BsonArray
+                            {
+                                new BsonDocument("$strLenCP", new BsonDocument("$trim", new BsonDocument
+                                {
+                                    { "input", new BsonDocument("$ifNull", new BsonArray { "$PosterUrl", "" }) }
+                                })),
+                                0
+                            }),
+                            1,
+                            0
+                        }))
+                    },
+                    {
+                        "WithoutPoster",
+                        new BsonDocument("$sum", new BsonDocument("$cond", new BsonArray
+                        {
+                            new BsonDocument("$eq", new BsonArray
+                            {
+                                new BsonDocument("$strLenCP", new BsonDocument("$trim", new BsonDocument
+                                {
+                                    { "input", new BsonDocument("$ifNull", new BsonArray { "$PosterUrl", "" }) }
+                                })),
+                                0
+                            }),
+                            1,
+                            0
+                        }))
+                    }
+                })
+                .FirstOrDefaultAsync(ct);
+
+            return result is null
+                ? (0, 0)
+                : (result["WithPoster"].ToInt64(), result["WithoutPoster"].ToInt64());
+        }
 
         private FilterDefinition<Media> CreateFilter(SearchRequest<MediaFilter, MediaSortField> request, UserContext user)
         {

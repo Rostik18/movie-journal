@@ -163,9 +163,9 @@
     <!-- БІЧНЕ МЕНЮ ДЕТАЛЕЙ ФІЛЬМУ: заголовок і постер беремо зі скороченого запису (є одразу),
          решту — з повного запису, який підвантажується через getMediaById -->
     <app-details-sidebar [isOpen]="details.isOpen()" [title]="selectedSlim()?.title ?? ''"
-        [imageUrl]="selectedSlim()?.posterUrl" [imageAlt]="selectedSlim()?.title ?? ''" noImageText="Немає постера"
-        [deleteAction]="selectedDeleteCallback()" (closed)="details.close()" (editClicked)="onEditMovie()"
-        (deleted)="onSidebarMovieDeleted()">
+        [imageUrl]="selectedSlim()?.posterUrl" [videoLinks]="selectedMovie()?.links ?? []"
+        [imageAlt]="selectedSlim()?.title ?? ''" noImageText="Немає постера" [deleteAction]="selectedDeleteCallback()"
+        (closed)="details.close()" (editClicked)="onEditMovie()" (deleted)="onSidebarMovieDeleted()">
 
         @if (details.loading()) {
         <div class="list-state loading">Завантаження деталей...</div>
@@ -219,8 +219,8 @@
             <p class="detail-row"><strong>Тривалість:</strong> {{ formatDuration(mov.duration) }}</p>
             }
 
-            <!-- Відео (Embed/Video) та список прикріплених посилань -->
-            <app-media-links [links]="mov.links" [posterUrl]="mov.posterUrl" [title]="mov.title" />
+            <!-- Список прикріплених посилань -->
+            <app-media-links [links]="mov.links" />
 
             <!-- Блок акторів -->
             @if (mov.cast?.length) {

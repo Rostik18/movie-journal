@@ -342,18 +342,6 @@ textarea {
 }
 
 .links-section {
-    .video-switch {
-        display: flex;
-        gap: 6px;
-        margin-top: 6px;
-
-        .btn-secondary.active {
-            background: #3b82f6;
-            color: #fff;
-            border-color: #3b82f6;
-        }
-    }
-
     .link-type-badge {
         font-size: 0.8rem;
         flex: none;

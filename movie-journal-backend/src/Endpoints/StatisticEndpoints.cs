@@ -11,6 +11,8 @@ namespace MovieJournalBackend.Endpoints
         public static IEndpointRouteBuilder MapStatisticEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("/api/statistics/actors", GetActorsStatisticsAsync).Produces<ActorsStatisticResponse>().RequireAnyRole();
+            app.MapGet("/api/statistics/media", GetMediaStatisticsAsync).Produces<MediaStatisticResponse>().RequireAnyRole();
+            app.MapGet("/api/statistics/user-watching", GetUserWatchingStatisticsAsync).Produces<UserWatchingStatisticResponse>().RequireAnyRole();
 
             return app;
         }
@@ -22,6 +24,26 @@ namespace MovieJournalBackend.Endpoints
             CancellationToken ct)
         {
             var statistics = await service.GetActorsStatisticsAsync(ageGap, principal.ToUserContext(), ct);
+
+            return Results.Ok(statistics);
+        }
+
+        private static async Task<IResult> GetMediaStatisticsAsync(
+            ClaimsPrincipal principal,
+            IStatisticService service,
+            CancellationToken ct)
+        {
+            var statistics = await service.GetMediaStatisticsAsync(principal.ToUserContext(), ct);
+
+            return Results.Ok(statistics);
+        }
+
+        private static async Task<IResult> GetUserWatchingStatisticsAsync(
+            ClaimsPrincipal principal,
+            IStatisticService service,
+            CancellationToken ct)
+        {
+            var statistics = await service.GetUserWatchingStatisticsAsync(principal.ToUserContext(), ct);
 
             return Results.Ok(statistics);
         }

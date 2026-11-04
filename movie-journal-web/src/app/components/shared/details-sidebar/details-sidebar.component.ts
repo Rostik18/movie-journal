@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, Injector,
 import { DeleteButtonComponent } from '../delete-button/delete-button.component';
 import { Observable } from 'rxjs';
 import { UserService } from '../../../services/user.service';
+import { LinkType } from '../../../models/enums';
+import { MediaLink } from '../../../models/media.model';
+import { VideoPlayerComponent } from '../video-player/video-player.component';
 
 const FOCUSABLE_SELECTOR =
     'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -11,7 +14,7 @@ let nextSidebarId = 0;
 @Component({
     selector: 'app-details-sidebar',
     standalone: true,
-    imports: [DeleteButtonComponent],
+    imports: [DeleteButtonComponent, VideoPlayerComponent],
     templateUrl: './details-sidebar.component.html',
     styleUrls: ['./details-sidebar.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -26,6 +29,8 @@ export class DetailsSidebarComponent {
     readonly imageAlt = input('');
     readonly noImageText = input('Немає фото');
     readonly deleteAction = input<() => Observable<unknown>>();
+    /** Посилання медіа: з Embed/Video показуємо кнопку ▶ на постері, що замінює його програвачем. */
+    readonly videoLinks = input<MediaLink[]>([]);
 
     readonly closed = output<void>();
     readonly editClicked = output<void>();
@@ -42,6 +47,16 @@ export class DetailsSidebarComponent {
         return false;
     });
     readonly hasImage = computed(() => !!this.imageUrl() && !this.imageFailed());
+
+    readonly videos = computed(() => this.videoLinks().filter(l => l.type === LinkType.Embed || l.type === LinkType.Video));
+
+    /** Ключ набору відео: за ним скидаємо плеєр, коли відкрили інше медіа або закрили сайдбар. */
+    private readonly videosKey = computed(() => `${this.isOpen()}|${this.videos().map(v => v.url).join('|')}`);
+
+    /** Показуємо програвач замість постера. */
+    readonly playing = linkedSignal<string, boolean>({ source: this.videosKey, computation: () => false });
+    readonly videoIndex = linkedSignal<string, number>({ source: this.videosKey, computation: () => 0 });
+    readonly currentVideo = computed(() => this.videos()[this.videoIndex()] ?? null);
 
     private previouslyFocused: HTMLElement | null = null;
 

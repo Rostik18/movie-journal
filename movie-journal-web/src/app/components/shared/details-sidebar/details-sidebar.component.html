@@ -12,11 +12,30 @@
 
         <!-- Вміст -->
         <div class="sidebar-body">
-            <div class="sidebar-image-wrapper">
+            <div class="sidebar-image-wrapper" [class.playing]="playing() && currentVideo()">
+                @if (playing() && currentVideo(); as video) {
+                <app-video-player [link]="video" [posterUrl]="imageUrl() ?? null" [title]="title()" [autoplay]="true" />
+
+                <div class="video-bar">
+                    <button type="button" class="btn-secondary" (click)="playing.set(false)">← Постер</button>
+                    @if (videos().length > 1) {
+                    @for (item of videos(); track item.url; let i = $index) {
+                    <button type="button" class="btn-secondary" [class.active]="i === videoIndex()"
+                        (click)="videoIndex.set(i)">Відео {{ i + 1 }}</button>
+                    }
+                    }
+                </div>
+                } @else {
                 @if (hasImage()) {
                 <img [src]="imageUrl()" [alt]="imageAlt()" class="sidebar-image" (error)="imageFailed.set(true)">
                 } @else {
                 <div class="sidebar-no-image">{{ noImageText() }}</div>
+                }
+
+                @if (currentVideo()) {
+                <button type="button" class="play-btn" (click)="playing.set(true)" title="Дивитися відео"
+                    aria-label="Дивитися відео">▶</button>
+                }
                 }
             </div>
 
