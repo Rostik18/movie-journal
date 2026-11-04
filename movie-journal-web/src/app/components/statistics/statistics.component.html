@@ -11,6 +11,37 @@
         }
     </div>
 
+    <!-- Спільні шматки: список смуг та стовпчикова діаграма -->
+    <ng-template #barList let-bars let-total="total">
+        <ul class="bar-list">
+            @for (item of bars; track item.key) {
+            <li class="bar-row">
+                <span class="bar-label">{{ item.label }}</span>
+                <span class="bar-track">
+                    <span class="bar-fill" [style.width.%]="item.size"></span>
+                </span>
+                <span class="bar-value">{{ item.count }} <span class="muted">· {{ item.share.toFixed(1)
+                        }}%</span></span>
+            </li>
+            }
+        </ul>
+    </ng-template>
+
+    <ng-template #columns let-bars let-tone="tone" let-width="width">
+        <div class="age-chart" [class]="'age-chart ' + (tone ?? '')">
+            @for (item of bars; track item.key) {
+            <div class="age-col" [style.flex-basis.px]="width ?? 44"
+                [title]="item.label + ': ' + item.count + ' (' + item.share.toFixed(1) + '%)'">
+                <span class="age-count">{{ item.count || '' }}</span>
+                <span class="age-bar" [style.height.%]="item.size"></span>
+                <span class="age-label">{{ item.label }}</span>
+            </div>
+            }
+        </div>
+    </ng-template>
+
+    @switch (activeTab()) {
+    @case ('actors') {
     @if (loading() && !actors()) {
     <div class="stats-state">Завантаження статистики...</div>
     } @else if (hasError() && !actors()) {
@@ -20,7 +51,7 @@
     </div>
     } @else if (isEmpty()) {
     <div class="stats-state">Акторів ще немає — статистика порожня.</div>
-    } @else if (activeTab() === 'actors') {
+    } @else {
 
     <!-- Загальні числа -->
     <section class="kpi-grid" aria-label="Загальна кількість акторів">
@@ -130,5 +161,177 @@
         </div>
         }
     </section>
+    }
+    }
+
+    @case ('media') {
+    @if (mediaState.loading() && !mediaStats()) {
+    <div class="stats-state">Завантаження статистики...</div>
+    } @else if (mediaState.hasError() && !mediaStats()) {
+    <div class="stats-state error">
+        <p>Не вдалося завантажити статистику.</p>
+        <button type="button" class="btn-secondary" (click)="mediaState.load()">Спробувати знову</button>
+    </div>
+    } @else if (mediaIsEmpty()) {
+    <div class="stats-state">Медіа ще немає — статистика порожня.</div>
+    } @else if (mediaStats()) {
+    <section class="kpi-grid" aria-label="Загальна кількість медіа">
+        <div class="kpi-card total">
+            <span class="kpi-value">{{ mediaTotal() }}</span>
+            <span class="kpi-label">Всього медіа</span>
+        </div>
+        @for (item of posterKpi(); track item.key) {
+        <div class="kpi-card" [class]="item.key === 'with' ? 'male' : 'unspecified'">
+            <span class="kpi-value">{{ item.count }}</span>
+            <span class="kpi-label">{{ item.label }} · {{ item.share.toFixed(1) }}%</span>
+        </div>
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>За типом</h4>
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: mediaTypes() }" />
+    </section>
+
+    <section class="stats-section">
+        <h4>Десятиліття випуску</h4>
+        @if (mediaDecades().length === 0) {
+        <p class="muted">Роки випуску не вказані.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="columns; context: { $implicit: mediaDecades(), tone: 'tone-violet' }" />
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>Роки випуску</h4>
+        @if (mediaYears().length === 0) {
+        <p class="muted">Роки випуску не вказані.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="columns; context: { $implicit: mediaYears(), width: 34 }" />
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>Жанри <span class="muted">({{ mediaGenresCount() }})</span></h4>
+        @if (mediaGenres().length === 0) {
+        <p class="muted">Жанри не вказані.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: mediaGenres() }" />
+        @if (mediaGenresCount() > collapsedTop) {
+        <button type="button" class="btn-secondary toggle-btn" (click)="toggle(showAllMediaGenres)">
+            {{ showAllMediaGenres() ? 'Показати менше' : 'Показати всі (' + mediaGenresCount() + ')' }}
+        </button>
+        }
+        <p class="hint">У медіа може бути кілька жанрів, тому сума може перевищувати загальну кількість.</p>
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>Теги <span class="muted">({{ mediaTagsCount() }})</span></h4>
+        @if (mediaTags().length === 0) {
+        <p class="muted">Теги не вказані.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: mediaTags() }" />
+        @if (mediaTagsCount() > collapsedTop) {
+        <button type="button" class="btn-secondary toggle-btn" (click)="toggle(showAllMediaTags)">
+            {{ showAllMediaTags() ? 'Показати менше' : 'Показати всі (' + mediaTagsCount() + ')' }}
+        </button>
+        }
+        }
+    </section>
+    }
+    }
+
+    @case ('watching') {
+    @if (watchingState.loading() && !watchingStats()) {
+    <div class="stats-state">Завантаження статистики...</div>
+    } @else if (watchingState.hasError() && !watchingStats()) {
+    <div class="stats-state error">
+        <p>Не вдалося завантажити статистику.</p>
+        <button type="button" class="btn-secondary" (click)="watchingState.load()">Спробувати знову</button>
+    </div>
+    } @else if (watchingIsEmpty()) {
+    <div class="stats-state">У списку перегляду ще нічого немає — статистика порожня.</div>
+    } @else if (watchingStats()) {
+    <section class="kpi-grid" aria-label="Підсумки перегляду">
+        <div class="kpi-card total">
+            <span class="kpi-value">{{ watchingTotal() }}</span>
+            <span class="kpi-label">У списку перегляду</span>
+        </div>
+        <div class="kpi-card rating">
+            <span class="kpi-value">{{ watchingKpi().average }}</span>
+            <span class="kpi-label">Середня оцінка</span>
+        </div>
+        <div class="kpi-card male">
+            <span class="kpi-value">{{ watchingKpi().completion }}%</span>
+            <span class="kpi-label">Переглянуто</span>
+        </div>
+        <div class="kpi-card female">
+            <span class="kpi-value">{{ watchingKpi().drop }}%</span>
+            <span class="kpi-label">Покинуто</span>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <h4>За статусом</h4>
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: watchingStatuses() }" />
+    </section>
+
+    <section class="stats-section">
+        <h4>Оцінки</h4>
+        @if (watchingRatings().length === 0) {
+        <p class="muted">Оцінок ще немає.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="columns; context: { $implicit: watchingRatings(), tone: 'tone-amber' }" />
+        <p class="hint">Відсотки — від кількості оцінених записів.</p>
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>За типом</h4>
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: watchingTypes() }" />
+    </section>
+
+    <section class="stats-section">
+        <h4>Жанри <span class="muted">({{ watchingGenresCount() }})</span></h4>
+        @if (watchingGenres().length === 0) {
+        <p class="muted">Жанри не вказані.</p>
+        } @else {
+        <ng-container *ngTemplateOutlet="barList; context: { $implicit: watchingGenres() }" />
+        @if (watchingGenresCount() > collapsedTop) {
+        <button type="button" class="btn-secondary toggle-btn" (click)="toggle(showAllWatchingGenres)">
+            {{ showAllWatchingGenres() ? 'Показати менше' : 'Показати всі (' + watchingGenresCount() + ')' }}
+        </button>
+        }
+        }
+    </section>
+
+    <section class="stats-section">
+        <h4>Активність за місяцями</h4>
+        @if (watchingMonths().length === 0) {
+        <p class="muted">Дат початку чи завершення ще немає.</p>
+        } @else {
+        <div class="month-legend">
+            <span><i class="dot started"></i> Почато</span>
+            <span><i class="dot finished"></i> Завершено</span>
+        </div>
+        <div class="age-chart dual-chart">
+            @for (item of watchingMonths(); track item.key) {
+            <div class="age-col dual-col"
+                [title]="item.key + ': почато ' + item.started + ', завершено ' + item.finished">
+                <span class="age-count">{{ item.started || item.finished ? item.started + '/' + item.finished : ''
+                    }}</span>
+                <span class="dual-bars">
+                    <span class="age-bar started" [style.height.%]="item.startedSize"></span>
+                    <span class="age-bar finished" [style.height.%]="item.finishedSize"></span>
+                </span>
+                <span class="age-label">{{ item.label }}</span>
+            </div>
+            }
+        </div>
+        }
+    </section>
+    }
+    }
     }
 </div>
