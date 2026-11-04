@@ -2,11 +2,12 @@
 using AngleSharp.Html.Parser;
 using MovieJournalBackend.Contracts.Maintenance;
 using MovieJournalBackend.Entities.Media;
+using MovieJournalBackend.Extensions;
 using System.Globalization;
 
 namespace MovieJournalBackend.Services.Implementation
 {
-    public sealed class MetadataService(HttpClient httpClient) : IMetadataService
+    public sealed partial class MetadataService(HttpClient httpClient) : IMetadataService
     {
         private const int MaxHtmlSize = 2 * 1024 * 1024;
 
@@ -117,54 +118,110 @@ namespace MovieJournalBackend.Services.Implementation
         ];
 
 
+        /// <summary>
+        /// Усі кандидати на плеєр зі сторінки: Open Graph, Twitter Player Card, schema.org.
+        /// Сайти часто дублюють og:video:* з різними посиланнями й типами (і частина з них зламана), тому перебираємо
+        /// всі, відкидаємо некоректні, а обираємо за пріоритетом: спочатку Embed, потім Video (https — раніше за http).
+        /// </summary>
         private static MediaLink? GetPlayerLink(Uri url, IHtmlDocument document)
         {
-            // 1. Open Graph: тип береться з og:video:type
-            var ogType = GetMetaContent(document, "og:video:type");
-            foreach (var raw in GetMetaContents(document, "og:video:secure_url", "og:video:url", "og:video"))
+            var candidates = new List<MediaLink>();
+
+            void Add(string? raw, string? mime)
             {
-                if (ToHttpUrl(url, raw) is { } link && Classify(link, ogType) is { } type)
+                if (ToHttpUrl(url, raw) is { } link && Classify(link, mime) is { } type)
                 {
-                    return new(link, type);
+                    candidates.Add(new(link, type));
                 }
             }
 
-            // 2. Twitter Player Card
-            if (ToHttpUrl(url, GetMetaContent(document, "twitter:player:stream")) is { } stream &&
-                Classify(stream, GetMetaContent(document, "twitter:player:stream:content_type")) is { } streamType)
+            // 1. Open Graph. Тег og:video:type стосується найближчого попереднього og:video / :url / :secure_url,
+            //    тож проходимо теги в порядку документа й пов'язуємо кожне посилання з його типом.
+            var ogVideos = new List<(string Url, string? Mime)>();
+            string? pendingMime = null;
+
+            foreach (var meta in document.QuerySelectorAll("meta"))
             {
-                return new(stream, streamType);
+                var name = (meta.GetAttribute("property") ?? meta.GetAttribute("name"))?.Trim().ToLowerInvariant();
+                var content = meta.GetAttribute("content")?.Trim();
+
+                if (string.IsNullOrWhiteSpace(content)) continue;
+
+                if (name is "og:video" or "og:video:url" or "og:video:secure_url")
+                {
+                    // Той самий URL у og:video та og:video:url — це один кандидат
+                    if (ogVideos.Count > 0 && string.Equals(ogVideos[^1].Url, content, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    ogVideos.Add((content, pendingMime));
+                    pendingMime = null;
+                }
+                else if (name == "og:video:type")
+                {
+                    if (ogVideos.Count > 0 && ogVideos[^1].Mime is null)
+                    {
+                        ogVideos[^1] = (ogVideos[^1].Url, content);
+                    }
+                    else
+                    {
+                        pendingMime = content;
+                    }
+                }
             }
+
+            foreach (var (videoUrl, mime) in ogVideos)
+            {
+                Add(videoUrl, mime);
+            }
+
+            // 2. Twitter Player Card
+            Add(GetMetaContent(document, "twitter:player:stream"), GetMetaContent(document, "twitter:player:stream:content_type"));
             if (ToHttpUrl(url, GetMetaContent(document, "twitter:player")) is { } player)
             {
-                return new(player, LinkType.Embed);
+                candidates.Add(new(player, LinkType.Embed));
             }
 
-            // 3. schema.org: microdata
+            // 3. schema.org (microdata)
             if (ToHttpUrl(url, GetMetaContent(document, "embedUrl")) is { } embed)
             {
-                return new(embed, LinkType.Embed);
+                candidates.Add(new(embed, LinkType.Embed));
             }
-            if (ToHttpUrl(url, GetMetaContent(document, "contentUrl")) is { } content &&
-                Classify(content, null) is { } contentType)
-            {
-                return new(content, contentType);
-            }
+            Add(GetMetaContent(document, "contentUrl"), null);
 
-            return null;
+            // Пріоритет: Embed, потім Video; серед однакових — https перед http, далі порядок на сторінці
+            return PickBest(candidates, LinkType.Embed) ?? PickBest(candidates, LinkType.Video);
         }
 
-        // Абсолютний http-URL; relative → відносно сторінки; інше (javascript:, data:) відкидаємо
+        private static MediaLink? PickBest(List<MediaLink> candidates, LinkType type) =>
+            candidates
+                .Where(c => c.Type == type)
+                .OrderByDescending(c => c.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault();
+
+        // Абсолютний http(s)-URL; relative → відносно сторінки; інше (javascript:, data:, mailto:) відкидаємо
         private static string? ToHttpUrl(Uri url, string? raw) =>
             !string.IsNullOrWhiteSpace(raw) &&
-            Uri.TryCreate(url, raw, out var uri)
+            Uri.TryCreate(url, raw.Trim(), out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
                 ? uri.ToString()
                 : null;
 
-        // За MIME/розширенням: Video, Embed або null (не підтримуємо: Flash, HLS/DASH тощо)
+        // type/subtype без пробілів і зайвих символів; «video/» чи «video» — зламаний тип
+        private static bool IsValidMime(string mime) => Regexes.MimeRegex().IsMatch(mime);
+
+        // За MIME/розширенням: Video, Embed або null (некоректний тип; не підтримуємо Flash, HLS/DASH тощо)
         private static LinkType? Classify(string link, string? mime)
         {
             mime = mime?.Trim().ToLowerInvariant();
+
+            // Тип вказано, але він зламаний: така пара тип+посилання недостовірна, пропускаємо
+            if (!string.IsNullOrEmpty(mime) && !IsValidMime(mime))
+            {
+                return null;
+            }
+
             var path = new Uri(link).AbsolutePath.ToLowerInvariant();
 
             if (path.EndsWith(".m3u8") || path.EndsWith(".mpd") ||

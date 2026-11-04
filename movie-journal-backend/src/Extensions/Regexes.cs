@@ -9,5 +9,6 @@ namespace MovieJournalBackend.Extensions
         [GeneratedRegex(@"\s*\([^()]*\)")] public static partial Regex NameRegex();
         [GeneratedRegex(@"\((\d{4})\)\s*$")] public static partial Regex YearRegex();
         [GeneratedRegex(@"[sS](\d+)\s*:\s*[eE](\d+)")] public static partial Regex SeriesEpisodeRegex();
+        [GeneratedRegex(@"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$")] public static partial Regex MimeRegex();
     }
 }
